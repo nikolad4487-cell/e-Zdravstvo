@@ -41,10 +41,10 @@ Bez konfiguracije frontend radi i prikazuje upute za povezivanje; prijava nije l
 ```sh
 supabase login
 supabase link --project-ref YOUR_PROJECT_REF
-supabase db push
+supabase db push --include-seed
 ```
 
-Referentni `supabase/seed.sql` primijenite CLI-jem ili preko `psql "$DATABASE_URL" -f supabase/seed.sql` samo na razvojnoj bazi. Nikakve tablice ne izrađuju se ručno. Postavite VITE varijable na projekt URL / javni ključ. U Supabase Auth URL konfiguraciji dopustite točnu adresu aplikacije i `/nova-lozinka`. Isključite javnu registraciju i postavite minimum lozinke na 12 znakova (lokalni config već to radi). Za e-mail u udaljenom okruženju konfigurirajte SMTP; lokalni e-mailovi dostupni su u Mailpit/Inbucket alatu iz `supabase status`.
+Opcija `--include-seed` primjenjuje i `supabase/seed.sql`; koristite je samo na razvojnoj bazi. Nikakve tablice ne izrađuju se ručno. Postavite VITE varijable na projekt URL / javni ključ. U Supabase Auth URL konfiguraciji dopustite točnu adresu aplikacije i `/nova-lozinka`. Isključite javnu registraciju i postavite minimum lozinke na 12 znakova (lokalni config već to radi). E-mail provider mora ostati uključen za prijavu postojećih računa: `[auth].enable_signup = false`, ali `[auth.email].enable_signup = true`. Za primjenu postavki prvo pregledajte `supabase config diff`, a zatim pokrenite `supabase config push`. Za e-mail u udaljenom okruženju konfigurirajte SMTP; lokalni e-mailovi dostupni su u Mailpit/Inbucket alatu iz `supabase status`.
 
 ### Testni računi
 
