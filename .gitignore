@@ -8,3 +8,4 @@ dist/
 supabase/.temp/
 artifacts/
 *.tsbuildinfo
+.vercel/

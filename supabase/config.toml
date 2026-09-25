@@ -33,8 +33,16 @@ file_size_limit = "10MiB"
 
 [auth]
 enabled = true
-site_url = "http://localhost:5173"
-additional_redirect_urls = ["http://localhost:5173/nova-lozinka", "http://127.0.0.1:5173/nova-lozinka"]
+site_url = "https://e-zdravstvo.vercel.app"
+additional_redirect_urls = [
+  "https://e-zdravstvo.vercel.app/nova-lozinka",
+  "http://localhost:5173/nova-lozinka",
+  "http://127.0.0.1:5173/nova-lozinka",
+  "https://e-zdravstvo-carnet-s-projects.vercel.app/",
+  "https://e-zdravstvo-carnet-s-projects.vercel.app/**",
+  "https://e-*-zdravstvo-carnet-s-projects.vercel.app",
+  "https://e-*-zdravstvo-carnet-s-projects.vercel.app/**"
+]
 jwt_expiry = 3600
 enable_signup = false
 minimum_password_length = 12

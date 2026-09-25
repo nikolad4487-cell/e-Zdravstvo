@@ -65,6 +65,14 @@ npm run seed:demo
 
 Lozinka je vrijednost koju sami postavite u `DEMO_PASSWORD`. Skripta je ne ispisuje, ne mijenja lozinke postojećih računa i odbija izmjenu računa bez svoje demo oznake. `.env.seed` nije dio Gita. Svi računi u UI-ju nose oznaku „Testni račun”. Veći klinički seed (3 liječnika, 2 sestre, 10 pacijenata i medicinska dokumentacija) dolazi s odgovarajućim modulima.
 
+## Vercel
+
+Javna razvojna aplikacija: https://e-zdravstvo.vercel.app. Vercel projekt `e-zdravstvo` povezan je s ovim GitHub repozitorijem. Produkcijska grana je `main`.
+
+`vercel.json` postavlja Vite build, izlaz `dist` i SPA rewrite za izravno otvaranje ruta poput `/ordinacija` i `/central`. Instalacija koristi zaključane verzije iz `pnpm-lock.yaml` i pnpm verziju iz `package.json`.
+
+U Vercel okruženjima Production i Preview potrebne su varijable `VITE_SUPABASE_URL` i `VITE_SUPABASE_ANON_KEY`. U VITE varijable ne unositi service_role ili druge privatne ključeve. `.vercelignore` isključuje lokalne env datoteke, demo lozinke i druge razvojne artefakte iz CLI objave. Supabase konfiguracija uključuje javnu adresu i povratnu rutu `/nova-lozinka`, uz zadržane lokalne adrese.
+
 ## Provjera
 
 ```sh
