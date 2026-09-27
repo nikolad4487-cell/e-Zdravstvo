@@ -19,6 +19,7 @@ export function Field({
   step?: string;
   placeholder?: string;
   maxLength?: number;
+  minLength?: number;
 }) {
   return (
     <label className="field">
@@ -36,6 +37,7 @@ export function Field({
           defaultValue={defaultValue}
           required={required}
           maxLength={props.maxLength ?? 10000}
+          minLength={props.minLength}
         />
       ) : (
         <input

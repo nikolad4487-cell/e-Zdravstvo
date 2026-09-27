@@ -15,7 +15,8 @@
     "format:check": "prettier --check src scripts index.html vite.config.ts",
     "test:clinical": "node scripts/test-clinical.mjs",
     "seed:clinical": "node --env-file=.env.seed scripts/seed-clinical.mjs",
-    "seed:workflow": "node --env-file=.env --env-file=.env.seed scripts/seed-workflow.mjs"
+    "seed:workflow": "node --env-file=.env --env-file=.env.seed scripts/seed-workflow.mjs",
+    "test:files:live": "node --env-file=.env --env-file=.env.seed scripts/test-files-live.mjs"
   },
   "dependencies": {
     "@pdf-lib/fontkit": "^1.1.1",

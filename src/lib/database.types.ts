@@ -32,6 +32,19 @@ export type Database = {
     };
     Views: Record<string, never>;
     Functions: {
+      list_attachments: {
+        Args: { patient_id: string; include_archived?: boolean };
+        Returns: Json;
+      };
+      archive_attachment: {
+        Args: { attachment_id: string; reason: string };
+        Returns: undefined;
+      };
+      mark_notification_read: {
+        Args: { notification_id?: string | null };
+        Returns: undefined;
+      };
+      patient_dashboard: { Args: Record<string, never>; Returns: Json };
       issue_document: {
         Args: {
           patient_id: string;

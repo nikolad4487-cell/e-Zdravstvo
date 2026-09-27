@@ -1,6 +1,6 @@
 # e-Zdravstvo
 
-Integrirani digitalni zdravstveni sustav — **faze 1–4**. Originalna razvojna aplikacija, nije povezana s CEZIH-om, HZZO-om, e-Građanima ni drugim službenim sustavima. Isključivo izmišljeni testni podaci; nije spremna za stvarnu medicinsku dokumentaciju.
+Integrirani digitalni zdravstveni sustav — **faze 1–5**. Originalna razvojna aplikacija, nije povezana s CEZIH-om, HZZO-om, e-Građanima ni drugim službenim sustavima. Isključivo izmišljeni testni podaci; nije spremna za stvarnu medicinsku dokumentaciju.
 
 ## Što je implementirano
 
@@ -11,7 +11,7 @@ Integrirani digitalni zdravstveni sustav — **faze 1–4**. Originalna razvojna
 - Odvojeni radni prostori liječnika, pacijenta, ustanove, škole i administratora. Kliničke podatke dohvaćaju iz Supabasea.
 - SQL migracije: `profiles`, `institutions`, `institution_departments`, `institution_users`, `user_roles`, `audit_logs`, UUID, FK, indeksi, constraints, RLS, updated_at i audit triggeri.
 - Kontrolirane SQL funkcije za ustanove, članstva, dodjelu i opoziv uloga. Administratorski UI za te radnje dolazi u fazi 7.
-- Privatni Supabase Storage bucket, namjerno bez pristupa objektima dok faza 5 ne uvede vlasništvo i metapodatke dokumenata.
+- Privatni Supabase Storage i Edge funkcija za upload/preuzimanje privitaka, s provjerom ovlasti i auditom svake autorizirane operacije.
 - Pretraga pacijenata po imenu, ID-u i datumu rođenja, kreiranje pacijenta, karton, alergije i upozorenja. Globalna pretraga Ctrl+K.
 - Ustanove: uređivanje osnovnih podataka, dodavanje odjela, prikaz djelatnika i liječnički profili.
 - Pregledi s vitalnim parametrima i izračunom BMI-ja, primarna/sekundarne dijagnoze, trajne dijagnoze i terapija. Ispravak pregleda stvara novu verziju i zadržava original.
@@ -137,8 +137,30 @@ supabase/
 scripts/           # testovi baze i sigurni demo provisioning
 ```
 
-Faze 2–4 imaju funkcionalni klinički tok. Dio faze 5 (čitanje dokumenata pacijenta i obavijesti) uključen je radi provjere toka od početka do kraja. Preostaju upload privitaka i Storage politike, potpuni pacijentov dashboard, termini i čekaonica, laboratorij, nalazi te puna administracija korisnika/šifrarnika. Brojevi prikazanih popisa ograničeni su na 50 pacijenata i 100 najnovijih dokumenata; pretražite pacijenta za njegov karton. Nisu dodane prazne stranice za neimplementirane module.
+Faze 2–5 imaju funkcionalni klinički tok, privatne privitke i pacijentov dashboard. Preostaju termini i čekaonica, laboratorij, strukturirani nalazi te puna administracija korisnika/šifrarnika. Pacijentove kartice za termine, nalaze i cijepljenja dodaju se kada postoje odgovarajući moduli, bez lažnih brojki ili praznih ruta. Brojevi prikazanih popisa ograničeni su na 50 pacijenata i 100 najnovijih dokumenata; pretražite pacijenta za njegov karton. Nisu dodane prazne stranice za neimplementirane module.
 
 Ovlasti skrbnog tima i povezivanje novog pacijenta s Auth računom zasad se postavljaju pouzdanim provisioningom/seed skriptom. Liječnik pri kreiranju pacijenta dobiva vlastitu skrbnu vezu. Ne postoji javna samostalna registracija ni preuzimanje tuđeg kartona.
 
 Osnova sigurnosnog pristupa: [Supabase RLS](https://supabase.com/docs/guides/database/postgres/row-level-security), [Supabase Auth](https://supabase.com/docs/guides/auth), [upravljanje korisničkim profilima](https://supabase.com/docs/guides/auth/managing-user-data).
+
+## Faza 5: privatni privitci i osobni pregled
+
+- Moje e-Zdravstvo počinje stvarnim pregledom aktivnih recepata, uputnica, terapije, liječnika, nedavnih dokumenata i nepročitanih obavijesti. Mobitel ima donju navigaciju.
+- Pacijent učitava dokumente u karticu PRIVITCI; liječnik u kartonu pod DOKUMENTI. PDF/JPEG/PNG, najviše 10 MB. Medicinska sestra ima samo čitanje ako ima izričitu skrbnu vezu.
+- document_attachments odvojeno čuva metapodatke učitanih datoteka. Izdani, potpisani dokumenti ostaju nepromjenjivi u documents. Učitani dokument nije potvrda autentičnosti izdavatelja.
+- Edge funkcija document-files provjerava JWT putem Auth getUser i zatim svaki zahtjev autorizira kroz RPC pod korisnikovim identitetom. Samo zatim koristi serverski Storage ključ. Klijent nema izravne Storage politike za čitanje ili pisanje i ne dobiva potpisane URL-ove.
+- Upload provjerava duljinu i početni potpis formata, normalizira ekstenziju te računa SHA-256 na serveru. To je provjera formata/integriteta, ne antivirusna analiza. Preuzimanje ponovno računa hash i vraća Cache-Control: no-store.
+- Ponovljeni upload s istim request ID-em ne stvara kopiju. PENDING zapis ostaje skriven dok Storage metadata ne potvrdi dovršen prijenos. Prekid nakon pohrane može se dovršiti ponavljanjem istog zahtjeva. Nema automatskog brisanja nedovršenih originala.
+- Samo učitavatelj s aktualnim ovlastima može arhivirati, uz obvezan razlog. Original se čuva i ostaje dostupan autoriziranim korisnicima kroz arhivski filtar.
+- Obavijesti se označavaju pročitanima isključivo vlasniku. Upload, izdavanje i opoziv osvježavaju portal preko Realtimea. Cron ez-document-expiry svakodnevno u 06:00 UTC stvara po jedan podsjetnik za recept/uputnicu koja istječe unutar 7 dana.
+
+Nakon migracija treba objaviti i funkciju (serverske SUPABASE varijable Supabase automatski postavlja):
+
+```sh
+supabase functions deploy document-files --project-ref YOUR_PROJECT_REF
+```
+
+verify_jwt=false u konfiguraciji označava eksplicitnu validaciju unutar funkcije, ne anonimni pristup. Zadržite ovu provjeru i prosljeđivanje korisničkog JWT-a u RPC pozive. Lokalni PGlite test ima minimalni storage.objects stub; stvarni Storage i Edge tok dodatno se testiraju na razvojnom Supabaseu.
+
+Za stvarnu integracijsku provjeru pokrenite `npm run test:files:live` uz razvojne env datoteke. Test stvara jedan izmišljeni PDF i zatim ga arhivira; original ostaje sačuvan prema pravilima medicinske evidencije. Nikada ga ne pokrećite nad stvarnim pacijentima.
+

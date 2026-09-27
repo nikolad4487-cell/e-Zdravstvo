@@ -59,3 +59,8 @@ secure_password_change = true
 sign_in_sign_ups = 20
 token_refresh = 100
 email_sent = 5
+
+[functions.document-files]
+# JWT is validated with Auth getUser and forwarded to every authorization RPC.
+# Explicit validation supports both legacy and new Supabase signing keys.
+verify_jwt = false

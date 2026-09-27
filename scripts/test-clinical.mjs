@@ -3,7 +3,7 @@ import { readFile, readdir } from "node:fs/promises";
 import assert from "node:assert/strict";
 const db = new PGlite();
 await db.exec(
-  `create role anon nologin;create role authenticated nologin;create role service_role nologin bypassrls;create schema auth;create schema storage;create table auth.users(id uuid primary key,raw_user_meta_data jsonb default '{}');create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;grant usage on schema auth to authenticated,anon;create table storage.buckets(id text primary key,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]);`,
+  `create role anon nologin;create role authenticated nologin;create role service_role nologin bypassrls;create schema auth;create schema storage;create table auth.users(id uuid primary key,raw_user_meta_data jsonb default '{}');create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;grant usage on schema auth to authenticated,anon;create table storage.objects(id uuid default gen_random_uuid(),bucket_id text,name text,metadata jsonb);create table storage.buckets(id text primary key,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]);`,
 );
 for (const file of (await readdir("supabase/migrations"))
   .filter((f) => f.endsWith(".sql"))
@@ -371,4 +371,149 @@ await test("download and verification events are audited", async () => {
   assert.equal(actions.length, 3);
 });
 console.log(`${passed} final clinical checks passed.`);
+const uploadData = {
+  title: "Testni privitak",
+  category: "REPORT",
+  file_name: "test.pdf",
+  content_type: "application/pdf",
+  byte_size: 8,
+  sha256: "a".repeat(64),
+};
+const attachment = await as(4, () =>
+  rpc("reserve_attachment", [pid, uploadData, uid(70)]),
+);
+await test("patient can reserve an upload only for own chart", async () => {
+  const otherPatient = await as(1, () =>
+    rpc("create_patient", [
+      {
+        first_name: "Drugi",
+        last_name: "Test",
+        birth_date: "2000-01-01",
+        sex: "M",
+      },
+      doc,
+    ]),
+  );
+  await as(4, () =>
+    assert.rejects(
+      rpc("reserve_attachment", [otherPatient, uploadData, uid(71)]),
+    ),
+  );
+});
+await test("nurse, school and unrelated doctor cannot upload", async () => {
+  for (const n of [2, 3, 5, 6])
+    await as(n, () =>
+      assert.rejects(rpc("reserve_attachment", [pid, uploadData, uid(71)])),
+    );
+});
+await test("upload retry is idempotent and cannot replace content", () =>
+  as(4, async () => {
+    assert.equal(
+      await rpc("reserve_attachment", [pid, uploadData, uid(70)]),
+      attachment,
+    );
+    await assert.rejects(
+      rpc("reserve_attachment", [
+        pid,
+        { ...uploadData, sha256: "b".repeat(64) },
+        uid(70),
+      ]),
+    );
+  }));
+await test("missing storage object cannot be finalized or downloaded", () =>
+  as(4, async () => {
+    await assert.rejects(rpc("finish_attachment", [attachment]));
+    await assert.rejects(rpc("attachment_transfer", [attachment, "DOWNLOAD"]));
+    assert.equal((await rpc("list_attachments", [pid, false])).length, 0);
+  }));
+await db.query(
+  "insert into storage.objects(bucket_id,name,metadata) values('medical-documents',$1,$2)",
+  ["uploads/" + attachment, { size: 8, mimetype: "application/pdf" }],
+);
+await as(4, () => rpc("finish_attachment", [attachment]));
+await test("authorized team sees upload metadata without storage path", () =>
+  as(1, async () => {
+    const list = await rpc("list_attachments", [pid, false]);
+    assert.equal(list.length, 1);
+    assert.ok(!("storage_path" in list[0]));
+    assert.equal(list[0].can_archive, false);
+  }));
+await test("direct storage and attachment reads cannot bypass audited transfer", () =>
+  as(4, async () => {
+    await assert.rejects(db.exec("select * from storage.objects"));
+    await assert.rejects(db.exec("select * from document_attachments"));
+    assert.equal(
+      (await rpc("attachment_transfer", [attachment, "DOWNLOAD"])).id,
+      attachment,
+    );
+  }));
+await test("unauthorized users cannot obtain download transfer", async () => {
+  for (const n of [0, 2, 5, 6])
+    await as(n, () =>
+      assert.rejects(rpc("attachment_transfer", [attachment, "DOWNLOAD"])),
+    );
+});
+await test("upload content is immutable and cannot be deleted", async () => {
+  await assert.rejects(
+    db.query("update document_attachments set title=$1 where id=$2", [
+      "overwrite",
+      attachment,
+    ]),
+  );
+  await assert.rejects(
+    db.query("delete from document_attachments where id=$1", [attachment]),
+  );
+});
+await test("only uploader may archive, with reason and original retained", async () => {
+  await as(1, () =>
+    assert.rejects(rpc("archive_attachment", [attachment, "Test arhive"])),
+  );
+  await as(4, async () => {
+    await assert.rejects(rpc("archive_attachment", [attachment, null]));
+    await rpc("archive_attachment", [attachment, "Pogrešan testni privitak"]);
+    assert.equal((await rpc("list_attachments", [pid, false])).length, 0);
+    assert.equal(
+      (await rpc("list_attachments", [pid, true]))[0].status,
+      "ARCHIVED",
+    );
+    assert.equal(
+      (await rpc("attachment_transfer", [attachment, "DOWNLOAD"])).sha256,
+      uploadData.sha256,
+    );
+  });
+});
+await test("patient dashboard is personal and excludes archived uploads", async () => {
+  await as(4, async () => {
+    const d = await rpc("patient_dashboard");
+    assert.equal(d.patient_id, pid);
+    assert.equal(d.attachments, 0);
+    assert.ok(d.unread_notifications > 0);
+  });
+  await as(5, () => assert.rejects(rpc("patient_dashboard")));
+});
+const soon = new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10);
+await as(1, () =>
+  rpc("issue_document", [
+    pid,
+    "PRESCRIPTION",
+    { ...rx, expires_on: soon },
+    uid(72),
+  ]),
+);
+await test("expiry reminders are generated once per document", async () => {
+  const first = await db.query("select private.notify_expiring_documents() n");
+  assert.equal(first.rows[0].n, 1);
+  assert.equal(
+    (await db.query("select private.notify_expiring_documents() n")).rows[0].n,
+    0,
+  );
+});
+await test("only patient can mark own notifications read", async () => {
+  await as(5, () => assert.rejects(rpc("mark_notification_read", [null])));
+  await as(4, async () => {
+    await rpc("mark_notification_read", [null]);
+    assert.equal((await rpc("patient_dashboard")).unread_notifications, 0);
+  });
+});
+console.log(`${passed} total clinical and document checks passed.`);
 await db.close();

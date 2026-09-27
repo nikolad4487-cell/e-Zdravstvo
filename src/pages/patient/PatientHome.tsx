@@ -2,7 +2,10 @@ import { useEffect, useState } from "react";
 import { useAuth } from "../../hooks/useAuth";
 import { useResource } from "../../hooks/useResource";
 import { getMyChart } from "../../services/clinical";
-import { getNotifications } from "../../services/documents";
+import { PatientOverview } from "../../components/medical/PatientOverview";
+import { AttachmentList } from "../../components/medical/AttachmentList";
+import { NotificationCenter } from "../../components/medical/NotificationCenter";
+import { Home, Files, HeartPulse, Bell } from "lucide-react";
 import { DocumentList } from "../../components/medical/DocumentList";
 import { ClinicalHistory } from "../../components/medical/ClinicalHistory";
 import { ErrorMessage } from "../../components/ui/Feedback";
@@ -10,10 +13,9 @@ import { db } from "../../lib/supabase";
 import { dateLabel } from "../../utils/format";
 export function PatientHome() {
   const auth = useAuth(),
-    [tab, setTab] = useState("DOKUMENTI"),
+    [tab, setTab] = useState("POČETNA"),
     [version, setVersion] = useState(0);
   const chart = useResource(getMyChart, auth.profile?.id ?? "");
-  const notifications = useResource(getNotifications, String(version));
   useEffect(() => {
     if (!auth.profile) return;
     const channel = db()
@@ -28,7 +30,6 @@ export function PatientHome() {
         },
         () => {
           setVersion((v) => v + 1);
-          chart.refresh();
         },
       )
       .subscribe();
@@ -47,7 +48,9 @@ export function PatientHome() {
       </div>
       <nav className="record-tabs" aria-label="Moj zdravstveni prostor">
         {[
+          "POČETNA",
           "DOKUMENTI",
+          "PRIVITCI",
           "RECEPTI",
           "UPUTNICE",
           "ISPRIČNICE",
@@ -64,6 +67,14 @@ export function PatientHome() {
           </button>
         ))}
       </nav>
+      {tab === "POČETNA" && (
+        <PatientOverview version={version} navigate={setTab} />
+      )}
+      {tab === "DOKUMENTI" && (
+        <button className="secondary" onClick={() => setTab("PRIVITCI")}>
+          Učitani dokumenti i upload →
+        </button>
+      )}
       {["DOKUMENTI", "RECEPTI", "UPUTNICE", "ISPRIČNICE"].includes(tab) &&
         (chart.loading ? (
           <p role="status">Učitavanje…</p>
@@ -124,14 +135,14 @@ export function PatientHome() {
             </section>
             <ClinicalHistory
               tab={tab === "TERAPIJA" ? "TERAPIJA" : "POVIJEST"}
-              chart={chart.data}
+              chart={{ ...chart.data, can_write: false }}
               onRefresh={chart.refresh}
               onAmend={() => undefined}
             />
             {tab === "KARTON" && (
               <ClinicalHistory
                 tab="DIJAGNOZE"
-                chart={chart.data}
+                chart={{ ...chart.data, can_write: false }}
                 onRefresh={chart.refresh}
                 onAmend={() => undefined}
               />
@@ -142,26 +153,46 @@ export function PatientHome() {
             Vaš račun još nije povezan sa zdravstvenim kartonom.
           </section>
         ))}
+      {tab === "PRIVITCI" &&
+        (chart.loading ? (
+          <p role="status">Učitavanje…</p>
+        ) : chart.error ? (
+          <ErrorMessage>{chart.error}</ErrorMessage>
+        ) : chart.data ? (
+          <AttachmentList
+            patientId={chart.data.patient.id}
+            canUpload
+            version={version}
+            onChanged={() => setVersion((v) => v + 1)}
+          />
+        ) : (
+          <section className="card empty-state">
+            Vaš račun još nije povezan sa zdravstvenim kartonom.
+          </section>
+        ))}
       {tab === "OBAVIJESTI" && (
-        <section className="card">
-          <h2>Obavijesti</h2>
-          {notifications.error && (
-            <ErrorMessage>{notifications.error}</ErrorMessage>
-          )}
-          {notifications.loading ? (
-            <p role="status">Učitavanje…</p>
-          ) : notifications.data?.length ? (
-            notifications.data.map((n) => (
-              <article className="clinical-note" key={n.id}>
-                <p>{n.message}</p>
-                <small>{dateLabel(n.created_at)}</small>
-              </article>
-            ))
-          ) : (
-            <p className="empty-state">Nemate novih obavijesti.</p>
-          )}
-        </section>
+        <NotificationCenter
+          version={version}
+          onRead={() => setVersion((v) => v + 1)}
+        />
       )}
+      <nav className="patient-bottom-nav" aria-label="Brza navigacija">
+        {[
+          { tab: "POČETNA", label: "Početna", Icon: Home },
+          { tab: "DOKUMENTI", label: "Dokumenti", Icon: Files },
+          { tab: "KARTON", label: "Karton", Icon: HeartPulse },
+          { tab: "OBAVIJESTI", label: "Obavijesti", Icon: Bell },
+        ].map((item) => (
+          <button
+            key={item.tab}
+            className={tab === item.tab ? "active" : ""}
+            onClick={() => setTab(item.tab)}
+          >
+            <item.Icon size={21} />
+            <span>{item.label}</span>
+          </button>
+        ))}
+      </nav>
     </>
   );
 }

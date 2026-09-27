@@ -14,6 +14,7 @@ import { ClinicalModal } from "../../components/medical/ClinicalModal";
 import type { ClinicalAction } from "../../components/medical/ClinicalModal";
 import { ClinicalHistory } from "../../components/medical/ClinicalHistory";
 import type { MedicalEncounter } from "../../types/clinical";
+import { AttachmentList } from "../../components/medical/AttachmentList";
 import { DocumentList } from "../../components/medical/DocumentList";
 import { IssueDocumentModal } from "../../components/medical/IssueDocumentModal";
 import type { DocumentKind } from "../../types/documents";
@@ -154,19 +155,24 @@ export function PatientRecordPage() {
         </div>
       )}
       {["RECEPTI", "UPUTNICE", "ISPRIČNICE", "DOKUMENTI"].includes(tab) ? (
-        <DocumentList
-          patientId={id}
-          kind={
-            tab === "RECEPTI"
-              ? "PRESCRIPTION"
-              : tab === "UPUTNICE"
-                ? "REFERRAL"
-                : tab === "ISPRIČNICE"
-                  ? "SCHOOL_EXCUSE"
-                  : undefined
-          }
-          version={documentVersion}
-        />
+        <>
+          {tab === "DOKUMENTI" && (
+            <AttachmentList patientId={id} canUpload={can_write} />
+          )}
+          <DocumentList
+            patientId={id}
+            kind={
+              tab === "RECEPTI"
+                ? "PRESCRIPTION"
+                : tab === "UPUTNICE"
+                  ? "REFERRAL"
+                  : tab === "ISPRIČNICE"
+                    ? "SCHOOL_EXCUSE"
+                    : undefined
+            }
+            version={documentVersion}
+          />
+        </>
       ) : tab === "PREGLED" ? (
         <>
           <div className="account-grid">
