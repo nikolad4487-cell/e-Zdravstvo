@@ -1,6 +1,6 @@
 # e-Zdravstvo
 
-Integrirani digitalni zdravstveni sustav — **faza 1**. Originalna razvojna aplikacija, nije povezana s CEZIH-om, HZZO-om, e-Građanima ni drugim službenim sustavima. Isključivo izmišljeni testni podaci; nije spremna za stvarnu medicinsku dokumentaciju.
+Integrirani digitalni zdravstveni sustav — **faze 1–4**. Originalna razvojna aplikacija, nije povezana s CEZIH-om, HZZO-om, e-Građanima ni drugim službenim sustavima. Isključivo izmišljeni testni podaci; nije spremna za stvarnu medicinsku dokumentaciju.
 
 ## Što je implementirano
 
@@ -8,11 +8,19 @@ Integrirani digitalni zdravstveni sustav — **faza 1**. Originalna razvojna apl
 - Responsive prijava, izbor konteksta djelatnik/građanin, prikaz lozinke, opcija pamćenja sesije, obnova lozinke i odjava.
 - Prava Supabase Authentication prijava **e-mailom**; korisnička imena još nisu uvedena. Izbor konteksta na prijavi ne mijenja ovlasti.
 - Osam uloga, više uloga po korisniku, preusmjeravanje i zaštićeni portali. Višestruke uloge omogućuju promjenu portala u sidebaru.
-- Funkcionalna početna stranica računa: stvarni profil, aktivne uloge i ustanove iz baze; bez izmišljenih kliničkih statistika.
+- Odvojeni radni prostori liječnika, pacijenta, ustanove, škole i administratora. Kliničke podatke dohvaćaju iz Supabasea.
 - SQL migracije: `profiles`, `institutions`, `institution_departments`, `institution_users`, `user_roles`, `audit_logs`, UUID, FK, indeksi, constraints, RLS, updated_at i audit triggeri.
 - Kontrolirane SQL funkcije za ustanove, članstva, dodjelu i opoziv uloga. Administratorski UI za te radnje dolazi u fazi 7.
 - Privatni Supabase Storage bucket, namjerno bez pristupa objektima dok faza 5 ne uvede vlasništvo i metapodatke dokumenata.
-- Idempotentni referentni seed i skripta za pet stvarnih testnih Auth računa.
+- Pretraga pacijenata po imenu, ID-u i datumu rođenja, kreiranje pacijenta, karton, alergije i upozorenja. Globalna pretraga Ctrl+K.
+- Ustanove: uređivanje osnovnih podataka, dodavanje odjela, prikaz djelatnika i liječnički profili.
+- Pregledi s vitalnim parametrima i izračunom BMI-ja, primarna/sekundarne dijagnoze, trajne dijagnoze i terapija. Ispravak pregleda stvara novu verziju i zadržava original.
+- Recepti s više stavki, uputnice i ispričnice: potvrda prije izdavanja, jedinstveni brojevi, idempotentno izdavanje, opoziv i automatski status isteka.
+- PDF izvoz s ugrađenim fontom za hrvatska slova, QR kodom i demonstracijskim SHA-256 potpisom sadržaja. Potpis nije kvalificiran; hash je kanonskog JSON sadržaja, ne PDF datoteke.
+- Osnovni Moje e-Zdravstvo: vlastiti dokumenti, karton, terapija i obavijesti. Supabase Realtime osvježava dokumente nakon obavijesti.
+- Javna ruta /verify/:token prikazuje samo metapodatke valjanosti. Škola može provjeriti broj ispričnice ili učitati/fotografirati QR kod, bez pristupa kartonu.
+- Central ima paginiranu evidenciju audit događaja bez medicinskog sadržaja.
+- Idempotentni seed: 3 liječnika, 2 sestre, 10 izmišljenih pacijenata, pregledi, dijagnoze, terapije, recepti, uputnice i 2 ispričnice.
 
 ## Pokretanje
 
@@ -63,7 +71,14 @@ npm run seed:demo
 | pacijent@demo.e-zdravstvo.test | PATIENT                    |
 | skola@demo.e-zdravstvo.test    | SCHOOL_ADMIN               |
 
-Lozinka je vrijednost koju sami postavite u `DEMO_PASSWORD`. Skripta je ne ispisuje, ne mijenja lozinke postojećih računa i odbija izmjenu računa bez svoje demo oznake. `.env.seed` nije dio Gita. Svi računi u UI-ju nose oznaku „Testni račun”. Veći klinički seed (3 liječnika, 2 sestre, 10 pacijenata i medicinska dokumentacija) dolazi s odgovarajućim modulima.
+Lozinka je vrijednost koju sami postavite u `DEMO_PASSWORD`. Skripta je ne ispisuje, ne mijenja lozinke postojećih računa i odbija izmjenu računa bez svoje demo oznake. `.env.seed` nije dio Gita. Svi računi u UI-ju nose oznaku „Testni račun”. Klinički seed pokrenite nakon migracija i seed:demo:
+
+```sh
+npm run seed:clinical
+npm run seed:workflow
+```
+
+seed:workflow dodatno čita javni ključ iz .env i prijavljuje testnog liječnika; dokumenti nastaju kroz iste autorizirane RPC funkcije kao u aplikaciji. Lijekovi i dijagnoze su izmišljeni demonstracijski šifrarnici, nisu stvarni MKB ili registar lijekova. Dodatni računi su lijecnik2, lijecnik3 i sestra2 na istoj demo domeni. Postojeći podaci se ne brišu niti prepisuju.
 
 ## Vercel
 
@@ -79,6 +94,7 @@ U Vercel okruženjima Production i Preview potrebne su varijable `VITE_SUPABASE_
 npm run build
 npm test
 npm run test:db
+npm run test:clinical
 ```
 
 DB test primjenjuje migracije u stvarnom PostgreSQL engineu PGlite uz minimalne stubove Supabase infrastrukture. Provjerava RLS, izolaciju ustanova, eskalaciju uloga, suspenziju članstva, audit integritet i privatnost bucketa. To **nije zamjena** za Supabase integracijski test:
@@ -93,13 +109,13 @@ DB test primjenjuje migracije u stvarnom PostgreSQL engineu PGlite uz minimalne 
 
 ## Sigurnosni model
 
-Uloge se čitaju iz baze, ne iz korisnički izmjenjivih JWT metapodataka. Uloga djelatnika vrijedi samo uz aktivno članstvo u aktivnoj ustanovi. RLS je stvarna granica ovlasti; frontend guard služi navigaciji. SYSTEM_ADMIN u ovoj fazi vidi administrativne profile i ustanove, a buduće kliničke politike neće podrazumijevati administratorski pristup medicinskom sadržaju. Administratori ustanova mogu dodjeljivati samo kliničke uloge svoje ustanove, nikada globalne ili administratorske uloge.
+Uloge se čitaju iz baze, ne iz korisnički izmjenjivih JWT metapodataka. Uloga djelatnika vrijedi samo uz aktivno članstvo u aktivnoj ustanovi. RLS je stvarna granica ovlasti; frontend guard služi navigaciji. SYSTEM_ADMIN vidi administrativne profile, ustanove i audit; nema automatski pristup medicinskom sadržaju. Administratori ustanova mogu dodjeljivati samo kliničke uloge svoje ustanove, nikada globalne ili administratorske uloge.
 
-Klijenti nemaju izravne INSERT/DELETE ovlasti nad temeljnim tablicama. Izmjena vlastitog imena dopuštena je samo na dva stupca. Administrativni RPC-jevi provjeravaju ovlasti i triggerima bilježe radnje, bez kopiranja osobnih ili medicinskih podataka u audit. Brisanje audit zapisa je zabranjeno; opoziv uloge ostaje zabilježen u auditu. Budući medicinski zapisi koristit će verzioniranje/arhiviranje.
+Klijenti nemaju izravne INSERT/DELETE ovlasti nad temeljnim tablicama. Izmjena vlastitog imena dopuštena je samo na dva stupca. Administrativni RPC-jevi provjeravaju ovlasti i triggerima bilježe radnje, bez kopiranja osobnih ili medicinskih podataka u audit. Brisanje audit zapisa je zabranjeno; opoziv uloge ostaje zabilježen u auditu. Medicinski zapisi imaju zabranu brisanja. Pregledi koriste povezane verzije; izdani sadržaj dokumenta je nepromjenjiv. Opoziv zadržava sadržaj i potpis.
 
 `LOGIN_SUCCESS` i `LOGOUT` u aplikacijskom auditu su **klijentski prijavljeni događaji** vezani uz provjereni identitet; nisu samostalni dokaz autentikacije. Autoritativne uspješne i neuspješne autentikacije (`LOGIN_FAILED` ekvivalent) vodi Supabase Auth u `auth.audit_log_entries`. Klijent ne može stvarati anonimne lažne sigurnosne događaje. Centralizirani uvoz neuspjelih prijava/IP adresa treba izvesti serverskom integracijom u fazi 7; aplikacijski IP zasad je null, nikada preuzet iz neprovjerenog klijenta.
 
-Medicinski podaci nikad se ne spremaju u localStorage niti query parametre. Samo Auth tokeni koriste sessionStorage ili localStorage kada je odabrano pamćenje. U produkciji koristiti HTTPS, CSP, vlastiti SMTP i provjeru sigurnosti prije stvarnih podataka. RLS se provjerava pri svakom upitu; dodjela nove uloge vidljiva je nakon osvježavanja računa. Realtime pretplate dodaju se u fazi 5 uz domenske događaje.
+Medicinski podaci nikad se ne spremaju u localStorage niti query parametre. Samo Auth tokeni koriste sessionStorage ili localStorage kada je odabrano pamćenje. U produkciji koristiti HTTPS, CSP, vlastiti SMTP i provjeru sigurnosti prije stvarnih podataka. RLS se provjerava pri svakom upitu; dodjela nove uloge vidljiva je nakon osvježavanja računa. Realtime pretplata na vlastite obavijesti koristi RLS. Kliničke tablice nemaju izravan SELECT pristup klijenta: čitaju se kroz autorizirane RPC funkcije koje bilježe audit. Sestra čita samo eksplicitno dodijeljene pacijente; medicinske izmjene radi ovlašteni liječnik. Pacijent vidi samo svoj karton čak i ako ima dodatnu liječničku ulogu.
 
 ## Struktura i sljedeće faze
 
@@ -121,6 +137,8 @@ supabase/
 scripts/           # testovi baze i sigurni demo provisioning
 ```
 
-Faza 2 uvodi `doctors`, `patients`, `patient_doctors`, ustanove i kartone. Faza 3 uvodi preglede, dijagnoze i terapiju. Faza 4 izdavanje recepata, uputnica i ispričnica s demonstracijskim potpisom i javnom minimalnom provjerom. Faza 5 pacijentove dokumente, Storage politike i Realtime. Faza 6 termine, čekaonicu, laboratorij i nalaze. Faza 7 administrativne nadzorne ploče i prošireni sigurnosni audit. Domenske tipove i tablice dodavati zajedno s funkcionalnim tokovima, bez praznih placeholder modula.
+Faze 2–4 imaju funkcionalni klinički tok. Dio faze 5 (čitanje dokumenata pacijenta i obavijesti) uključen je radi provjere toka od početka do kraja. Preostaju upload privitaka i Storage politike, potpuni pacijentov dashboard, termini i čekaonica, laboratorij, nalazi te puna administracija korisnika/šifrarnika. Brojevi prikazanih popisa ograničeni su na 50 pacijenata i 100 najnovijih dokumenata; pretražite pacijenta za njegov karton. Nisu dodane prazne stranice za neimplementirane module.
+
+Ovlasti skrbnog tima i povezivanje novog pacijenta s Auth računom zasad se postavljaju pouzdanim provisioningom/seed skriptom. Liječnik pri kreiranju pacijenta dobiva vlastitu skrbnu vezu. Ne postoji javna samostalna registracija ni preuzimanje tuđeg kartona.
 
 Osnova sigurnosnog pristupa: [Supabase RLS](https://supabase.com/docs/guides/database/postgres/row-level-security), [Supabase Auth](https://supabase.com/docs/guides/auth), [upravljanje korisničkim profilima](https://supabase.com/docs/guides/auth/managing-user-data).

@@ -9,11 +9,14 @@ import {
   Menu,
   ShieldCheck,
   X,
+  Users,
 } from "lucide-react";
+import { StatusBadge } from "../components/ui/StatusBadge";
 import { Brand } from "../components/ui/Brand";
 import { Disclaimer, ErrorMessage } from "../components/ui/Feedback";
 import { useAuth } from "../hooks/useAuth";
 import { portals, roleLabels } from "../lib/roles";
+import { GlobalSearch } from "../components/medical/GlobalSearch";
 export function PortalLayout() {
   const auth = useAuth();
   const location = useLocation();
@@ -66,7 +69,21 @@ export function PortalLayout() {
             <Home size={19} />
             Početna
           </NavLink>
+          {active?.path === "/ordinacija" && (
+            <NavLink to="/ordinacija/pacijenti" onClick={() => setOpen(false)}>
+              <Users size={19} />
+              Pacijenti
+            </NavLink>
+          )}
         </nav>
+        {active?.path === "/central" && (
+          <nav>
+            <NavLink to="/central/audit" onClick={() => setOpen(false)}>
+              <ShieldCheck size={19} />
+              Audit događaji
+            </NavLink>
+          </nav>
+        )}
         {available.length > 1 && (
           <>
             <div className="workspace-label">MOJI PORTALI</div>
@@ -87,10 +104,7 @@ export function PortalLayout() {
         <div className="sidebar-note">
           <ShieldCheck size={22} />
           <strong>Temelj za povezanu skrb</strong>
-          <p>
-            Prijava i ovlasti su spremni. Klinički moduli slijede u sljedećim
-            fazama.
-          </p>
+          <p>Pristup kartonima dostupan je samo ovlaštenim članovima tima.</p>
           <Link to="/o-sustavu">
             O razvojnoj verziji <ArrowUpRight size={13} />
           </Link>
@@ -122,9 +136,19 @@ export function PortalLayout() {
       </aside>
       <div className="portal-body">
         <header className="portal-top">
-          <span>{active?.title}</span>
+          {active?.path === "/ordinacija" ? (
+            <GlobalSearch />
+          ) : (
+            <span>{active?.title}</span>
+          )}
           <span>
-            <span className="tiny-dot" /> Razvojno okruženje
+            {auth.profile?.is_demo ? (
+              <StatusBadge status="DEMO" />
+            ) : (
+              <>
+                <span className="tiny-dot" /> Razvojno okruženje
+              </>
+            )}
           </span>
         </header>
         <main className="portal-main">

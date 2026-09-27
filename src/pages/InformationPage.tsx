@@ -9,7 +9,7 @@ export function InformationPage({
   return (
     <main className="standalone wide">
       <Brand />
-      <span className="eyebrow">e-ZDRAVSTVO / FAZA 1</span>
+      <span className="eyebrow">e-ZDRAVSTVO / RAZVOJNA VERZIJA</span>
       <h1>
         {kind === "setup"
           ? "Povežite svoj radni prostor."
@@ -59,9 +59,9 @@ export function InformationPage({
             vlastitom uređaju.
           </p>
           <p>
-            Faza 1 ne obrađuje medicinsku dokumentaciju. Testni računi i
-            ustanova koriste isključivo izmišljene podatke. Sustav nije spreman
-            za obradu stvarnih zdravstvenih podataka.
+            Kartoni i dokumenti u razvojnoj verziji sadrže testne podatke.
+            Računi i ustanova koriste isključivo izmišljene podatke. Sustav nije
+            spreman za obradu stvarnih zdravstvenih podataka.
           </p>
         </>
       ) : (
@@ -71,12 +71,13 @@ export function InformationPage({
             ustanova i građana putem zajedničke autentikacije i baze.
           </p>
           <p>
-            U prvoj fazi dostupni su prijava, obnova lozinke, korisničke uloge,
-            zaštićeni portali i temelj sigurnosne evidencije.
+            Dostupni su prijava, ustanove, kartoni, pregledi, dijagnoze i
+            terapija. Liječnik može izdati recept, uputnicu ili digitalnu
+            ispričnicu.
           </p>
           <p>
-            Kartoni pacijenata i klinički moduli dolaze u sljedećim fazama.
-            Funkcionalnosti će se uvoditi kao cjeloviti tokovi rada.
+            Pacijent vidi izdane dokumente u osobnom portalu. QR kod omogućuje
+            javnu provjeru autentičnosti bez prikaza medicinskog sadržaja.
           </p>
         </>
       )}

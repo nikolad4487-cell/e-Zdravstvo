@@ -25,6 +25,9 @@ const accounts = [
   ["admin", "Testni", "Administrator", ["SYSTEM_ADMIN"]],
   ["lijecnik", "Lana", "Vedrić", ["DOCTOR", "INSTITUTION_ADMIN"]],
   ["sestra", "Mila", "Oblačić", ["NURSE"]],
+  ["lijecnik2", "Vito", "Vedrić", ["DOCTOR"]],
+  ["lijecnik3", "Ema", "Primjerić", ["DOCTOR"]],
+  ["sestra2", "Noa", "Testić", ["NURSE"]],
   ["pacijent", "Tin", "Primjerić", ["PATIENT"]],
   ["skola", "Nela", "Školić", ["SCHOOL_ADMIN"]],
 ];

@@ -7,6 +7,14 @@ import { PasswordPage } from "../pages/auth/PasswordPage";
 import { PortalLayout } from "../layouts/PortalLayout";
 import { PortalHome } from "../pages/PortalHome";
 import { InformationPage } from "../pages/InformationPage";
+import { PatientsPage } from "../pages/doctor/PatientsPage";
+import { PatientRecordPage } from "../pages/doctor/PatientRecordPage";
+import { InstitutionPage } from "../pages/institution/InstitutionPage";
+import { DoctorHome } from "../pages/doctor/DoctorHome";
+import { PatientHome } from "../pages/patient/PatientHome";
+import { SchoolPage } from "../pages/school/SchoolPage";
+import { VerificationPage } from "../pages/VerificationPage";
+import { AuditPage } from "../pages/admin/AuditPage";
 function Guard({ path }: { path?: string }) {
   const auth = useAuth();
   if (auth.loading) return <Loading />;
@@ -63,6 +71,7 @@ export function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<Home />} />
+      <Route path="/verify/:token" element={<VerificationPage />} />
       <Route path="/prijava" element={<LoginPage />} />
       <Route path="/zaboravljena-lozinka" element={<PasswordPage />} />
       <Route path="/nova-lozinka" element={<PasswordPage reset />} />
@@ -83,7 +92,37 @@ export function AppRoutes() {
       ].map((path) => (
         <Route key={path} element={<Guard path={path} />}>
           <Route element={<PortalLayout />}>
-            <Route path={path} element={<PortalHome />} />
+            <Route
+              path={path}
+              element={
+                path === "/ustanove" ? (
+                  <InstitutionPage />
+                ) : path === "/ordinacija" ? (
+                  <DoctorHome />
+                ) : path === "/moje" ? (
+                  <PatientHome />
+                ) : path === "/skola" ? (
+                  <SchoolPage />
+                ) : (
+                  <PortalHome />
+                )
+              }
+            />
+            {path === "/central" && (
+              <Route path="/central/audit" element={<AuditPage />} />
+            )}
+            {path === "/ordinacija" && (
+              <>
+                <Route
+                  path="/ordinacija/pacijenti"
+                  element={<PatientsPage />}
+                />
+                <Route
+                  path="/ordinacija/pacijenti/:id"
+                  element={<PatientRecordPage />}
+                />
+              </>
+            )}
           </Route>
         </Route>
       ))}

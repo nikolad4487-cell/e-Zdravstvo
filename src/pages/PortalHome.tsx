@@ -164,14 +164,14 @@ export function PortalHome() {
             <span>02</span>
             <div>
               <strong>Ustanove i pacijenti</strong>
-              <small>Sljedeća faza implementacije</small>
+              <small>Dostupni kartoni i ustanove</small>
             </div>
           </div>
           <div className="phase">
             <span>03</span>
             <div>
               <strong>Pregledi i terapija</strong>
-              <small>Nakon povezivanja kartona</small>
+              <small>Dostupni pregledi, dijagnoze i terapija</small>
             </div>
           </div>
         </div>

@@ -12,19 +12,28 @@
     "test:db": "node scripts/test-database.mjs",
     "seed:demo": "node --env-file=.env.seed scripts/seed-demo.mjs",
     "format": "prettier --write src scripts index.html vite.config.ts",
-    "format:check": "prettier --check src scripts index.html vite.config.ts"
+    "format:check": "prettier --check src scripts index.html vite.config.ts",
+    "test:clinical": "node scripts/test-clinical.mjs",
+    "seed:clinical": "node --env-file=.env.seed scripts/seed-clinical.mjs",
+    "seed:workflow": "node --env-file=.env --env-file=.env.seed scripts/seed-workflow.mjs"
   },
   "dependencies": {
+    "@pdf-lib/fontkit": "^1.1.1",
     "@supabase/supabase-js": "^2.57.0",
+    "jsqr": "^1.4.0",
     "lucide-react": "^0.468.0",
+    "pdf-lib": "^1.17.1",
+    "qrcode": "^1.5.4",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-router-dom": "^7.9.0",
-    "tailwindcss": "^3.4.19"
+    "tailwindcss": "^3.4.19",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.3.0",
     "@types/node": "^24.0.0",
+    "@types/qrcode": "^1.5.6",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^5.0.0",
