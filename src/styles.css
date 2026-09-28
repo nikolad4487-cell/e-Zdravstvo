@@ -2057,3 +2057,117 @@ dd {
     gap: 8px;
   }
 }
+.admin-module-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  margin: 24px 0;
+}
+.admin-module {
+  padding: 26px;
+  position: relative;
+  color: inherit;
+  text-decoration: none;
+}
+.admin-module > svg {
+  color: var(--accent, #087f8a);
+}
+.admin-module h2 {
+  margin: 16px 0 8px;
+  font-size: 18px;
+}
+.admin-module p {
+  color: #61717b;
+  font-size: 14px;
+}
+.admin-module:hover {
+  border-color: #087f8a;
+}
+.admin-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 18px;
+  padding: 20px 0;
+  border-bottom: 1px solid #e5ebee;
+}
+.admin-row p {
+  margin: 6px 0;
+}
+.role-assignment {
+  display: flex;
+  gap: 12px;
+  margin: 6px 0;
+}
+.template-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 28px;
+}
+.template-paper {
+  background: white;
+  border: 1px solid #dbe3e8;
+  padding: 32px;
+  min-height: 530px;
+  overflow-wrap: anywhere;
+  box-shadow: 0 8px 28px #2137430d;
+}
+.template-paper h3 {
+  text-align: center;
+  margin: 28px 0;
+}
+.template-paper hr {
+  margin: 18px 0;
+}
+.preview-label {
+  font: 9px sans-serif;
+  color: #73838b;
+  letter-spacing: 1px;
+  text-align: center;
+  margin-bottom: 24px;
+}
+.preview-signature {
+  text-align: right;
+  margin: 36px 0;
+  font-style: italic;
+}
+.template-paper header {
+  line-height: 1.6;
+}
+.stat-card strong {
+  display: block;
+  font-size: 30px;
+  margin-top: 8px;
+}
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+.stat-card {
+  padding: 20px;
+}
+.spaced {
+  margin-top: 20px;
+}
+@media (max-width: 1000px) {
+  .admin-module-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .template-layout {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 600px) {
+  .stat-grid,
+  .admin-module-grid {
+    grid-template-columns: 1fr;
+  }
+  .admin-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .template-paper {
+    padding: 18px;
+  }
+}

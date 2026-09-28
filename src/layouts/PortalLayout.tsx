@@ -78,10 +78,40 @@ export function PortalLayout() {
         </nav>
         {active?.path === "/central" && (
           <nav>
+            {[
+              "korisnici",
+              "ustanove",
+              "ambulante",
+              "predlosci",
+              "sifrarnici",
+            ].map((p, i) => (
+              <NavLink
+                key={p}
+                to={"/central/" + p}
+                onClick={() => setOpen(false)}
+              >
+                <Building2 size={19} />
+                {
+                  [
+                    "Korisnici i ovlasti",
+                    "Ustanove",
+                    "Ambulante i liječnici",
+                    "Predlošci ispričnica",
+                    "Šifrarnici",
+                  ][i]
+                }
+              </NavLink>
+            ))}
             <NavLink to="/central/audit" onClick={() => setOpen(false)}>
               <ShieldCheck size={19} />
               Audit događaji
             </NavLink>
+          </nav>
+        )}
+        {active?.path === "/ustanove" && (
+          <nav>
+            <NavLink to="/ustanove/ambulante">Ambulante i liječnici</NavLink>
+            <NavLink to="/ustanove/predlosci">Predlošci ispričnica</NavLink>
           </nav>
         )}
         {available.length > 1 && (

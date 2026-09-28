@@ -50,6 +50,32 @@ for (const [i, name] of ["lijecnik", "lijecnik2", "lijecnik3"].entries())
       { onConflict: "id", ignoreDuplicates: true },
     ),
   );
+const clinicId = "90000000-0000-4000-8000-000000000001";
+check(
+  await db
+    .from("clinics")
+    .upsert(
+      {
+        id: clinicId,
+        institution_id: org,
+        name: "Ambulanta obiteljske medicine Vedrina",
+        code: "DEMO-AMB-001",
+        address: "Ulica Primjera 12",
+        city: "Testograd",
+        phone: "TEST-01",
+        email: "ambulanta@demo.e-zdravstvo.test",
+      },
+      { onConflict: "id", ignoreDuplicates: true },
+    ),
+);
+for (const [i, id] of doctorIds.entries())
+  check(
+    await db
+      .from("doctors")
+      .update({ clinic_id: clinicId, doctor_code: "DEMO-L-00" + (i + 1) })
+      .eq("id", id)
+      .eq("doctor_code", ""),
+  );
 const names = [
   ["Tin", "Primjerić"],
   ["Lina", "Testić"],

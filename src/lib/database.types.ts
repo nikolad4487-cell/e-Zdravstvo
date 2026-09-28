@@ -32,6 +32,50 @@ export type Database = {
     };
     Views: Record<string, never>;
     Functions: {
+      admin_configuration: { Args: Record<string, never>; Returns: Json };
+      central_overview: { Args: Record<string, never>; Returns: Json };
+      admin_users: {
+        Args: { search_term: string; page_number: number };
+        Returns: Json;
+      };
+      admin_grant_role: {
+        Args: {
+          target_user: string;
+          requested: UserRole;
+          target_institution: string | null;
+        };
+        Returns: undefined;
+      };
+      revoke_role: { Args: { assignment_id: string }; Returns: undefined };
+      create_institution: {
+        Args: {
+          institution_name: string;
+          institution_code: string;
+          institution_city: string;
+        };
+        Returns: string;
+      };
+      save_clinic: {
+        Args: { institution_id: string; clinic_id: string | null; data: Json };
+        Returns: string;
+      };
+      save_doctor_identity: {
+        Args: { doctor_id: string; data: Json };
+        Returns: undefined;
+      };
+      save_excuse_template: {
+        Args: {
+          institution_id: string;
+          excuse_type: string;
+          expected_version: number;
+          data: Json;
+        };
+        Returns: string;
+      };
+      save_excuse_catalog: {
+        Args: { catalog: string; entry_id: string | null; data: Json };
+        Returns: string;
+      };
       list_attachments: {
         Args: { patient_id: string; include_archived?: boolean };
         Returns: Json;

@@ -3,7 +3,7 @@ import { readFile, readdir } from "node:fs/promises";
 import assert from "node:assert/strict";
 const db = new PGlite();
 await db.exec(
-  `create role anon nologin;create role authenticated nologin;create role service_role nologin bypassrls;create schema auth;create schema storage;create table auth.users(id uuid primary key,raw_user_meta_data jsonb default '{}');create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;grant usage on schema auth to authenticated,anon;create table storage.objects(id uuid default gen_random_uuid(),bucket_id text,name text,metadata jsonb);create table storage.buckets(id text primary key,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]);`,
+  `create role anon nologin;create role authenticated nologin;create role service_role nologin bypassrls;create schema auth;create schema storage;create table auth.users(id uuid primary key,email text,raw_user_meta_data jsonb default '{}');create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;grant usage on schema auth to authenticated,anon;create table storage.objects(id uuid default gen_random_uuid(),bucket_id text,name text,metadata jsonb);create table storage.buckets(id text primary key,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]);`,
 );
 for (const file of (await readdir("supabase/migrations"))
   .filter((f) => f.endsWith(".sql"))
@@ -515,5 +515,80 @@ await test("only patient can mark own notifications read", async () => {
     assert.equal((await rpc("patient_dashboard")).unread_notifications, 0);
   });
 });
+
+await test("administration denies patients, school and unrelated clinicians", async () => {
+  for (const n of [1, 3, 4, 5])
+    await as(n, () => assert.rejects(rpc("admin_configuration")));
+  await as(5, () => assert.rejects(rpc("admin_users", ["", 0])));
+});
+let clinic, template;
+await test("central returns aggregates and manages clinic identity", () =>
+  as(6, async () => {
+    const overview = await rpc("central_overview");
+    assert.equal(overview.patients, 2);
+    assert.ok(!("medical_records" in overview));
+    assert.equal((await rpc("admin_users", ["", 0])).length, 6);
+    clinic = await rpc("save_clinic", [
+      org,
+      null,
+      { name: "Testna ambulanta", code: "TEST-A", address: "Testna 1" },
+    ]);
+    await rpc("save_doctor_identity", [
+      doc,
+      { display_name: "dr. Test", doctor_code: "TEST-L", clinic_id: clinic },
+    ]);
+    const c = await rpc("admin_configuration");
+    assert.notEqual(
+      c.doctors[0].signer_fingerprint,
+      c.doctors[1].signer_fingerprint,
+    );
+    template = c.templates[0];
+  }));
+await test("template versions immutable and stale edits rejected", () =>
+  as(6, async () => {
+    await rpc("save_excuse_template", [org, template.excuse_type, 0, template]);
+    await assert.rejects(
+      rpc("save_excuse_template", [org, template.excuse_type, 0, template]),
+    );
+    assert.equal(
+      (await rpc("admin_configuration")).templates.find(
+        (t) => t.excuse_type === template.excuse_type,
+      ).version,
+      1,
+    );
+  }));
+await test("signer key protected and HMAC matches RFC 4231", async () => {
+  const h = await db.query(
+    "select encode(private.hmac_sha256(convert_to('Hi There','UTF8'),decode(repeat('0b',20),'hex')),'hex') h",
+  );
+  assert.equal(
+    h.rows[0].h,
+    "b0344c61d8db38535ca8afceaf0bf12b881dc200c9833da726e9376c2e32cff7",
+  );
+  await as(6, () =>
+    assert.rejects(db.query("select * from private.doctor_signing_keys")),
+  );
+  await as(6, () => assert.rejects(db.query("select * from clinics")));
+});
+await db.exec(
+  `insert into user_roles(user_id,role,institution_id) values('${uid(1)}','INSTITUTION_ADMIN','${org}');insert into institutions(id,name,code) values('${uid(11)}','Druga ustanova','TEST2')`,
+);
+await test("institution administrator is scoped and cannot edit global catalogs", () =>
+  as(1, async () => {
+    assert.equal((await rpc("admin_configuration")).institutions.length, 1);
+    await assert.rejects(
+      rpc("save_clinic", [uid(11), null, { name: "Forbidden", code: "NO" }]),
+    );
+    await assert.rejects(
+      rpc("save_excuse_catalog", [
+        "reason",
+        null,
+        { name: "Forbidden", code: "NO" },
+      ]),
+    );
+    await assert.rejects(
+      rpc("admin_grant_role", [uid(1), "SYSTEM_ADMIN", null]),
+    );
+  }));
 console.log(`${passed} total clinical and document checks passed.`);
 await db.close();

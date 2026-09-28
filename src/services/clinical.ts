@@ -12,6 +12,10 @@ export function unwrap<T>(result: {
   error: { message: string; code?: string } | null;
 }): T {
   if (result.error) {
+    if (result.error.code === "40001")
+      throw new Error(
+        "Predložak je u međuvremenu izmijenjen. Osvježite stranicu pa ponovite izmjenu.",
+      );
     if (result.error.code === "42501")
       throw new Error(
         "Nemate ovlast za ovu radnju ili je pristup pacijentu opozvan.",

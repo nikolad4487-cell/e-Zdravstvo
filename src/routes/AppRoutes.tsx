@@ -15,6 +15,9 @@ import { PatientHome } from "../pages/patient/PatientHome";
 import { SchoolPage } from "../pages/school/SchoolPage";
 import { VerificationPage } from "../pages/VerificationPage";
 import { AuditPage } from "../pages/admin/AuditPage";
+import { CentralHome } from "../pages/admin/CentralHome";
+import { UsersPage } from "../pages/admin/UsersPage";
+import { AdministrationPage } from "../pages/admin/AdministrationPage";
 function Guard({ path }: { path?: string }) {
   const auth = useAuth();
   if (auth.loading) return <Loading />;
@@ -101,6 +104,8 @@ export function AppRoutes() {
                   <DoctorHome />
                 ) : path === "/moje" ? (
                   <PatientHome />
+                ) : path === "/central" ? (
+                  <CentralHome />
                 ) : path === "/skola" ? (
                   <SchoolPage />
                 ) : (
@@ -109,7 +114,35 @@ export function AppRoutes() {
               }
             />
             {path === "/central" && (
-              <Route path="/central/audit" element={<AuditPage />} />
+              <>
+                <Route path="/central/audit" element={<AuditPage />} />
+                <Route path="/central/korisnici" element={<UsersPage />} />
+                <Route path="/central/ustanove" element={<InstitutionPage />} />
+                <Route
+                  path="/central/ambulante"
+                  element={<AdministrationPage mode="clinics" />}
+                />
+                <Route
+                  path="/central/predlosci"
+                  element={<AdministrationPage mode="templates" />}
+                />
+                <Route
+                  path="/central/sifrarnici"
+                  element={<AdministrationPage mode="catalog" />}
+                />
+              </>
+            )}
+            {path === "/ustanove" && (
+              <>
+                <Route
+                  path="/ustanove/ambulante"
+                  element={<AdministrationPage mode="clinics" />}
+                />
+                <Route
+                  path="/ustanove/predlosci"
+                  element={<AdministrationPage mode="templates" />}
+                />
+              </>
             )}
             {path === "/ordinacija" && (
               <>

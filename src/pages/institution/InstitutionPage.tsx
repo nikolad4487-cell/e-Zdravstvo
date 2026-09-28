@@ -7,11 +7,13 @@ import { Field, values } from "../../components/ui/Fields";
 import { Modal } from "../../components/ui/Modal";
 import { ErrorMessage } from "../../components/ui/Feedback";
 import { readableError } from "../../utils/format";
+import { useAuth } from "../../hooks/useAuth";
 export function InstitutionPage() {
+  const auth = useAuth();
   const resource = useResource(getInstitutions, "institutions");
   const [selected, setSelected] = useState<{
     id: string;
-    kind: "edit" | "department" | "doctor";
+    kind: "edit" | "department" | "doctor" | "new";
     user?: string;
   } | null>(null);
   const [busy, setBusy] = useState(false),
@@ -25,7 +27,15 @@ export function InstitutionPage() {
     setBusy(true);
     setError("");
     try {
-      if (selected.kind === "edit")
+      if (selected.kind === "new")
+        unwrap(
+          await db().rpc("create_institution", {
+            institution_name: data.name,
+            institution_code: data.code,
+            institution_city: data.city,
+          }),
+        );
+      else if (selected.kind === "edit")
         unwrap(
           await db().rpc("save_institution", {
             institution_id: selected.id,
@@ -65,6 +75,17 @@ export function InstitutionPage() {
           <h1>Ustanove i timovi</h1>
           <p>Osnovni podaci, odjeli i liječnički profili.</p>
         </div>
+        {auth.roles.includes("SYSTEM_ADMIN") && (
+          <button
+            className="primary"
+            onClick={() => {
+              setError("");
+              setSelected({ id: "", kind: "new" });
+            }}
+          >
+            Nova ustanova
+          </button>
+        )}
       </div>
       {resource.error && <ErrorMessage>{resource.error}</ErrorMessage>}
       {success && (
@@ -164,11 +185,13 @@ export function InstitutionPage() {
       {selected && (
         <Modal
           title={
-            selected.kind === "edit"
-              ? "Uredi ustanovu"
-              : selected.kind === "doctor"
-                ? "Liječnički profil"
-                : "Novi odjel"
+            selected.kind === "new"
+              ? "Nova ustanova"
+              : selected.kind === "edit"
+                ? "Uredi ustanovu"
+                : selected.kind === "doctor"
+                  ? "Liječnički profil"
+                  : "Novi odjel"
           }
           onClose={() => setSelected(null)}
           busy={busy}
@@ -192,6 +215,14 @@ export function InstitutionPage() {
                     }
                     required
                   />
+                  {selected.kind === "new" && (
+                    <Field
+                      name="code"
+                      label="Šifra ustanove"
+                      required
+                      maxLength={40}
+                    />
+                  )}
                   {selected.kind === "department" ? (
                     <Field name="code" label="Oznaka odjela" required />
                   ) : (
