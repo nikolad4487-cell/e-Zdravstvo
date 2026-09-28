@@ -32,6 +32,7 @@ export type Database = {
     };
     Views: Record<string, never>;
     Functions: {
+      excuse_context: { Args: { patient_id: string }; Returns: Json };
       admin_configuration: { Args: Record<string, never>; Returns: Json };
       central_overview: { Args: Record<string, never>; Returns: Json };
       admin_users: {

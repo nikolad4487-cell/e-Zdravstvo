@@ -55,7 +55,9 @@ export function VerificationResult({
         ))}
       </dl>
       <p className="signature-note">
-        Razvojni digitalni potpis – nije kvalificirani elektronički potpis.
+        {data.signature_method === "HMAC_SHA256_INTERNAL"
+          ? "Interni elektronički potpis e-Zdravstva. Nije kvalificirani elektronički potpis."
+          : "Razvojni digitalni potpis – nije kvalificirani elektronički potpis."}
       </p>
     </>
   );

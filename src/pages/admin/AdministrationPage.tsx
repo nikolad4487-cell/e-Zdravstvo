@@ -448,6 +448,78 @@ function TemplateEditor({
       setBusy(false);
     }
   }
+  async function previewPdf() {
+    setBusy(true);
+    setError("");
+    try {
+      const { schoolExcusePdf, savePdf } =
+        await import("../../utils/schoolExcusePdf");
+      const now = new Date().toISOString();
+      const sample = {
+        id: "preview",
+        patient_id: "preview",
+        kind: "SCHOOL_EXCUSE" as const,
+        number: "PREGLED PREDLOŠKA",
+        status: "VALID",
+        issued_at: now,
+        expires_on: now,
+        revocation_reason: null,
+        can_revoke: false,
+        verification_token: "",
+        payload: {
+          number: "PREGLED PREDLOŠKA",
+          kind: "SCHOOL_EXCUSE" as const,
+          issued_at: now,
+          expires_on: now,
+          patient: {
+            first_name: "Primjer",
+            last_name: "Učenika",
+            birth_date: "2012-01-01",
+            patient_number: "PRIMJER",
+          },
+          doctor: doctor?.display_name ?? "Ime i prezime liječnika",
+          institution: org?.name ?? "Ustanova",
+          institution_address: "",
+          signature_disclaimer:
+            "Interni elektronički potpis e-Zdravstva. Nije kvalificirani elektronički potpis.",
+          details: {
+            template: draft,
+            excuse_type: draft.excuse_type,
+            clinic: clinic ?? {
+              id: "preview",
+              name: "Naziv ambulante",
+              code: "ŠIFRA",
+              address: "Adresa ambulante",
+              city: "Grad",
+              phone: "Telefon",
+              email: "E-mail",
+            },
+            doctor_code: doctor?.doctor_code ?? "ŠIFRA",
+            signer_fingerprint: doctor?.signer_fingerprint ?? "OSOBNA OZNAKA",
+            date_from: "2026-10-01",
+            date_to: "2026-10-03",
+            category: "Primjer razloga izostanka",
+          },
+        },
+        signature: {
+          signed_at: now,
+          signature_hash: "",
+          signature_method: "PREVIEW",
+          certificate_name: "",
+          status: "VALID",
+          integrity_valid: false,
+        },
+      };
+      savePdf(
+        await schoolExcusePdf(sample, "", true),
+        "predlozak-" + draft.excuse_type,
+      );
+    } catch (e) {
+      setError(readableError(e));
+    } finally {
+      setBusy(false);
+    }
+  }
   return (
     <section className="card institution-section spaced">
       <div className="section-heading">
@@ -565,6 +637,14 @@ function TemplateEditor({
           {error && <ErrorMessage>{error}</ErrorMessage>}
           <button className="primary" disabled={busy}>
             {busy ? "Spremanje…" : "Spremi novu verziju"}
+          </button>
+          <button
+            type="button"
+            className="secondary spaced"
+            disabled={busy}
+            onClick={() => void previewPdf()}
+          >
+            Preuzmi pregled PDF-a
           </button>
         </form>
         <div

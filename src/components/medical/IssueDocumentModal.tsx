@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { useResource } from "../../hooks/useResource";
 import { getContext } from "../../services/clinical";
-import { issueDocument } from "../../services/documents";
+import { issueDocument, getExcuseContext } from "../../services/documents";
 import { Field, values } from "../ui/Fields";
 import { Modal } from "../ui/Modal";
 import { ErrorMessage } from "../ui/Feedback";
@@ -32,6 +32,11 @@ export function IssueDocumentModal({
   onSaved: () => void;
 }) {
   const context = useResource(getContext, "issue-context");
+  const excuse = useResource(
+    async () =>
+      kind === "SCHOOL_EXCUSE" ? getExcuseContext(chart.patient.id) : null,
+    kind + chart.patient.id,
+  );
   const [items, setItems] = useState([0]),
     [next, setNext] = useState(1),
     [draft, setDraft] = useState<{ data: Json; summary: string[] } | null>(
@@ -80,13 +85,22 @@ export function IssueDocumentModal({
       });
     } else {
       if (kind === "SCHOOL_EXCUSE") {
+        if (data.print_diagnosis === "true" && !data.diagnosis_id) {
+          setError("Odaberite šifru bolesti ili isključite njezin ispis.");
+          return;
+        }
         if (data.date_to < data.date_from) {
           setError("Datum završetka mora biti nakon datuma početka.");
           return;
         }
         summary.push(
           `Izostanak: ${dateLabel(data.date_from)} – ${dateLabel(data.date_to)}`,
-          `Kategorija: ${data.category}`,
+          `Vrsta: ${data.excuse_type === "PE" ? "Tjelesna i zdravstvena kultura" : "Redovna nastava"}`,
+          `Razlog: ${excuse.data?.reasons.find((r) => r.id === data.reason_id)?.name}`,
+          `Ambulanta: ${excuse.data?.clinics.find((c) => c.id === data.clinic_id)?.name}`,
+          data.print_diagnosis === "true"
+            ? `Šifra bolesti na PDF-u: ${context.data?.diagnoses.find((d) => d.id === data.diagnosis_id)?.code}`
+            : "Šifra bolesti se ne ispisuje na PDF-u.",
           `Škola: ${data.school || "Nije navedena"}`,
           data.notes,
         );
@@ -275,6 +289,31 @@ export function IssueDocumentModal({
         )}
         {kind === "SCHOOL_EXCUSE" && (
           <div className="form-grid spaced">
+            <Field name="excuse_type" label="Vrsta ispričnice" required>
+              <option value="REGULAR">Redovna nastava</option>
+              <option value="PE">Tjelesna i zdravstvena kultura</option>
+            </Field>
+            {excuse.data && (
+              <Field
+                name="clinic_id"
+                label="Ambulanta izdavatelja"
+                required
+                defaultValue={excuse.data.doctor.clinic_id ?? ""}
+              >
+                <option value="">Odaberite ambulantu</option>
+                {excuse.data.clinics.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name} · {c.code}
+                  </option>
+                ))}
+              </Field>
+            )}
+            {excuse.data && !excuse.data.doctor.doctor_code && (
+              <ErrorMessage>
+                Administrator mora unijeti šifru liječnika prije izdavanja
+                ispričnice.
+              </ErrorMessage>
+            )}
             <Field
               name="date_from"
               label="Opravdani izostanak od"
@@ -290,12 +329,26 @@ export function IssueDocumentModal({
               defaultValue={today()}
               required
             />
-            <Field
-              name="category"
-              label="Razlog / kategorija"
-              required
-              maxLength={200}
-            />
+            <Field name="reason_id" label="Razlog izostanka" required>
+              <option value="">Odaberite razlog</option>
+              {excuse.data?.reasons.map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.name}
+                </option>
+              ))}
+            </Field>
+            <Field name="diagnosis_id" label="Šifra bolesti">
+              <option value="">Bez dijagnoze na ispričnici</option>
+              {context.data?.diagnoses.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.code} · {d.name}
+                </option>
+              ))}
+            </Field>
+            <label className="field-full">
+              <input type="checkbox" name="print_diagnosis" value="true" />{" "}
+              Ispiši odabranu šifru bolesti na PDF-u koji se predaje školi
+            </label>
             <Field name="school" label="Škola (opcionalno)" maxLength={300} />
             <div className="field-full">
               <Field
@@ -307,8 +360,8 @@ export function IssueDocumentModal({
             </div>
           </div>
         )}
-        {(error || context.error) && (
-          <ErrorMessage>{error || context.error}</ErrorMessage>
+        {(error || context.error || excuse.error) && (
+          <ErrorMessage>{error || context.error || excuse.error}</ErrorMessage>
         )}
         <div className="modal-actions">
           <button type="button" className="secondary" onClick={onClose}>
@@ -316,7 +369,13 @@ export function IssueDocumentModal({
           </button>
           <button
             className="primary"
-            disabled={context.loading || !!context.error}
+            disabled={
+              context.loading ||
+              !!context.error ||
+              excuse.loading ||
+              !!excuse.error ||
+              (kind === "SCHOOL_EXCUSE" && !excuse.data?.doctor.doctor_code)
+            }
           >
             Pregledaj prije izdavanja
           </button>
@@ -336,7 +395,8 @@ export function IssueDocumentModal({
             opozvati i izdati novi.
           </p>
           <p className="signature-note">
-            Razvojni digitalni potpis – nije kvalificirani elektronički potpis.
+            Interni elektronički potpis e-Zdravstva. Nije kvalificirani
+            elektronički potpis.
           </p>
           {error && <ErrorMessage>{error}</ErrorMessage>}
           <div className="modal-actions">

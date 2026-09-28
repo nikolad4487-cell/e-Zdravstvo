@@ -78,6 +78,26 @@ export function DocumentContent({
             {dateLabel(details.date_to)}
           </strong>
           <p>{details.category}</p>
+          {details.excuse_type && (
+            <p>
+              {details.excuse_type === "PE"
+                ? "Tjelesna i zdravstvena kultura"
+                : "Redovna nastava"}
+            </p>
+          )}
+          {details.clinic && (
+            <p>
+              {details.clinic.name} · {details.clinic.code}
+              <br />
+              {details.clinic.address}, {details.clinic.city}
+              <br />
+              {details.clinic.phone} · {details.clinic.email}
+            </p>
+          )}
+          {details.doctor_code && <p>Šifra liječnika: {details.doctor_code}</p>}
+          {details.diagnosis_code && (
+            <p>Šifra bolesti: {details.diagnosis_code}</p>
+          )}
           <p>{details.school}</p>
         </div>
       )}

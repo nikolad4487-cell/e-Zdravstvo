@@ -590,5 +590,135 @@ await test("institution administrator is scoped and cannot edit global catalogs"
       rpc("admin_grant_role", [uid(1), "SYSTEM_ADMIN", null]),
     );
   }));
+
+const excuseContext = await as(1, () => rpc("excuse_context", [pid]));
+const schoolData = {
+  expires_on: expiry,
+  date_from: "2026-09-25",
+  date_to: "2026-09-28",
+  excuse_type: "REGULAR",
+  clinic_id: clinic,
+  reason_id: excuseContext.reasons[0].id,
+  diagnosis_id: uid(30),
+  print_diagnosis: false,
+};
+let regular, pe;
+await test("new excuses snapshot template, clinic and personal HMAC signature", () =>
+  as(1, async () => {
+    const id = await rpc("issue_document", [
+      pid,
+      "SCHOOL_EXCUSE",
+      schoolData,
+      uid(80),
+    ]);
+    regular = await rpc("get_document", [id, "VIEW"]);
+    assert.equal(regular.payload.details.clinic.code, "TEST-A");
+    assert.equal(regular.payload.details.doctor_code, "TEST-L");
+    assert.equal(regular.signature.signature_method, "HMAC_SHA256_INTERNAL");
+    assert.equal(regular.signature.integrity_valid, true);
+    assert.equal(regular.payload.details.diagnosis_code, null);
+    const peId = await rpc("issue_document", [
+      pid,
+      "SCHOOL_EXCUSE",
+      { ...schoolData, excuse_type: "PE", print_diagnosis: true },
+      uid(81),
+    ]);
+    pe = await rpc("get_document", [peId, "VIEW"]);
+    assert.ok(pe.payload.details.diagnosis_code);
+    assert.equal(pe.payload.details.template.excuse_type, "PE");
+    assert.notEqual(
+      pe.signature.signature_hash,
+      regular.signature.signature_hash,
+    );
+  }));
+await test("excuse validation rejects unapproved clinic, type and printed code", () =>
+  as(1, async () => {
+    for (const change of [
+      { clinic_id: uid(999) },
+      { excuse_type: "INVALID" },
+      { reason_id: uid(999) },
+      { print_diagnosis: true, diagnosis_id: "" },
+    ])
+      await assert.rejects(
+        rpc("issue_document", [
+          pid,
+          "SCHOOL_EXCUSE",
+          { ...schoolData, ...change },
+          uid(82),
+        ]),
+      );
+  }));
+await test("public verification excludes student, diagnosis, absence dates and contact data", () =>
+  as(0, async () => {
+    const v = await rpc("verify_document", [pe.verification_token]);
+    assert.equal(v.status, "VALID");
+    assert.equal(v.signature_method, "HMAC_SHA256_INTERNAL");
+    for (const secret of [
+      "patient",
+      "diagnosis_code",
+      "date_from",
+      "clinic",
+      "phone",
+      "template",
+    ])
+      assert.ok(!(secret in v));
+  }));
+await test("template and doctor edits leave issued document and signature unchanged", async () => {
+  await as(6, async () => {
+    const t = (await rpc("admin_configuration")).templates.find(
+      (t) => t.excuse_type === "REGULAR",
+    );
+    await rpc("save_excuse_template", [
+      org,
+      "REGULAR",
+      t.version,
+      { ...t, title: "Novi naslov" },
+    ]);
+    await rpc("save_doctor_identity", [
+      doc,
+      {
+        display_name: "dr. Izmijenjeni",
+        doctor_code: "NOVO",
+        clinic_id: clinic,
+      },
+    ]);
+  });
+  const original = await as(4, () => rpc("get_document", [regular.id, "VIEW"]));
+  assert.deepEqual(original.payload, regular.payload);
+  assert.equal(
+    original.signature.signature_hash,
+    regular.signature.signature_hash,
+  );
+  assert.equal(original.signature.integrity_valid, true);
+  const fresh = await as(1, () =>
+    rpc("issue_document", [pid, "SCHOOL_EXCUSE", schoolData, uid(83)]),
+  );
+  const d = await as(1, () => rpc("get_document", [fresh, "VIEW"]));
+  assert.equal(d.payload.details.template.title, "Novi naslov");
+  assert.equal(d.payload.details.doctor_code, "NOVO");
+  assert.equal(
+    d.payload.details.signer_fingerprint,
+    regular.payload.details.signer_fingerprint,
+  );
+});
+await test("tampered MAC is rejected and legacy SHA signatures remain verifiable", async () => {
+  await db.query(
+    "update digital_signatures set signature_hash=repeat('0',64) where document_id=$1",
+    [pe.id],
+  );
+  assert.equal(
+    (await as(0, () => rpc("verify_document", [pe.verification_token]))).status,
+    "INVALID",
+  );
+  await db.query(
+    "update digital_signatures s set signature_hash=encode(sha256(convert_to(d.payload::text,'UTF8')),'hex'),signature_method='DEMO_SHA256' from documents d where s.document_id=d.id and d.id=$1",
+    [rxId],
+  );
+  assert.equal(
+    (await as(1, () => rpc("get_document", [rxId, "VIEW"]))).signature
+      .integrity_valid,
+    true,
+  );
+});
 console.log(`${passed} total clinical and document checks passed.`);
 await db.close();

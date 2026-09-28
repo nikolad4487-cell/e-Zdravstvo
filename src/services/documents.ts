@@ -5,9 +5,15 @@ import {
   documentSchema,
   notificationSchema,
   verificationSchema,
+  excuseContextSchema,
 } from "../types/documents";
 import type { DocumentKind } from "../types/documents";
 import type { Json } from "../lib/database.types";
+export async function getExcuseContext(patientId: string) {
+  return excuseContextSchema.parse(
+    unwrap(await db().rpc("excuse_context", { patient_id: patientId })),
+  );
+}
 export async function listDocuments(patientId?: string, kind?: DocumentKind) {
   return z.array(documentSchema).parse(
     unwrap(

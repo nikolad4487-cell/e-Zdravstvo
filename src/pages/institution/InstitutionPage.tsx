@@ -227,26 +227,32 @@ export function InstitutionPage() {
                     <Field name="code" label="Oznaka odjela" required />
                   ) : (
                     <>
-                      <Field
-                        name="address"
-                        label="Adresa"
-                        defaultValue={institution?.address ?? ""}
-                      />
+                      {selected.kind === "edit" && (
+                        <Field
+                          name="address"
+                          label="Adresa"
+                          defaultValue={institution?.address ?? ""}
+                        />
+                      )}
                       <Field
                         name="city"
                         label="Grad"
                         defaultValue={institution?.city ?? ""}
                       />
-                      <Field
-                        name="postal_code"
-                        label="Poštanski broj"
-                        defaultValue={institution?.postal_code ?? ""}
-                      />
-                      <Field
-                        name="phone"
-                        label="Telefon"
-                        defaultValue={institution?.phone ?? ""}
-                      />
+                      {selected.kind === "edit" && (
+                        <>
+                          <Field
+                            name="postal_code"
+                            label="Poštanski broj"
+                            defaultValue={institution?.postal_code ?? ""}
+                          />
+                          <Field
+                            name="phone"
+                            label="Telefon"
+                            defaultValue={institution?.phone ?? ""}
+                          />
+                        </>
+                      )}
                     </>
                   )}
                 </>

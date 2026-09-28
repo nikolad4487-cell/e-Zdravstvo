@@ -1,4 +1,12 @@
 import { z } from "zod";
+import { excuseTemplateSchema, adminDoctorSchema, clinicSchema } from "./admin";
+export const excuseContextSchema = z.object({
+  doctor: adminDoctorSchema,
+  clinics: z.array(clinicSchema),
+  reasons: z.array(
+    z.object({ id: z.string(), name: z.string(), code: z.string() }),
+  ),
+});
 export const documentKinds = [
   "PRESCRIPTION",
   "REFERRAL",
@@ -36,6 +44,22 @@ const itemSchema = z.object({
   notes: z.string(),
 });
 const detailsSchema = z.object({
+  excuse_type: z.enum(["REGULAR", "PE"]).optional(),
+  template: excuseTemplateSchema.optional(),
+  clinic: z
+    .object({
+      id: z.string(),
+      name: z.string(),
+      code: z.string(),
+      address: z.string(),
+      city: z.string(),
+      phone: z.string(),
+      email: z.string(),
+    })
+    .optional(),
+  doctor_code: z.string().optional(),
+  signer_fingerprint: z.string().optional(),
+  diagnosis_code: z.string().nullable().optional(),
   items: z.array(itemSchema).optional(),
   referral_type: z.string().optional(),
   specialty: z.string().optional(),

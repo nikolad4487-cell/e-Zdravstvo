@@ -137,7 +137,7 @@ supabase/
 scripts/           # testovi baze i sigurni demo provisioning
 ```
 
-Faze 2–5 imaju funkcionalni klinički tok, privatne privitke i pacijentov dashboard. Preostaju termini i čekaonica, laboratorij, strukturirani nalazi te puna administracija korisnika/šifrarnika. Pacijentove kartice za termine, nalaze i cijepljenja dodaju se kada postoje odgovarajući moduli, bez lažnih brojki ili praznih ruta. Brojevi prikazanih popisa ograničeni su na 50 pacijenata i 100 najnovijih dokumenata; pretražite pacijenta za njegov karton. Nisu dodane prazne stranice za neimplementirane module.
+Faze 2–5 imaju funkcionalni klinički tok, privatne privitke i pacijentov dashboard. Preostaju termini i čekaonica, laboratorij, strukturirani nalazi te rasporedi i napredna administracija skrbnih timova. Pacijentove kartice za termine, nalaze i cijepljenja dodaju se kada postoje odgovarajući moduli, bez lažnih brojki ili praznih ruta. Brojevi prikazanih popisa ograničeni su na 50 pacijenata i 100 najnovijih dokumenata; pretražite pacijenta za njegov karton. Nisu dodane prazne stranice za neimplementirane module.
 
 Ovlasti skrbnog tima i povezivanje novog pacijenta s Auth računom zasad se postavljaju pouzdanim provisioningom/seed skriptom. Liječnik pri kreiranju pacijenta dobiva vlastitu skrbnu vezu. Ne postoji javna samostalna registracija ni preuzimanje tuđeg kartona.
 
@@ -164,3 +164,18 @@ verify_jwt=false u konfiguraciji označava eksplicitnu validaciju unutar funkcij
 
 Za stvarnu integracijsku provjeru pokrenite `npm run test:files:live` uz razvojne env datoteke. Test stvara jedan izmišljeni PDF i zatim ga arhivira; original ostaje sačuvan prema pravilima medicinske evidencije. Nikada ga ne pokrećite nad stvarnim pacijentima.
 
+## Administracija i osobni potpisi (28. 9. 2026.)
+
+Central (/central) prikazuje statistiku i poveznice na korisnike/ovlasti, ustanove, ambulante/liječnike, predloške, šifrarnike i audit. Korisnici se paginiraju po 50 zapisa. Dodjela uloge ustanove atomarno aktivira članstvo; opoziv vlastite SYSTEM_ADMIN uloge nije dopušten. Kreiranje novih Auth računa još se obavlja pouzdanim provisioningom, bez javne registracije.
+
+Administrator ustanove koristi /ustanove/ambulante i /ustanove/predlosci, samo za vlastite ustanove. Prije izdavanja nove ispričnice unosi šifru liječnika te naziv, šifru, adresu, grad, telefon i e-mail ambulante. Klinički sadržaj administratorima i dalje nije dostupan bez zasebne skrbne ovlasti.
+
+Predlošci REGULAR (redovna nastava) i PE (TZK) imaju nepromjenjive verzije. Uređuju se naslov, uvodni tekst, podnožje, font, veličina, boja, poravnanje i razdjelnik. PDF pregled koristi isti renderer kao izdani dokument, ali izmišljeno dijete i oznaku PREGLED PREDLOŠKA; ne izdaje potpis ili valjani QR. Stari izdani dokument zadržava snapshot predloška, liječnika i ambulante. Istodobna izmjena zastarjele verzije odbija se.
+
+Liječnik odabire razlog i opcionalnu dijagnozu. Šifra bolesti se ispisuje u dokumentu samo uz izričit odabir; javna provjera nikada ne vraća ime učenika, dijagnozu, razdoblje izostanka ni napomene. Mali početni podskup od osam MKB-10 kodova provjeren je u [HZJZ tablici, verzija 2019](https://mkb.hzjz.hr/); nije potpuna klasifikacija. Lokalni/testni kodovi imaju vlastitu oznaku sustava. Administrator može dodavati, deaktivirati i uređivati stavke, bez brisanja povijesti izdanih dokumenata.
+
+Svaki liječnik ima trajni zasebni 256-bitni interni ključ generiran u PostgreSQL-u iz dvije slučajne UUID vrijednosti (244 bita slučajnosti). Ključevi se nalaze u private.doctor_signing_keys i nisu dostupni klijentu niti service_role ulozi. Novi dokumenti koriste HMAC-SHA256 nad kanonskim PostgreSQL JSONB snapshotom; implementacija je provjerena prema RFC 4231. Vidljivi pečat s osobnom oznakom i stilizirano ime renderiraju se iz spremljenog identiteta liječnika. To nije kopija rukopisnog potpisa.
+
+Ovo je **interni elektronički potpis/potvrda sustava**, a ne kvalificirani elektronički potpis, X.509 certifikat, PAdES PDF potpis ili neovisni dokaz neporecivosti. QR potvrđuje zapis i aktualni status na serveru, ne potpisuje proizvoljnu kopiju PDF datoteke. Tu razliku prikazuju detalji potpisa i PDF. Povijesni DEMO_SHA256 dokumenti ostaju provjerljivi i zadržavaju izvornu oznaku. Promjena ili opoziv dokumenta odmah se odražava na provjeri.
+
+Migracije 202609270007 i 202609280001–003 uvode administraciju, zaštićene ključeve, izdavanje novih predložaka i početni šifrarnik. Fontovi Noto Serif i Noto Sans uključeni su uz SIL OFL licencu. Priloženi privatni PDF primjeri, njihov sadržaj i testni izlazi nisu dio repozitorija.

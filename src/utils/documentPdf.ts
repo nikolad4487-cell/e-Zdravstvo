@@ -4,11 +4,16 @@ import QRCode from "qrcode";
 import { kindLabels, documentStatusLabels } from "../types/documents";
 import type { ClinicalDocument } from "../types/documents";
 import { dateLabel } from "./format";
+import { schoolExcusePdf, savePdf } from "./schoolExcusePdf";
 
 export async function downloadDocumentPdf(
   d: ClinicalDocument,
   verificationUrl: string,
 ) {
+  if (d.kind === "SCHOOL_EXCUSE" && d.payload.details.template) {
+    savePdf(await schoolExcusePdf(d, verificationUrl), d.number);
+    return;
+  }
   const pdf = await PDFDocument.create();
   pdf.registerFontkit(fontkit);
   const response = await fetch("/fonts/NotoSans-Regular.ttf");
@@ -107,11 +112,8 @@ export async function downloadDocumentPdf(
     teal,
   );
   line("Dokument je elektronički izdan putem sustava e-Zdravstvo.", 10);
-  line(
-    "Razvojni digitalni potpis - nije kvalificirani elektronički potpis.",
-    9,
-  );
-  line("SHA-256 sadržaja: " + d.signature.signature_hash, 8);
+  line(d.payload.signature_disclaimer, 9);
+  line(d.signature.signature_method + ": " + d.signature.signature_hash, 8);
   const qr = await pdf.embedPng(
     await QRCode.toDataURL(verificationUrl, { width: 280, margin: 2 }),
   );
@@ -131,10 +133,11 @@ export async function downloadDocumentPdf(
     color: ink,
   });
   pdf.getPages().forEach((p, i) => {
-    p.drawText(
-      "Demonstracijski sustav. Nije povezan sa službenim zdravstvenim sustavima RH.",
-      { x: 52, y: 43, font, size: 8, color: ink },
-    );
+    if (d.signature.signature_method === "DEMO_SHA256")
+      p.drawText(
+        "Demonstracijski sustav. Nije povezan sa službenim zdravstvenim sustavima RH.",
+        { x: 52, y: 43, font, size: 8, color: ink },
+      );
     p.drawText(`${i + 1} / ${pdf.getPageCount()}`, {
       x: 510,
       y: 27,

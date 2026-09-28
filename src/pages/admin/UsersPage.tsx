@@ -116,6 +116,11 @@ export function UsersPage() {
               </tr>
             </thead>
             <tbody>
+              {users.data?.length === 0 && (
+                <tr>
+                  <td colSpan={3}>Nema korisnika za zadanu pretragu.</td>
+                </tr>
+              )}
               {users.data?.map((u) => (
                 <tr key={u.id}>
                   <td>
