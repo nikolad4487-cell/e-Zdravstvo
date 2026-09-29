@@ -1,5 +1,6 @@
 import { CheckCircle2, Clock3, ShieldCheck } from "lucide-react";
 const statuses = {
+  BOOKED: ["Potvrđena narudžba", "blue"],
   SCHEDULED: ["Naručen", "blue"],
   ARRIVED: ["Stigao", "amber"],
   IN_PROGRESS: ["Pregled u tijeku", "blue"],

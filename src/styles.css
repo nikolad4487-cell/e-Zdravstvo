@@ -2288,3 +2288,26 @@ dd {
   background: #fff1f0;
   color: #a52828;
 }
+.slot-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+  margin: 18px 0;
+}
+.slot-choice {
+  display: grid;
+  gap: 6px;
+  text-align: left;
+  padding: 16px;
+  border: 1px solid #b9dce5;
+  border-radius: 12px;
+  background: #f5fbfd;
+  color: #174959;
+}
+.slot-choice:hover {
+  border-color: #0891b2;
+  background: #e6f7fa;
+}
+.slot-choice small {
+  color: #9a580b;
+}

@@ -32,6 +32,59 @@ export type Database = {
     };
     Views: Record<string, never>;
     Functions: {
+      hospital_context: { Args: { manage: boolean }; Returns: Json };
+      save_hospital_service: {
+        Args: { service_id: string | null; data: Json };
+        Returns: string;
+      };
+      publish_hospital_slots: {
+        Args: {
+          service_id: string;
+          local_start: string;
+          duration: number;
+          slot_count: number;
+          priority_only: boolean;
+        };
+        Returns: undefined;
+      };
+      list_hospital_slots: {
+        Args: {
+          service_id: string;
+          date_from: string;
+          date_to: string;
+          manage: boolean;
+        };
+        Returns: Json;
+      };
+      close_hospital_slot: { Args: { slot_id: string }; Returns: undefined };
+      book_hospital_slot: {
+        Args: {
+          patient_id: string;
+          slot_id: string;
+          referral_id: string | null;
+          priority: boolean;
+          priority_reason: string;
+          request_id: string;
+        };
+        Returns: string;
+      };
+      list_hospital_bookings: {
+        Args: {
+          mode: string;
+          patient_filter: string | null;
+          page_number: number;
+        };
+        Returns: Json;
+      };
+      change_hospital_booking: {
+        Args: {
+          booking_id: string;
+          expected_version: number;
+          new_status: string;
+          reason: string;
+        };
+        Returns: undefined;
+      };
       admin_patients: {
         Args: { search_term: string; page_number: number };
         Returns: Json;

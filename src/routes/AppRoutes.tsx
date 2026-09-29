@@ -21,6 +21,8 @@ import { CentralHome } from "../pages/admin/CentralHome";
 import { UsersPage } from "../pages/admin/UsersPage";
 import { CareTeamsPage } from "../pages/admin/CareTeamsPage";
 import { AdministrationPage } from "../pages/admin/AdministrationPage";
+import { HospitalAdminPage } from "../pages/institution/HospitalAdminPage";
+import { HospitalBookings } from "../components/medical/HospitalBookings";
 function Guard({ path }: { path?: string }) {
   const auth = useAuth();
   if (auth.loading) return <Loading />;
@@ -99,6 +101,24 @@ export function AppRoutes() {
       ].map((path) => (
         <Route key={path} element={<Guard path={path} />}>
           <Route element={<PortalLayout />}>
+            {(path === "/central" || path === "/ustanove") && (
+              <Route
+                path={path + "/bolnicki-termini"}
+                element={<HospitalAdminPage />}
+              />
+            )}
+            {path === "/ordinacija" && (
+              <>
+                <Route
+                  path="/ordinacija/narudzbe"
+                  element={<HospitalBookings mode="CARE" />}
+                />
+                <Route
+                  path="/ordinacija/bolnica"
+                  element={<HospitalBookings mode="PROVIDER" />}
+                />
+              </>
+            )}
             <Route
               path={path}
               element={

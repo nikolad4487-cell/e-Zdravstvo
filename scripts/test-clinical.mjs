@@ -1229,5 +1229,203 @@ await test("late trusted Auth metadata enables onboarding and cannot reset it la
   );
   assert.equal((await read()).must_change_password, false);
 });
+await test("hospital service and slots require scoped administration", async () => {
+  await as(5, () => assert.rejects(rpc("hospital_context", [true])));
+  await as(2, () =>
+    assert.rejects(
+      rpc("save_hospital_service", [
+        null,
+        {
+          institution_id: org,
+          doctor_id: otherDoc,
+          name: "Testni pregled",
+          specialty: "Testna specijalnost",
+          location: "Ambulanta 1",
+        },
+      ]),
+    ),
+  );
+});
+const hospitalService = await as(6, () =>
+  rpc("save_hospital_service", [
+    null,
+    {
+      institution_id: org,
+      doctor_id: otherDoc,
+      name: "Testni pregled",
+      specialty: "Testna specijalnost",
+      location: "Ambulanta 1",
+    },
+  ]),
+);
+const hospitalDate = new Date(Date.now() + 5 * 86400000)
+  .toISOString()
+  .slice(0, 10);
+await as(6, () =>
+  rpc("publish_hospital_slots", [
+    hospitalService,
+    hospitalDate + "T10:00",
+    30,
+    2,
+    true,
+  ]),
+);
+const hospitalAvailable = await as(1, () =>
+  rpc("list_hospital_slots", [
+    hospitalService,
+    hospitalDate,
+    hospitalDate,
+    false,
+  ]),
+);
+let hb;
+await test("hospital booking requires care link, priority reason and available slot", async () => {
+  await as(2, () =>
+    assert.rejects(
+      rpc("book_hospital_slot", [
+        pid,
+        hospitalAvailable[0].id,
+        null,
+        true,
+        "Prioritet test",
+        uid(121),
+      ]),
+    ),
+  );
+  await as(1, () =>
+    assert.rejects(
+      rpc("book_hospital_slot", [
+        pid,
+        hospitalAvailable[0].id,
+        null,
+        false,
+        "",
+        uid(121),
+      ]),
+    ),
+  );
+  await as(1, () =>
+    assert.rejects(
+      rpc("book_hospital_slot", [
+        pid,
+        hospitalAvailable[0].id,
+        null,
+        true,
+        "",
+        uid(121),
+      ]),
+    ),
+  );
+  hb = await as(1, () =>
+    rpc("book_hospital_slot", [
+      pid,
+      hospitalAvailable[0].id,
+      null,
+      true,
+      "Prioritet test",
+      uid(121),
+    ]),
+  );
+  assert.equal(
+    await as(1, () =>
+      rpc("book_hospital_slot", [
+        pid,
+        hospitalAvailable[0].id,
+        null,
+        true,
+        "Prioritet test",
+        uid(121),
+      ]),
+    ),
+    hb,
+  );
+  await as(1, () =>
+    assert.rejects(
+      rpc("book_hospital_slot", [
+        pid,
+        hospitalAvailable[0].id,
+        null,
+        true,
+        "Prioritet test",
+        uid(122),
+      ]),
+    ),
+  );
+  assert.equal(
+    (
+      await as(1, () =>
+        rpc("list_hospital_slots", [
+          hospitalService,
+          hospitalDate,
+          hospitalDate,
+          false,
+        ]),
+      )
+    ).length,
+    1,
+  );
+});
+await test("hospital provider sees booking but does not gain access to full chart", async () => {
+  assert.equal(
+    (await as(2, () => rpc("list_hospital_bookings", ["PROVIDER", null, 0])))[0]
+      .id,
+    hb,
+  );
+  await as(2, () => assert.rejects(rpc("get_patient_chart", [pid])));
+  assert.equal(
+    (await as(4, () => rpc("list_hospital_bookings", ["PERSONAL", null, 0])))[0]
+      .id,
+    hb,
+  );
+  assert.equal(
+    (await as(6, () => rpc("list_hospital_bookings", ["CARE", null, 0])))
+      .length,
+    0,
+  );
+  assert.equal(
+    (await as(5, () => rpc("list_hospital_bookings", ["PERSONAL", null, 0])))
+      .length,
+    0,
+  );
+  await as(6, () =>
+    assert.rejects(rpc("close_hospital_slot", [hospitalAvailable[0].id])),
+  );
+});
+await test("hospital cancellation retains history and releases slot atomically", async () => {
+  await as(4, () =>
+    assert.rejects(
+      rpc("change_hospital_booking", [hb, 2, "CANCELLED", "Testni razlog"]),
+    ),
+  );
+  await as(4, () =>
+    rpc("change_hospital_booking", [hb, 1, "CANCELLED", "Testni razlog"]),
+  );
+  assert.equal(
+    (
+      await as(1, () =>
+        rpc("list_hospital_slots", [
+          hospitalService,
+          hospitalDate,
+          hospitalDate,
+          false,
+        ]),
+      )
+    ).length,
+    2,
+  );
+  assert.equal(
+    (
+      await db.query(
+        "select count(*) n from hospital_booking_history where booking_id=$1",
+        [hb],
+      )
+    ).rows[0].n,
+    1,
+  );
+  await as(1, () => assert.rejects(db.exec("select * from hospital_bookings")));
+  await assert.rejects(
+    db.query("delete from hospital_bookings where id=$1", [hb]),
+  );
+});
 console.log(`${passed} total clinical and document checks passed.`);
 await db.close();

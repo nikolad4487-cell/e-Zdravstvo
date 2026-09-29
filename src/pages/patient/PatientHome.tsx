@@ -13,6 +13,7 @@ import { db } from "../../lib/supabase";
 import { dateLabel } from "../../utils/format";
 import { AppointmentPanel } from "../../components/medical/AppointmentPanel";
 import { LaboratoryPanel } from "../../components/medical/LaboratoryPanel";
+import { HospitalBookings } from "../../components/medical/HospitalBookings";
 export function PatientHome() {
   const auth = useAuth(),
     [tab, setTab] = useState("POČETNA"),
@@ -57,6 +58,7 @@ export function PatientHome() {
           "UPUTNICE",
           "ISPRIČNICE",
           "TERMINI",
+          "NARUDŽBE",
           "LABORATORIJ",
           "TERAPIJA",
           "KARTON",
@@ -75,6 +77,7 @@ export function PatientHome() {
         <PatientOverview version={version} navigate={setTab} />
       )}
       {tab === "TERMINI" && <AppointmentPanel personal />}
+      {tab === "NARUDŽBE" && <HospitalBookings mode="PERSONAL" />}
       {tab === "LABORATORIJ" && <LaboratoryPanel mode="PERSONAL" />}
       {tab === "DOKUMENTI" && (
         <button className="secondary" onClick={() => setTab("PRIVITCI")}>

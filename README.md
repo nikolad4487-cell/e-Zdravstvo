@@ -215,3 +215,13 @@ Nakon SQL migracija 202609290003–004 objavite funkciju:
 ```sh
 supabase functions deploy admin-accounts --project-ref YOUR_PROJECT_REF
 ```
+
+## Bolničko naručivanje
+
+Central/Ustanove → Bolničke usluge i termini: administrator odabire ustanovu i aktivnog liječnika, unosi pregled, specijalnost, lokaciju i upute te objavljuje do 48 uzastopnih termina. Vrijeme je Europe/Zagreb. Slobodan termin može zatvoriti; zauzet termin ne može zatvoriti niti vidjeti medicinske podatke samo na temelju administratorske uloge.
+
+Ordinacija → karton pacijenta → NARUDŽBE → Naruči u ustanovu: liječnik sa skrbnom vezom odabire ustanovu, specijalnost, uslugu, razdoblje i slobodan termin. Prioritet zahtijeva obrazloženje i omogućuje izbor posebno rezerviranih prioritetnih termina. Moguće je povezati važeću uputnicu istog pacijenta. Prioritet ne pomiče postojeće narudžbe. Zaključavanje termina i jedinstveni indeks sprječavaju dvostruku rezervaciju; pacijent ne može imati preklopljene bolničke narudžbe.
+
+Moje e-Zdravstvo → NARUDŽBE prikazuje datum, vrijeme, ustanovu, ambulantu, specijalista, upute i status. Pacijent može otkazati buduću potvrđenu narudžbu uz razlog. Specijalist koristi Moji bolnički pacijenti i evidentira dolazak/završetak. Rezervacija ne daje specijalistu pristup cijelom kartonu. Promjene šalju osobne obavijesti i Realtime osvježenja. Prethodni status čuva se u hospital_booking_history. Popis ima stranice od 50 narudžbi; dostupnost prikazuje do 500 termina unutar zadanog razdoblja.
+
+Prikazuju se samo termini objavljeni unutar ove aplikacije. Ne postoji integracija sa stvarnim KBC-ovima, CEZIH-om ni državnim listama čekanja. Primjeri iz korisničkih snimki zaslona i osobni podaci nisu dio seeda ili repozitorija.

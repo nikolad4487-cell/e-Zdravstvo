@@ -71,6 +71,14 @@ export function PortalLayout() {
           </NavLink>
           {active?.path === "/ordinacija" && (
             <>
+              <NavLink to="/ordinacija/narudzbe" onClick={() => setOpen(false)}>
+                <Building2 size={19} />
+                Bolničke narudžbe
+              </NavLink>
+              <NavLink to="/ordinacija/bolnica" onClick={() => setOpen(false)}>
+                <Users size={19} />
+                Moji bolnički pacijenti
+              </NavLink>
               <NavLink
                 to="/ordinacija/pacijenti"
                 onClick={() => setOpen(false)}
@@ -101,6 +109,12 @@ export function PortalLayout() {
         </nav>
         {active?.path === "/central" && (
           <nav>
+            <NavLink
+              to="/central/bolnicki-termini"
+              onClick={() => setOpen(false)}
+            >
+              Bolničke usluge i termini
+            </NavLink>
             <NavLink to="/central/skrbni-timovi" onClick={() => setOpen(false)}>
               <Users size={19} />
               Skrbni timovi
@@ -137,6 +151,12 @@ export function PortalLayout() {
         )}
         {active?.path === "/ustanove" && (
           <nav>
+            <NavLink
+              to="/ustanove/bolnicki-termini"
+              onClick={() => setOpen(false)}
+            >
+              Bolničke usluge i termini
+            </NavLink>
             <NavLink to="/ustanove/skrbni-timovi">Skrbni timovi</NavLink>
             <NavLink to="/ustanove/ambulante">Ambulante i liječnici</NavLink>
             <NavLink to="/ustanove/predlosci">Predlošci ispričnica</NavLink>
