@@ -1,5 +1,9 @@
 import { CheckCircle2, Clock3, ShieldCheck } from "lucide-react";
 const statuses = {
+  SCHEDULED: ["Naručen", "blue"],
+  ARRIVED: ["Stigao", "amber"],
+  IN_PROGRESS: ["Pregled u tijeku", "blue"],
+  NO_SHOW: ["Nije došao", "gray"],
   ACTIVE: ["Aktivno", "green"],
   ISSUED: ["Izdano", "blue"],
   DISPENSED: ["Realizirano", "green"],

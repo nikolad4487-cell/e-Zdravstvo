@@ -32,6 +32,34 @@ export type Database = {
     };
     Views: Record<string, never>;
     Functions: {
+      appointment_doctors: { Args: { patient_id: string }; Returns: Json };
+      list_appointments: {
+        Args: {
+          date_from: string;
+          date_to: string;
+          personal: boolean;
+          patient_filter: string | null;
+        };
+        Returns: Json;
+      };
+      save_appointment: {
+        Args: {
+          appointment_id: string | null;
+          expected_version: number | null;
+          data: Json;
+          request_id: string;
+        };
+        Returns: string;
+      };
+      set_appointment_status: {
+        Args: {
+          appointment_id: string;
+          expected_version: number;
+          new_status: string;
+          reason: string;
+        };
+        Returns: undefined;
+      };
       excuse_context: { Args: { patient_id: string }; Returns: Json };
       admin_configuration: { Args: Record<string, never>; Returns: Json };
       central_overview: { Args: Record<string, never>; Returns: Json };

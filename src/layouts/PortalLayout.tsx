@@ -70,10 +70,26 @@ export function PortalLayout() {
             Početna
           </NavLink>
           {active?.path === "/ordinacija" && (
-            <NavLink to="/ordinacija/pacijenti" onClick={() => setOpen(false)}>
-              <Users size={19} />
-              Pacijenti
-            </NavLink>
+            <>
+              <NavLink
+                to="/ordinacija/pacijenti"
+                onClick={() => setOpen(false)}
+              >
+                <Users size={19} />
+                Pacijenti
+              </NavLink>
+              <NavLink to="/ordinacija/termini" onClick={() => setOpen(false)}>
+                <Home size={19} />
+                Termini
+              </NavLink>
+              <NavLink
+                to="/ordinacija/cekaonica"
+                onClick={() => setOpen(false)}
+              >
+                <Users size={19} />
+                Čekaonica
+              </NavLink>
+            </>
           )}
         </nav>
         {active?.path === "/central" && (

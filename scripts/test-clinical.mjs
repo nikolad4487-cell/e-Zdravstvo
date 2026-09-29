@@ -720,5 +720,123 @@ await test("tampered MAC is rejected and legacy SHA signatures remain verifiable
     true,
   );
 });
+
+const scheduleDate = new Intl.DateTimeFormat("sv-SE", {
+  timeZone: "Europe/Zagreb",
+}).format(new Date());
+const apData = {
+  patient_id: pid,
+  doctor_id: doc,
+  local_time: scheduleDate + "T15:00",
+  duration_minutes: 20,
+  kind: "Testni pregled",
+};
+let appointment;
+await test("doctor schedules and repeated request does not duplicate", () =>
+  as(1, async () => {
+    appointment = await rpc("save_appointment", [null, null, apData, uid(90)]);
+    assert.equal(
+      await rpc("save_appointment", [null, null, apData, uid(90)]),
+      appointment,
+    );
+    const all = await rpc("list_appointments", [
+      scheduleDate,
+      scheduleDate,
+      false,
+      null,
+    ]);
+    assert.equal(all.length, 1);
+    assert.equal(all[0].status, "SCHEDULED");
+  }));
+await test("overlap denied but adjacent slot accepted", () =>
+  as(1, async () => {
+    await assert.rejects(
+      rpc("save_appointment", [
+        null,
+        null,
+        { ...apData, local_time: scheduleDate + "T15:10" },
+        uid(91),
+      ]),
+    );
+    await rpc("save_appointment", [
+      null,
+      null,
+      { ...apData, local_time: scheduleDate + "T15:20" },
+      uid(92),
+    ]);
+  }));
+await test("schedule is hidden from school, administrator and unrelated doctor", async () => {
+  for (const n of [2, 5, 6])
+    await as(n, async () => {
+      assert.equal(
+        (
+          await rpc("list_appointments", [
+            scheduleDate,
+            scheduleDate,
+            false,
+            null,
+          ])
+        ).length,
+        0,
+      );
+      await assert.rejects(
+        rpc("save_appointment", [null, null, apData, uid(93)]),
+      );
+    });
+  await as(0, () =>
+    assert.rejects(
+      rpc("list_appointments", [scheduleDate, scheduleDate, false, null]),
+    ),
+  );
+  await as(4, async () => {
+    assert.equal(
+      (await rpc("list_appointments", [scheduleDate, scheduleDate, true, null]))
+        .length,
+      2,
+    );
+    await assert.rejects(
+      rpc("set_appointment_status", [appointment, 1, "ARRIVED", ""]),
+    );
+  });
+});
+await test("nurse records arrival but cannot start examination", () =>
+  as(3, async () => {
+    await rpc("set_appointment_status", [appointment, 1, "ARRIVED", ""]);
+    await assert.rejects(
+      rpc("set_appointment_status", [appointment, 2, "IN_PROGRESS", ""]),
+    );
+  }));
+await test("stale versions rejected and clinical status transitions ordered", () =>
+  as(1, async () => {
+    await assert.rejects(
+      rpc("set_appointment_status", [appointment, 1, "IN_PROGRESS", ""]),
+    );
+    await assert.rejects(
+      rpc("set_appointment_status", [appointment, 2, "COMPLETED", ""]),
+    );
+    await rpc("set_appointment_status", [appointment, 2, "IN_PROGRESS", ""]);
+    await rpc("set_appointment_status", [appointment, 3, "COMPLETED", ""]);
+    await assert.rejects(
+      rpc("set_appointment_status", [appointment, 4, "SCHEDULED", ""]),
+    );
+  }));
+await test("appointment history is retained and direct reads/deletes denied", async () => {
+  assert.equal(
+    (
+      await db.query(
+        "select count(*) n from appointment_history where appointment_id=$1",
+        [appointment],
+      )
+    ).rows[0].n,
+    3,
+  );
+  await as(6, () => assert.rejects(db.query("select * from appointments")));
+  await assert.rejects(
+    db.query("delete from appointments where id=$1", [appointment]),
+  );
+  assert.ok(
+    (await db.query("select count(*) n from schedule_events")).rows[0].n >= 2,
+  );
+});
 console.log(`${passed} total clinical and document checks passed.`);
 await db.close();

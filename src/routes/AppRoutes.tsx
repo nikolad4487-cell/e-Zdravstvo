@@ -15,6 +15,7 @@ import { PatientHome } from "../pages/patient/PatientHome";
 import { SchoolPage } from "../pages/school/SchoolPage";
 import { VerificationPage } from "../pages/VerificationPage";
 import { AuditPage } from "../pages/admin/AuditPage";
+import { AppointmentPanel } from "../components/medical/AppointmentPanel";
 import { CentralHome } from "../pages/admin/CentralHome";
 import { UsersPage } from "../pages/admin/UsersPage";
 import { AdministrationPage } from "../pages/admin/AdministrationPage";
@@ -146,6 +147,14 @@ export function AppRoutes() {
             )}
             {path === "/ordinacija" && (
               <>
+                <Route
+                  path="/ordinacija/termini"
+                  element={<AppointmentPanel />}
+                />
+                <Route
+                  path="/ordinacija/cekaonica"
+                  element={<AppointmentPanel waiting />}
+                />
                 <Route
                   path="/ordinacija/pacijenti"
                   element={<PatientsPage />}

@@ -179,3 +179,11 @@ Svaki liječnik ima trajni zasebni 256-bitni interni ključ generiran u PostgreS
 Ovo je **interni elektronički potpis/potvrda sustava**, a ne kvalificirani elektronički potpis, X.509 certifikat, PAdES PDF potpis ili neovisni dokaz neporecivosti. QR potvrđuje zapis i aktualni status na serveru, ne potpisuje proizvoljnu kopiju PDF datoteke. Tu razliku prikazuju detalji potpisa i PDF. Povijesni DEMO_SHA256 dokumenti ostaju provjerljivi i zadržavaju izvornu oznaku. Promjena ili opoziv dokumenta odmah se odražava na provjeri.
 
 Migracije 202609270007 i 202609280001–003 uvode administraciju, zaštićene ključeve, izdavanje novih predložaka i početni šifrarnik. Fontovi Noto Serif i Noto Sans uključeni su uz SIL OFL licencu. Priloženi privatni PDF primjeri, njihov sadržaj i testni izlazi nisu dio repozitorija.
+
+## Termini i čekaonica
+
+Ordinacija ima /ordinacija/termini (dan/tjedan/mjesec) i /ordinacija/cekaonica. Karton ima tab TERMINI; Moje e-Zdravstvo prikazuje sljedeći termin i osobni kalendar. Sva vremena naručivanja tumače se u Europe/Zagreb, ne prema vremenskoj zoni preglednika. Istodobne rezervacije serijaliziraju se po liječniku i pacijentu; preklapanja se odbijaju. Promjena zahtijeva aktualni broj verzije, a prethodni zapis ostaje u appointment_history.
+
+Liječnik upravlja terminima svojih pacijenata; sestra mora imati izričitu skrbnu vezu u ustanovi liječnika. Sestra može naručiti, premjestiti, otkazati i evidentirati dolazak/nedolazak. Samo liječnik termina pokreće i završava pregled. Pacijent ima osobni prikaz samo za čitanje, uključujući račun s više uloga. Central nema pristup rasporedu pacijenata.
+
+Realtime šalje samo osobne obavijesti i promjene oznake rasporeda bez medicinskih podataka. Klijent potom dohvaća autorizirani, auditirani popis. Izravni pristup appointments i appointment_history je zabranjen. Testne termine dodajte naredbom `node --env-file=.env --env-file=.env.seed scripts/seed-appointments.mjs`; ponavljanje ne duplicira postojeće termine.

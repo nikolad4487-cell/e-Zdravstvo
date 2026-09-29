@@ -12,6 +12,7 @@ import { getPatientDashboard } from "../../services/attachments";
 import { ErrorMessage } from "../ui/Feedback";
 import { dateLabel } from "../../utils/format";
 import { kindLabels, documentStatusLabels } from "../../types/documents";
+import { zagrebTime } from "../../utils/calendar";
 export function PatientOverview({
   version,
   navigate,
@@ -58,6 +59,27 @@ export function PatientOverview({
   ];
   return (
     <>
+      <section className="card spaced">
+        <div className="section-heading">
+          <h2>Sljedeći termin</h2>
+          <button className="text-link" onClick={() => navigate("TERMINI")}>
+            Moji termini →
+          </button>
+        </div>
+        {data.next_appointment ? (
+          <>
+            <strong>
+              {dateLabel(data.next_appointment.starts_at)} ·{" "}
+              {zagrebTime(data.next_appointment.starts_at)}
+            </strong>
+            <p>
+              {data.next_appointment.kind} · {data.next_appointment.doctor_name}
+            </p>
+          </>
+        ) : (
+          <p>Nemate zakazan sljedeći termin.</p>
+        )}
+      </section>
       <div className="patient-summary-grid">
         {cards.map(({ tab, label, count, Icon }) => (
           <button

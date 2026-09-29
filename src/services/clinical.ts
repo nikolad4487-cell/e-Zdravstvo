@@ -12,9 +12,13 @@ export function unwrap<T>(result: {
   error: { message: string; code?: string } | null;
 }): T {
   if (result.error) {
+    if (result.error.code === "23P01")
+      throw new Error(
+        "Odabrani termin preklapa se s drugim terminom liječnika ili pacijenta. Odaberite drugo vrijeme.",
+      );
     if (result.error.code === "40001")
       throw new Error(
-        "Predložak je u međuvremenu izmijenjen. Osvježite stranicu pa ponovite izmjenu.",
+        "Zapis je u međuvremenu izmijenjen. Osvježite prikaz pa ponovite izmjenu.",
       );
     if (result.error.code === "42501")
       throw new Error(

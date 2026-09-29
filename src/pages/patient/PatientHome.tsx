@@ -11,6 +11,7 @@ import { ClinicalHistory } from "../../components/medical/ClinicalHistory";
 import { ErrorMessage } from "../../components/ui/Feedback";
 import { db } from "../../lib/supabase";
 import { dateLabel } from "../../utils/format";
+import { AppointmentPanel } from "../../components/medical/AppointmentPanel";
 export function PatientHome() {
   const auth = useAuth(),
     [tab, setTab] = useState("POČETNA"),
@@ -54,6 +55,7 @@ export function PatientHome() {
           "RECEPTI",
           "UPUTNICE",
           "ISPRIČNICE",
+          "TERMINI",
           "TERAPIJA",
           "KARTON",
           "OBAVIJESTI",
@@ -70,6 +72,7 @@ export function PatientHome() {
       {tab === "POČETNA" && (
         <PatientOverview version={version} navigate={setTab} />
       )}
+      {tab === "TERMINI" && <AppointmentPanel personal />}
       {tab === "DOKUMENTI" && (
         <button className="secondary" onClick={() => setTab("PRIVITCI")}>
           Učitani dokumenti i upload →

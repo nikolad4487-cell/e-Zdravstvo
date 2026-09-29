@@ -5,6 +5,7 @@ import { useResource } from "../../hooks/useResource";
 import { searchPatients } from "../../services/clinical";
 import { DocumentList } from "../../components/medical/DocumentList";
 import { ErrorMessage } from "../../components/ui/Feedback";
+import { AppointmentPanel } from "../../components/medical/AppointmentPanel";
 export function DoctorHome() {
   const { profile, roles } = useAuth();
   const patients = useResource(() => searchPatients(), "");
@@ -24,7 +25,8 @@ export function DoctorHome() {
           Otvori pacijente
         </Link>
       </div>
-      <div className="account-grid">
+      <AppointmentPanel compact />
+      <div className="account-grid spaced">
         <section className="card">
           <Users size={26} />
           <h2>Vaši pacijenti</h2>

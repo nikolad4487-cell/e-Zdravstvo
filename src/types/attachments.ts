@@ -34,6 +34,13 @@ export const attachmentSchema = z.object({
 });
 export type Attachment = z.infer<typeof attachmentSchema>;
 export const patientDashboardSchema = z.object({
+  next_appointment: z
+    .object({
+      starts_at: z.string(),
+      kind: z.string(),
+      doctor_name: z.string(),
+    })
+    .nullable(),
   patient_id: z.string(),
   active_prescriptions: z.number(),
   active_referrals: z.number(),

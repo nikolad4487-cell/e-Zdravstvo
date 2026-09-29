@@ -16,6 +16,7 @@ import { ClinicalHistory } from "../../components/medical/ClinicalHistory";
 import type { MedicalEncounter } from "../../types/clinical";
 import { AttachmentList } from "../../components/medical/AttachmentList";
 import { DocumentList } from "../../components/medical/DocumentList";
+import { AppointmentPanel } from "../../components/medical/AppointmentPanel";
 import { IssueDocumentModal } from "../../components/medical/IssueDocumentModal";
 import type { DocumentKind } from "../../types/documents";
 import { age, dateLabel } from "../../utils/format";
@@ -99,6 +100,7 @@ export function PatientRecordPage() {
           "UPUTNICE",
           "ISPRIČNICE",
           "DOKUMENTI",
+          "TERMINI",
         ].map((t) => (
           <button
             key={t}
@@ -154,7 +156,9 @@ export function PatientRecordPage() {
           </button>
         </div>
       )}
-      {["RECEPTI", "UPUTNICE", "ISPRIČNICE", "DOKUMENTI"].includes(tab) ? (
+      {tab === "TERMINI" ? (
+        <AppointmentPanel patientId={id} />
+      ) : ["RECEPTI", "UPUTNICE", "ISPRIČNICE", "DOKUMENTI"].includes(tab) ? (
         <>
           {tab === "DOKUMENTI" && (
             <AttachmentList patientId={id} canUpload={can_write} />
