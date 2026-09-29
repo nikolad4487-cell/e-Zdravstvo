@@ -101,6 +101,10 @@ export function PortalLayout() {
         </nav>
         {active?.path === "/central" && (
           <nav>
+            <NavLink to="/central/skrbni-timovi" onClick={() => setOpen(false)}>
+              <Users size={19} />
+              Skrbni timovi
+            </NavLink>
             {[
               "korisnici",
               "ustanove",
@@ -133,6 +137,7 @@ export function PortalLayout() {
         )}
         {active?.path === "/ustanove" && (
           <nav>
+            <NavLink to="/ustanove/skrbni-timovi">Skrbni timovi</NavLink>
             <NavLink to="/ustanove/ambulante">Ambulante i liječnici</NavLink>
             <NavLink to="/ustanove/predlosci">Predlošci ispričnica</NavLink>
           </nav>

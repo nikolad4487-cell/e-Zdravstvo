@@ -85,6 +85,12 @@ export function CentralHome() {
             Icon: BookOpen,
           },
           {
+            path: "skrbni-timovi",
+            title: "Skrbni timovi",
+            text: "Dodjela pristupa pacijentima i povezivanje računa.",
+            Icon: Users,
+          },
+          {
             path: "audit",
             title: "Sigurnosna evidencija",
             text: "Pregled aktivnosti i promjena ovlasti.",

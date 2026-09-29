@@ -19,6 +19,7 @@ import { AppointmentPanel } from "../components/medical/AppointmentPanel";
 import { LaboratoryPanel } from "../components/medical/LaboratoryPanel";
 import { CentralHome } from "../pages/admin/CentralHome";
 import { UsersPage } from "../pages/admin/UsersPage";
+import { CareTeamsPage } from "../pages/admin/CareTeamsPage";
 import { AdministrationPage } from "../pages/admin/AdministrationPage";
 function Guard({ path }: { path?: string }) {
   const auth = useAuth();
@@ -120,6 +121,10 @@ export function AppRoutes() {
             {path === "/central" && (
               <>
                 <Route path="/central/audit" element={<AuditPage />} />
+                <Route
+                  path="/central/skrbni-timovi"
+                  element={<CareTeamsPage />}
+                />
                 <Route path="/central/korisnici" element={<UsersPage />} />
                 <Route path="/central/ustanove" element={<InstitutionPage />} />
                 <Route
@@ -138,6 +143,10 @@ export function AppRoutes() {
             )}
             {path === "/ustanove" && (
               <>
+                <Route
+                  path="/ustanove/skrbni-timovi"
+                  element={<CareTeamsPage />}
+                />
                 <Route
                   path="/ustanove/ambulante"
                   element={<AdministrationPage mode="clinics" />}

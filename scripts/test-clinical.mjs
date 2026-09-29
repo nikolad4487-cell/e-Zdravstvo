@@ -1005,5 +1005,64 @@ await test("corrections preserve immutable original and reject stale changes", a
     assert.rejects(db.query("select * from laboratory_results")),
   );
 });
+
+await test("care administration exposes metadata without chart contents", async () => {
+  const list = await as(6, () => rpc("admin_patients", ["Tin", 0]));
+  assert.ok(list.length > 0);
+  assert.ok(!("birth_date" in list[0]));
+  assert.ok(!("diagnoses" in list[0]));
+  for (const n of [2, 3, 4, 5, 7])
+    await as(n, () => assert.rejects(rpc("admin_patients", ["", 0])));
+});
+await test("administrator grants and revokes explicit care without gaining clinical access", async () => {
+  await as(6, () =>
+    rpc("set_patient_care", [
+      pid,
+      "DOCTOR",
+      otherDoc,
+      true,
+      false,
+      "Testna dodjela skrbnom timu",
+    ]),
+  );
+  await as(2, async () =>
+    assert.equal((await rpc("get_patient_chart", [pid])).patient.id, pid),
+  );
+  await as(6, () => assert.rejects(rpc("get_patient_chart", [pid])));
+  await as(6, () =>
+    rpc("set_patient_care", [
+      pid,
+      "DOCTOR",
+      otherDoc,
+      false,
+      false,
+      "Testni opoziv skrbne veze",
+    ]),
+  );
+  await as(2, () => assert.rejects(rpc("get_patient_chart", [pid])));
+});
+await test("scoped admin can manage own care teams but cannot link patient accounts", () =>
+  as(1, async () => {
+    const team = await rpc("admin_care_team", [pid]);
+    assert.equal(team.doctors.length, 2);
+    await assert.rejects(
+      rpc("link_patient_account", [pid, uid(4), "Zabranjeno povezivanje"]),
+    );
+    await assert.rejects(
+      rpc("set_patient_care", [pid, "DOCTOR", otherDoc, true, false, ""]),
+    );
+  }));
+await test("account linking cannot overwrite existing ownership or accept nonpatients", async () => {
+  await as(6, () =>
+    assert.rejects(
+      rpc("link_patient_account", [pid, uid(7), "Pogrešan korisnički račun"]),
+    ),
+  );
+  await as(6, () =>
+    assert.rejects(
+      rpc("link_patient_account", [pid, uid(4), "Već povezan karton"]),
+    ),
+  );
+});
 console.log(`${passed} total clinical and document checks passed.`);
 await db.close();

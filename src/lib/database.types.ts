@@ -32,6 +32,26 @@ export type Database = {
     };
     Views: Record<string, never>;
     Functions: {
+      admin_patients: {
+        Args: { search_term: string; page_number: number };
+        Returns: Json;
+      };
+      admin_care_team: { Args: { patient_id: string }; Returns: Json };
+      set_patient_care: {
+        Args: {
+          patient_id: string;
+          kind: string;
+          target_id: string;
+          enabled: boolean;
+          primary_doctor: boolean;
+          reason: string;
+        };
+        Returns: undefined;
+      };
+      link_patient_account: {
+        Args: { patient_id: string; target_user: string; reason: string };
+        Returns: undefined;
+      };
       laboratory_context: { Args: Record<string, never>; Returns: Json };
       list_laboratory: {
         Args: {

@@ -195,3 +195,9 @@ Liječnik otvara karton → LABORATORIJ → Nova laboratorijska narudžba. Dostu
 Laboratorijski tehničar ima samo narudžbe vlastite ustanove i podatke potrebne za obradu; ta uloga ne otvara karton. LOW/NORMAL/HIGH računaju se prema granicama koje unese laboratorij; CRITICAL izričito označava laboratorijski djelatnik. Bez referentnih granica nema oznake urednosti. Aplikacija ne određuje medicinske referentne intervale.
 
 Objava je atomarna. Ispravak čuva prethodni nalaz, stvara novu verziju i traži razlog; zastarjeli pokušaj ispravka odbija se. Objavljeni parametri i sadržaj nalaza su nepromjenjivi. Pacijent i skrbni tim dobivaju osvježenje putem Realtimea; objava i ispravak stvaraju osobnu obavijest. Pristupi i izmjene bilježe se u auditu. Demo seed sada uključuje laboratorij@demo.e-zdravstvo.test (isključivo testni račun).
+
+## Administracija skrbnih timova
+
+Central i Ustanove imaju stranicu Skrbni timovi. Administrator ustanove upravlja samo pacijentima svoje ustanove; prikazuju se ime, interni broj, ustanova i status povezivanja računa, bez medicinskog sadržaja. Dodjela/opoziv liječniku ili sestri zahtijeva administrativni razlog i audit zapis. Promjena izabranog liječnika serijalizira se zaključavanjem pacijenta; prethodni liječnik ostaje u skrbnom timu dok se izričito ne opozove.
+
+Samo SYSTEM_ADMIN može prvi put povezati nepovezani karton s postojećim računom koji ima globalnu ulogu PATIENT. Operater potvrđuje identitet osobe prije povezivanja. Već povezani karton ne može se prepisati na drugi račun, a jedan račun može pripadati samo jednom kartonu. Povezivanje ne dodjeljuje administratoru medicinski pristup.
