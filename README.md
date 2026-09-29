@@ -187,3 +187,11 @@ Ordinacija ima /ordinacija/termini (dan/tjedan/mjesec) i /ordinacija/cekaonica. 
 Liječnik upravlja terminima svojih pacijenata; sestra mora imati izričitu skrbnu vezu u ustanovi liječnika. Sestra može naručiti, premjestiti, otkazati i evidentirati dolazak/nedolazak. Samo liječnik termina pokreće i završava pregled. Pacijent ima osobni prikaz samo za čitanje, uključujući račun s više uloga. Central nema pristup rasporedu pacijenata.
 
 Realtime šalje samo osobne obavijesti i promjene oznake rasporeda bez medicinskih podataka. Klijent potom dohvaća autorizirani, auditirani popis. Izravni pristup appointments i appointment_history je zabranjen. Testne termine dodajte naredbom `node --env-file=.env --env-file=.env.seed scripts/seed-appointments.mjs`; ponavljanje ne duplicira postojeće termine.
+
+## Laboratorij
+
+Liječnik otvara karton → LABORATORIJ → Nova laboratorijska narudžba. Dostupne su ustanove s aktivnom ulogom LAB_TECHNICIAN. Laboratorij (/laboratorij) preuzima narudžbu, unosi uzorkovanje, numeričke parametre, jedinice i referentne granice te potvrđuje objavu. Moje e-Zdravstvo → LABORATORIJ prikazuje vlastite narudžbe, rezultate i usporedbu istog parametra/jedinice kroz vrijeme na trenutačnoj stranici (50 narudžbi).
+
+Laboratorijski tehničar ima samo narudžbe vlastite ustanove i podatke potrebne za obradu; ta uloga ne otvara karton. LOW/NORMAL/HIGH računaju se prema granicama koje unese laboratorij; CRITICAL izričito označava laboratorijski djelatnik. Bez referentnih granica nema oznake urednosti. Aplikacija ne određuje medicinske referentne intervale.
+
+Objava je atomarna. Ispravak čuva prethodni nalaz, stvara novu verziju i traži razlog; zastarjeli pokušaj ispravka odbija se. Objavljeni parametri i sadržaj nalaza su nepromjenjivi. Pacijent i skrbni tim dobivaju osvježenje putem Realtimea; objava i ispravak stvaraju osobnu obavijest. Pristupi i izmjene bilježe se u auditu. Demo seed sada uključuje laboratorij@demo.e-zdravstvo.test (isključivo testni račun).

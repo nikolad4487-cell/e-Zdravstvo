@@ -83,6 +83,13 @@ export function PortalLayout() {
                 Termini
               </NavLink>
               <NavLink
+                to="/ordinacija/laboratorij"
+                onClick={() => setOpen(false)}
+              >
+                <ShieldCheck size={19} />
+                Laboratorij
+              </NavLink>
+              <NavLink
                 to="/ordinacija/cekaonica"
                 onClick={() => setOpen(false)}
               >

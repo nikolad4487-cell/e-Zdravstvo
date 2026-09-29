@@ -32,6 +32,32 @@ export type Database = {
     };
     Views: Record<string, never>;
     Functions: {
+      laboratory_context: { Args: Record<string, never>; Returns: Json };
+      list_laboratory: {
+        Args: {
+          mode: string;
+          patient_filter: string | null;
+          page_number: number;
+        };
+        Returns: Json;
+      };
+      order_laboratory: {
+        Args: { patient_id: string; data: Json; request_id: string };
+        Returns: string;
+      };
+      set_lab_order_status: {
+        Args: {
+          order_id: string;
+          expected_version: number;
+          new_status: string;
+          reason: string;
+        };
+        Returns: undefined;
+      };
+      publish_laboratory_result: {
+        Args: { order_id: string; previous_result: string | null; data: Json };
+        Returns: string;
+      };
       appointment_doctors: { Args: { patient_id: string }; Returns: Json };
       list_appointments: {
         Args: {

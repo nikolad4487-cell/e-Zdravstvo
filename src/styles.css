@@ -2279,3 +2279,12 @@ dd {
     gap: 14px;
   }
 }
+.lab-result {
+  padding: 20px 0;
+  border-top: 1px solid #dde5e9;
+  margin-top: 20px;
+}
+.lab-critical {
+  background: #fff1f0;
+  color: #a52828;
+}

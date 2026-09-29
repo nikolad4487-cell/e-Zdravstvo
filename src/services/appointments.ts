@@ -9,18 +9,16 @@ export async function getAppointments(
   personal = false,
   patientId?: string,
 ) {
-  return z
-    .array(appointmentSchema)
-    .parse(
-      unwrap(
-        await db().rpc("list_appointments", {
-          date_from: from,
-          date_to: to,
-          personal,
-          patient_filter: patientId ?? null,
-        }),
-      ),
-    );
+  return z.array(appointmentSchema).parse(
+    unwrap(
+      await db().rpc("list_appointments", {
+        date_from: from,
+        date_to: to,
+        personal,
+        patient_filter: patientId ?? null,
+      }),
+    ),
+  );
 }
 export async function getAppointmentDoctors(patientId: string) {
   return z

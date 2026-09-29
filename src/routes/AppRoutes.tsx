@@ -16,6 +16,7 @@ import { SchoolPage } from "../pages/school/SchoolPage";
 import { VerificationPage } from "../pages/VerificationPage";
 import { AuditPage } from "../pages/admin/AuditPage";
 import { AppointmentPanel } from "../components/medical/AppointmentPanel";
+import { LaboratoryPanel } from "../components/medical/LaboratoryPanel";
 import { CentralHome } from "../pages/admin/CentralHome";
 import { UsersPage } from "../pages/admin/UsersPage";
 import { AdministrationPage } from "../pages/admin/AdministrationPage";
@@ -107,6 +108,8 @@ export function AppRoutes() {
                   <PatientHome />
                 ) : path === "/central" ? (
                   <CentralHome />
+                ) : path === "/laboratorij" ? (
+                  <LaboratoryPanel mode="LAB" />
                 ) : path === "/skola" ? (
                   <SchoolPage />
                 ) : (
@@ -147,6 +150,10 @@ export function AppRoutes() {
             )}
             {path === "/ordinacija" && (
               <>
+                <Route
+                  path="/ordinacija/laboratorij"
+                  element={<LaboratoryPanel mode="CARE" />}
+                />
                 <Route
                   path="/ordinacija/termini"
                   element={<AppointmentPanel />}

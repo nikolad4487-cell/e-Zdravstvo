@@ -838,5 +838,172 @@ await test("appointment history is retained and direct reads/deletes denied", as
     (await db.query("select count(*) n from schedule_events")).rows[0].n >= 2,
   );
 });
+
+await db.exec(
+  `insert into auth.users(id) values('${uid(7)}'),('${uid(8)}');insert into institution_users(institution_id,user_id) values('${org}','${uid(7)}'),('${uid(11)}','${uid(8)}');insert into user_roles(user_id,role,institution_id) values('${uid(7)}','LAB_TECHNICIAN','${org}'),('${uid(8)}','LAB_TECHNICIAN','${uid(11)}');`,
+);
+let labOrder, labResult;
+await test("only treating physician can order laboratory work", async () => {
+  const data = {
+    laboratory_institution_id: org,
+    requested_tests: "Testni panel",
+    clinical_question: "Testno pitanje",
+    priority: "REGULAR",
+  };
+  for (const n of [2, 3, 4, 5, 6, 7])
+    await as(n, () =>
+      assert.rejects(rpc("order_laboratory", [pid, data, uid(100)])),
+    );
+  labOrder = await as(1, () => rpc("order_laboratory", [pid, data, uid(100)]));
+  assert.equal(
+    await as(1, () => rpc("order_laboratory", [pid, data, uid(100)])),
+    labOrder,
+  );
+});
+await test("laboratory access restricted to assigned institution without chart access", async () => {
+  await as(7, async () => {
+    assert.equal((await rpc("list_laboratory", ["LAB", null, 0])).length, 1);
+    await assert.rejects(rpc("get_patient_chart", [pid]));
+  });
+  for (const n of [2, 5, 6, 8])
+    await as(n, async () =>
+      assert.equal((await rpc("list_laboratory", ["LAB", null, 0])).length, 0),
+    );
+  await as(4, async () =>
+    assert.equal(
+      (await rpc("list_laboratory", ["PERSONAL", null, 0])).length,
+      1,
+    ),
+  );
+});
+const resultData = {
+  sampled_at: new Date().toISOString(),
+  summary: "Testni zaključak",
+  parameters: [
+    {
+      code: "LOW",
+      name: "Test A",
+      value: 2,
+      unit: "test",
+      reference_low: 3,
+      reference_high: 5,
+    },
+    {
+      code: "NORMAL",
+      name: "Test B",
+      value: 4,
+      unit: "test",
+      reference_low: 3,
+      reference_high: 5,
+    },
+    {
+      code: "HIGH",
+      name: "Test C",
+      value: 6,
+      unit: "test",
+      reference_low: 3,
+      reference_high: 5,
+    },
+    {
+      code: "CRITICAL",
+      name: "Test D",
+      value: 99,
+      unit: "test",
+      critical: true,
+    },
+    { code: "NONE", name: "Test E", value: 4, unit: "test" },
+  ],
+};
+await test("lab result publication requires processing, complete parameters and appropriate role", async () => {
+  await as(7, () =>
+    assert.rejects(
+      rpc("publish_laboratory_result", [labOrder, null, resultData]),
+    ),
+  );
+  await as(7, () =>
+    rpc("set_lab_order_status", [labOrder, 1, "IN_PROGRESS", ""]),
+  );
+  await as(1, () =>
+    assert.rejects(
+      rpc("publish_laboratory_result", [labOrder, null, resultData]),
+    ),
+  );
+  await as(7, () =>
+    assert.rejects(
+      rpc("publish_laboratory_result", [
+        labOrder,
+        null,
+        {
+          ...resultData,
+          parameters: [
+            {
+              code: "BAD",
+              name: "Test",
+              value: 4,
+              reference_low: 8,
+              reference_high: 2,
+            },
+          ],
+        },
+      ]),
+    ),
+  );
+  labResult = await as(7, () =>
+    rpc("publish_laboratory_result", [labOrder, null, resultData]),
+  );
+});
+await test("patient sees flags calculated against laboratory reference intervals", () =>
+  as(4, async () => {
+    const o = (await rpc("list_laboratory", ["PERSONAL", null, 0]))[0];
+    assert.equal(o.status, "COMPLETED");
+    const flags = Object.fromEntries(
+      o.results[0].parameters.map((p) => [p.code, p.flag]),
+    );
+    assert.deepEqual(flags, {
+      LOW: "LOW",
+      NORMAL: "NORMAL",
+      HIGH: "HIGH",
+      CRITICAL: "CRITICAL",
+      NONE: null,
+    });
+    assert.equal(o.can_publish, false);
+  }));
+await test("corrections preserve immutable original and reject stale changes", async () => {
+  await assert.rejects(
+    db.query("update laboratory_results set summary=$1 where id=$2", [
+      "overwrite",
+      labResult,
+    ]),
+  );
+  await as(7, () =>
+    assert.rejects(
+      rpc("publish_laboratory_result", [labOrder, labResult, resultData]),
+    ),
+  );
+  const second = await as(7, () =>
+    rpc("publish_laboratory_result", [
+      labOrder,
+      labResult,
+      { ...resultData, correction_reason: "Ispravak testnog rezultata" },
+    ]),
+  );
+  const results = (
+    await as(4, () => rpc("list_laboratory", ["PERSONAL", null, 0]))
+  )[0].results;
+  assert.equal(results.length, 2);
+  assert.equal(results[1].superseded_by, second);
+  await as(7, () =>
+    assert.rejects(
+      rpc("publish_laboratory_result", [
+        labOrder,
+        labResult,
+        { ...resultData, correction_reason: "Stari rezultat" },
+      ]),
+    ),
+  );
+  await as(6, () =>
+    assert.rejects(db.query("select * from laboratory_results")),
+  );
+});
 console.log(`${passed} total clinical and document checks passed.`);
 await db.close();
