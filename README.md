@@ -137,9 +137,9 @@ supabase/
 scripts/           # testovi baze i sigurni demo provisioning
 ```
 
-Faze 2–5 imaju funkcionalni klinički tok, privatne privitke i pacijentov dashboard. Preostaju termini i čekaonica, laboratorij, strukturirani nalazi te rasporedi i napredna administracija skrbnih timova. Pacijentove kartice za termine, nalaze i cijepljenja dodaju se kada postoje odgovarajući moduli, bez lažnih brojki ili praznih ruta. Brojevi prikazanih popisa ograničeni su na 50 pacijenata i 100 najnovijih dokumenata; pretražite pacijenta za njegov karton. Nisu dodane prazne stranice za neimplementirane module.
+Faze 2–5 imaju funkcionalni klinički tok, privatne privitke i pacijentov dashboard. Dodani su termini i čekaonica, laboratorij, administracija skrbnih timova i otvaranje računa. Preostaju strukturirani specijalistički nalazi, cijepljenja, ljekarnički tok i radni rasporedi. Brojevi prikazanih popisa ograničeni su na 50 pacijenata i 100 najnovijih dokumenata; pretražite pacijenta za njegov karton. Nisu dodane prazne stranice za neimplementirane module.
 
-Ovlasti skrbnog tima i povezivanje novog pacijenta s Auth računom zasad se postavljaju pouzdanim provisioningom/seed skriptom. Liječnik pri kreiranju pacijenta dobiva vlastitu skrbnu vezu. Ne postoji javna samostalna registracija ni preuzimanje tuđeg kartona.
+Ovlasti skrbnog tima postavljaju se kroz Central i Ustanove. Central može povezati nepovezani karton s pacijentovim računom. Liječnik pri kreiranju pacijenta dobiva vlastitu skrbnu vezu. Ne postoji javna samostalna registracija ni preuzimanje tuđeg kartona.
 
 Osnova sigurnosnog pristupa: [Supabase RLS](https://supabase.com/docs/guides/database/postgres/row-level-security), [Supabase Auth](https://supabase.com/docs/guides/auth), [upravljanje korisničkim profilima](https://supabase.com/docs/guides/auth/managing-user-data).
 
@@ -166,7 +166,7 @@ Za stvarnu integracijsku provjeru pokrenite `npm run test:files:live` uz razvojn
 
 ## Administracija i osobni potpisi (28. 9. 2026.)
 
-Central (/central) prikazuje statistiku i poveznice na korisnike/ovlasti, ustanove, ambulante/liječnike, predloške, šifrarnike i audit. Korisnici se paginiraju po 50 zapisa. Dodjela uloge ustanove atomarno aktivira članstvo; opoziv vlastite SYSTEM_ADMIN uloge nije dopušten. Kreiranje novih Auth računa još se obavlja pouzdanim provisioningom, bez javne registracije.
+Central (/central) prikazuje statistiku i poveznice na korisnike/ovlasti, ustanove, ambulante/liječnike, predloške, šifrarnike i audit. Korisnici se paginiraju po 50 zapisa. Dodjela uloge ustanove atomarno aktivira članstvo; opoziv vlastite SYSTEM_ADMIN uloge nije dopušten. Kreiranje novih Auth računa dostupno je administratoru kroz Korisnici i ovlasti, bez javne registracije.
 
 Administrator ustanove koristi /ustanove/ambulante i /ustanove/predlosci, samo za vlastite ustanove. Prije izdavanja nove ispričnice unosi šifru liječnika te naziv, šifru, adresu, grad, telefon i e-mail ambulante. Klinički sadržaj administratorima i dalje nije dostupan bez zasebne skrbne ovlasti.
 
@@ -201,3 +201,17 @@ Objava je atomarna. Ispravak čuva prethodni nalaz, stvara novu verziju i traži
 Central i Ustanove imaju stranicu Skrbni timovi. Administrator ustanove upravlja samo pacijentima svoje ustanove; prikazuju se ime, interni broj, ustanova i status povezivanja računa, bez medicinskog sadržaja. Dodjela/opoziv liječniku ili sestri zahtijeva administrativni razlog i audit zapis. Promjena izabranog liječnika serijalizira se zaključavanjem pacijenta; prethodni liječnik ostaje u skrbnom timu dok se izričito ne opozove.
 
 Samo SYSTEM_ADMIN može prvi put povezati nepovezani karton s postojećim računom koji ima globalnu ulogu PATIENT. Operater potvrđuje identitet osobe prije povezivanja. Već povezani karton ne može se prepisati na drugi račun, a jedan račun može pripadati samo jednom kartonu. Povezivanje ne dodjeljuje administratoru medicinski pristup.
+
+## Otvaranje korisničkih računa
+
+Central → Korisnici i ovlasti → Novi korisnički račun. Administrator unosi ime, prezime, e-mail i početnu lozinku (12–128 znakova), potvrđuje identitet i dogovorenu sigurnu dostavu lozinke te označava testne račune. Ne šalje se e-mail. Novi račun nema uloge; dodjeljuju se zasebno. Za pacijenta se potom povezuje karton kroz Skrbne timove.
+
+Pri prvoj prijavi obvezna je promjena lozinke. Baza blokira ovlasti dok Supabase Auth ne zabilježi promjenu početnog password hasha; korisnički metadata ne mogu ukloniti zahtjev. Okidači obrađuju i naknadni upis pouzdanih Auth app metadata. Migracija 202609290004 popravlja račune otvorene prije tog ispravka zahtijevajući novu lozinku.
+
+Edge funkcija admin-accounts provjerava JWT i SYSTEM_ADMIN ovlast prije korištenja serverskog ključa. Početne lozinke nisu zapisane u aplikacijskim tablicama, auditu ili odgovoru. Zahtjevi su idempotentni, ograničeni na 20 novih zahtjeva po administratoru na sat i auditirani. Ponovljeni zahtjev oporavlja samo račun s odgovarajućim pouzdanim identifikatorom; postojeći račun s istim e-mailom nikad ne mijenja.
+
+Nakon SQL migracija 202609290003–004 objavite funkciju:
+
+```sh
+supabase functions deploy admin-accounts --project-ref YOUR_PROJECT_REF
+```

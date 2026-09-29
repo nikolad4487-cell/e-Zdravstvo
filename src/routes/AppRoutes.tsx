@@ -25,7 +25,8 @@ function Guard({ path }: { path?: string }) {
   const auth = useAuth();
   if (auth.loading) return <Loading />;
   if (!auth.session) return <Navigate to="/prijava" replace />;
-  if (auth.recovery) return <Navigate to="/nova-lozinka" replace />;
+  if (auth.recovery || auth.profile?.must_change_password)
+    return <Navigate to="/nova-lozinka" replace />;
   if (auth.error)
     return (
       <main className="standalone">

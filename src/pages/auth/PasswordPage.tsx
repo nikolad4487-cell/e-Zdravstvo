@@ -5,7 +5,7 @@ import { ErrorMessage } from "../../components/ui/Feedback";
 import { configured, db } from "../../lib/supabase";
 import { useAuth } from "../../hooks/useAuth";
 export function PasswordPage({ reset = false }: { reset?: boolean }) {
-  const { session, signOut } = useAuth();
+  const { session, signOut, profile } = useAuth();
   const [value, setValue] = useState("");
   const [confirm, setConfirm] = useState("");
   const [busy, setBusy] = useState(false);
@@ -46,6 +46,12 @@ export function PasswordPage({ reset = false }: { reset?: boolean }) {
           ? "Odaberite lozinku s najmanje 12 znakova."
           : "Poslat ćemo vam poveznicu za obnovu pristupa."}
       </p>
+      {profile?.must_change_password && (
+        <p className="confirm-box">
+          Prva prijava: promijenite početnu lozinku prije pristupa zdravstvenom
+          sustavu.
+        </p>
+      )}
       {done ? (
         <div role="status" className="feedback success">
           {reset

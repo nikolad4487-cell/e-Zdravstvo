@@ -3,7 +3,7 @@ import { readFile, readdir } from "node:fs/promises";
 import assert from "node:assert/strict";
 const db = new PGlite();
 await db.exec(
-  `create role anon nologin;create role authenticated nologin;create role service_role nologin bypassrls;create schema auth;create schema storage;create table auth.users(id uuid primary key,email text,raw_user_meta_data jsonb default '{}');create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;grant usage on schema auth to authenticated,anon;create table storage.objects(id uuid default gen_random_uuid(),bucket_id text,name text,metadata jsonb);create table storage.buckets(id text primary key,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]);`,
+  `create role anon nologin;create role authenticated nologin;create role service_role nologin bypassrls;create schema auth;create schema storage;create table auth.users(id uuid primary key,email text,encrypted_password text,raw_app_meta_data jsonb default '{}',raw_user_meta_data jsonb default '{}');create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;grant usage on schema auth to authenticated,anon;create table storage.objects(id uuid default gen_random_uuid(),bucket_id text,name text,metadata jsonb);create table storage.buckets(id text primary key,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]);`,
 );
 for (const file of (await readdir("supabase/migrations"))
   .filter((f) => f.endsWith(".sql"))
@@ -1063,6 +1063,171 @@ await test("account linking cannot overwrite existing ownership or accept nonpat
       rpc("link_patient_account", [pid, uid(4), "Već povezan karton"]),
     ),
   );
+});
+
+let provisioning;
+await test("only system administrator can request user provisioning", async () => {
+  for (const n of [1, 3, 4, 5, 7])
+    await as(n, () =>
+      assert.rejects(
+        rpc("begin_account_provision", [
+          uid(110),
+          "new@demo.e-zdravstvo.test",
+          "Novi",
+          "Testni",
+          true,
+        ]),
+      ),
+    );
+  provisioning = await as(6, () =>
+    rpc("begin_account_provision", [
+      uid(110),
+      "new@demo.e-zdravstvo.test",
+      "Novi",
+      "Testni",
+      true,
+    ]),
+  );
+  assert.equal(
+    (
+      await as(6, () =>
+        rpc("begin_account_provision", [
+          uid(110),
+          "new@demo.e-zdravstvo.test",
+          "Novi",
+          "Testni",
+          true,
+        ]),
+      )
+    ).id,
+    provisioning.id,
+  );
+  await as(6, () =>
+    assert.rejects(
+      rpc("begin_account_provision", [
+        uid(110),
+        "other@demo.e-zdravstvo.test",
+        "Novi",
+        "Testni",
+        true,
+      ]),
+    ),
+  );
+});
+await db.query(
+  "insert into auth.users(id,email,encrypted_password,raw_user_meta_data,raw_app_meta_data) values($1,$2,$3,$4,$5)",
+  [
+    uid(9),
+    "new@demo.e-zdravstvo.test",
+    "initial-hash",
+    { first_name: "Novi", last_name: "Testni", must_change_password: false },
+    {
+      admin_provisioned: true,
+      is_demo: true,
+      provision_request_id: provisioning.id,
+      provision_actor_id: uid(6),
+    },
+  ],
+);
+await test("provisioning recovery validates server metadata and writes actor audit", async () => {
+  assert.equal(
+    (
+      await as(6, () =>
+        rpc("begin_account_provision", [
+          uid(110),
+          "new@demo.e-zdravstvo.test",
+          "Novi",
+          "Testni",
+          true,
+        ]),
+      )
+    ).user_id,
+    uid(9),
+  );
+  await as(6, () =>
+    assert.rejects(rpc("finish_account_provision", [provisioning.id, uid(4)])),
+  );
+  await as(6, () => rpc("finish_account_provision", [provisioning.id, uid(9)]));
+  assert.equal(
+    (
+      await db.query(
+        "select count(*) n from audit_logs where action='ACCOUNT_CREATED' and entity_id=$1",
+        [uid(9)],
+      )
+    ).rows[0].n,
+    1,
+  );
+});
+await as(6, () => rpc("admin_grant_role", [uid(9), "SYSTEM_ADMIN", null]));
+await test("initial password blocks privileged actions even when role is assigned", async () => {
+  assert.equal(
+    (
+      await db.query("select must_change_password from profiles where id=$1", [
+        uid(9),
+      ])
+    ).rows[0].must_change_password,
+    true,
+  );
+  await as(9, () => assert.rejects(rpc("central_overview")));
+  await as(9, () =>
+    assert.rejects(
+      db.query("update profiles set must_change_password=false where id=$1", [
+        uid(9),
+      ]),
+    ),
+  );
+});
+await test("only actual Auth password change releases initial access requirement", async () => {
+  await db.query("update auth.users set raw_user_meta_data=$1 where id=$2", [
+    { must_change_password: false },
+    uid(9),
+  ]);
+  await as(9, () => assert.rejects(rpc("central_overview")));
+  await db.query("update auth.users set encrypted_password=$1 where id=$2", [
+    "changed-hash",
+    uid(9),
+  ]);
+  assert.ok((await as(9, () => rpc("central_overview"))).users > 0);
+  await as(9, () =>
+    assert.rejects(
+      db.query("select * from private.account_provision_requests"),
+    ),
+  );
+});
+await test("late trusted Auth metadata enables onboarding and cannot reset it later", async () => {
+  await db.query(
+    "insert into auth.users(id,email,encrypted_password) values($1,$2,$3)",
+    [uid(111), "late@demo.e-zdravstvo.test", ""],
+  );
+  await db.query(
+    "update auth.users set raw_app_meta_data=$1,encrypted_password=$2 where id=$3",
+    [
+      {
+        admin_provisioned: true,
+        is_demo: true,
+        provision_request_id: uid(112),
+      },
+      "initial-hash",
+      uid(111),
+    ],
+  );
+  const read = async () =>
+    (
+      await db.query(
+        "select must_change_password,is_demo from profiles where id=$1",
+        [uid(111)],
+      )
+    ).rows[0];
+  assert.deepEqual(await read(), { must_change_password: true, is_demo: true });
+  await db.query("update auth.users set encrypted_password=$1 where id=$2", [
+    "changed-hash",
+    uid(111),
+  ]);
+  await db.query(
+    "update auth.users set raw_app_meta_data=raw_app_meta_data||'{\"other\":true}'::jsonb where id=$1",
+    [uid(111)],
+  );
+  assert.equal((await read()).must_change_password, false);
 });
 console.log(`${passed} total clinical and document checks passed.`);
 await db.close();

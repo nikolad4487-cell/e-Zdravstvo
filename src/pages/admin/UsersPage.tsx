@@ -11,7 +11,9 @@ import { roleLabels } from "../../lib/roles";
 import { Modal } from "../../components/ui/Modal";
 import { ErrorMessage } from "../../components/ui/Feedback";
 import { readableError } from "../../utils/format";
+import { CreateAccountModal } from "../../components/admin/CreateAccountModal";
 export function UsersPage() {
+  const [creating, setCreating] = useState(false);
   const auth = useAuth(),
     [search, setSearch] = useState(""),
     [term, setTerm] = useState(""),
@@ -85,6 +87,9 @@ export function UsersPage() {
             pristup pacijentu.
           </p>
         </div>
+        <button className="primary" onClick={() => setCreating(true)}>
+          Novi korisnički račun
+        </button>
       </div>
       <label className="field">
         <span>Pretraži korisnike</span>
@@ -104,7 +109,7 @@ export function UsersPage() {
         <ErrorMessage>{users.error || config.error}</ErrorMessage>
       )}
       <section className="card table-scroll spaced">
-        {users.loading ? (
+        {users.loading || search !== term ? (
           <p role="status">Učitavanje korisnika…</p>
         ) : (
           <table className="data-table">
@@ -129,6 +134,7 @@ export function UsersPage() {
                     </strong>
                     <br />
                     <small>{u.email}</small>
+                    {u.is_demo && <p className="role-chip">Testni račun</p>}
                   </td>
                   <td>
                     {u.roles.map((r) => (
@@ -193,6 +199,19 @@ export function UsersPage() {
           Sljedeća
         </button>
       </div>
+      {creating && (
+        <CreateAccountModal
+          onClose={() => setCreating(false)}
+          onSaved={(email) => {
+            setCreating(false);
+            setSearch(email);
+            setTerm(email);
+            setPage(0);
+            setSuccess("Račun je otvoren. Dodijelite mu odgovarajuću ulogu.");
+            users.refresh();
+          }}
+        />
+      )}
       {selected && (
         <Modal
           title="Dodjela ovlasti"

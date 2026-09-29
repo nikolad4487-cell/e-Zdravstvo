@@ -64,3 +64,7 @@ email_sent = 5
 # JWT is validated with Auth getUser and forwarded to every authorization RPC.
 # Explicit validation supports both legacy and new Supabase signing keys.
 verify_jwt = false
+
+[functions.admin-accounts]
+# Explicit Auth getUser validation, followed by SYSTEM_ADMIN authorization RPC.
+verify_jwt = false
