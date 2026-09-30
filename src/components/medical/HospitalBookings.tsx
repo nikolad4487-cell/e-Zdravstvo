@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ReportEditor } from "./MedicalReports";
 import { listDocuments } from "../../services/documents";
 import { Link } from "react-router-dom";
 import {
@@ -30,6 +31,7 @@ export function HospitalBookings({
   patientId?: string;
   canBook?: boolean;
 }) {
+  const [report, setReport] = useState<HospitalBooking | null>(null);
   const [page, setPage] = useState(0),
     [cancelled, setCancelled] = useState(false),
     [booking, setBooking] = useState(false),
@@ -153,6 +155,12 @@ export function HospitalBookings({
                   <p>Razlog otkazivanja: {b.cancellation_reason}</p>
                 )}
                 <div className="document-actions">
+                  {b.can_process &&
+                    ["ARRIVED", "COMPLETED"].includes(b.status) && (
+                      <button className="primary" onClick={() => setReport(b)}>
+                        Napiši nalaz
+                      </button>
+                    )}
                   {b.can_cancel && b.status === "BOOKED" && (
                     <button
                       className="secondary"
@@ -208,6 +216,17 @@ export function HospitalBookings({
           Sljedeća
         </button>
       </div>
+      {report && (
+        <ReportEditor
+          patientId={report.patient_id}
+          bookingId={report.id}
+          onClose={() => setReport(null)}
+          onSaved={() => {
+            setReport(null);
+            setSuccess("Nalaz je objavljen i vidljiv pacijentu.");
+          }}
+        />
+      )}
       {booking && patientId && (
         <BookHospital
           patientId={patientId}

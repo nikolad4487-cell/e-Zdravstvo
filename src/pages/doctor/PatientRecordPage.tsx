@@ -20,6 +20,7 @@ import { AppointmentPanel } from "../../components/medical/AppointmentPanel";
 import { LaboratoryPanel } from "../../components/medical/LaboratoryPanel";
 import { HospitalBookings } from "../../components/medical/HospitalBookings";
 import { RenewalPanel } from "../../components/medical/RenewalPanel";
+import { MedicalReports } from "../../components/medical/MedicalReports";
 import { IssueDocumentModal } from "../../components/medical/IssueDocumentModal";
 import type { DocumentKind } from "../../types/documents";
 import { age, dateLabel } from "../../utils/format";
@@ -107,6 +108,7 @@ export function PatientRecordPage() {
           "TERMINI",
           "NARUDŽBE",
           "LABORATORIJ",
+          "NALAZI",
         ].map((t) => (
           <button
             key={t}
@@ -162,7 +164,9 @@ export function PatientRecordPage() {
           </button>
         </div>
       )}
-      {tab === "OBNOVA LIJEKOVA" ? (
+      {tab === "NALAZI" ? (
+        <MedicalReports patientId={id} canPublish={can_write} />
+      ) : tab === "OBNOVA LIJEKOVA" ? (
         <RenewalPanel patientId={id} />
       ) : tab === "NARUDŽBE" ? (
         <HospitalBookings mode="CARE" patientId={id} canBook={can_write} />

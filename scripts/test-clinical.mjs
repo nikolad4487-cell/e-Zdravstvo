@@ -1512,5 +1512,90 @@ await test("renewal approval atomically creates a patient prescription and rejec
     assert.rejects(rpc("resolve_medication_renewal", [renewal, true, "", rx])),
   );
 });
+const reportData = {
+  report_type: "SPECIALIST",
+  reported_on: new Date().toISOString().slice(0, 10),
+  diagnosis: "TEST — izmišljena dijagnoza",
+  content: "Izmišljeni tekst specijalističkog nalaza",
+  conclusion: "Testni zaključak",
+  recommendations: "Testna preporuka",
+};
+let medicalReport;
+await test("medical reports require treating doctor and are visible only to authorized readers", async () => {
+  await as(2, () =>
+    assert.rejects(
+      rpc("publish_medical_report", [pid, null, null, reportData, uid(140)]),
+    ),
+  );
+  await as(3, () =>
+    assert.rejects(
+      rpc("publish_medical_report", [pid, null, null, reportData, uid(140)]),
+    ),
+  );
+  medicalReport = await as(1, () =>
+    rpc("publish_medical_report", [pid, null, null, reportData, uid(140)]),
+  );
+  assert.equal(
+    (await as(4, () => rpc("list_medical_reports", [true, pid, 0])))[0].id,
+    medicalReport,
+  );
+  await as(6, () =>
+    assert.rejects(rpc("download_medical_report", [medicalReport])),
+  );
+  await as(5, () =>
+    assert.rejects(rpc("download_medical_report", [medicalReport])),
+  );
+});
+await test("report corrections preserve source, require reason and reject stale correction", async () => {
+  await as(1, () =>
+    assert.rejects(
+      rpc("publish_medical_report", [
+        pid,
+        null,
+        medicalReport,
+        reportData,
+        uid(141),
+      ]),
+    ),
+  );
+  const corrected = await as(1, () =>
+    rpc("publish_medical_report", [
+      pid,
+      null,
+      medicalReport,
+      {
+        ...reportData,
+        content: "Ispravljeni testni sadržaj",
+        correction_reason: "Testni razlog ispravka",
+      },
+      uid(141),
+    ]),
+  );
+  assert.equal(
+    (await as(4, () => rpc("download_medical_report", [medicalReport])))
+      .superseded_by,
+    corrected,
+  );
+  await as(1, () =>
+    assert.rejects(
+      rpc("publish_medical_report", [
+        pid,
+        null,
+        medicalReport,
+        { ...reportData, correction_reason: "Drugi ispravak" },
+        uid(142),
+      ]),
+    ),
+  );
+  await assert.rejects(
+    db.query("update medical_reports set content=$1 where id=$2", [
+      "overwrite",
+      corrected,
+    ]),
+  );
+  await assert.rejects(
+    db.query("delete from medical_reports where id=$1", [corrected]),
+  );
+});
 console.log(`${passed} total clinical and document checks passed.`);
 await db.close();

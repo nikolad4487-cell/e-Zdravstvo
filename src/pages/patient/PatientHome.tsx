@@ -16,6 +16,7 @@ import { LaboratoryPanel } from "../../components/medical/LaboratoryPanel";
 import { HospitalBookings } from "../../components/medical/HospitalBookings";
 import { CommunicationPanel } from "../../components/medical/CommunicationPanel";
 import { RenewalPanel } from "../../components/medical/RenewalPanel";
+import { MedicalReports } from "../../components/medical/MedicalReports";
 export function PatientHome() {
   const auth = useAuth(),
     [tab, setTab] = useState("POČETNA"),
@@ -64,6 +65,8 @@ export function PatientHome() {
           "TERMINI",
           "NARUDŽBE",
           "LABORATORIJ",
+          "SPECIJALISTIČKI NALAZI",
+          "POSJETI",
           "TERAPIJA",
           "KARTON",
           "OBAVIJESTI",
@@ -85,6 +88,7 @@ export function PatientHome() {
       {tab === "OBNOVA LIJEKOVA" && <RenewalPanel personal />}
       {tab === "NARUDŽBE" && <HospitalBookings mode="PERSONAL" />}
       {tab === "LABORATORIJ" && <LaboratoryPanel mode="PERSONAL" />}
+      {tab === "SPECIJALISTIČKI NALAZI" && <MedicalReports personal />}
       {tab === "DOKUMENTI" && (
         <button className="secondary" onClick={() => setTab("PRIVITCI")}>
           Učitani dokumenti i upload →
@@ -114,7 +118,7 @@ export function PatientHome() {
             Vaš račun još nije povezan sa zdravstvenim kartonom.
           </section>
         ))}
-      {["KARTON", "TERAPIJA"].includes(tab) &&
+      {["KARTON", "TERAPIJA", "POSJETI"].includes(tab) &&
         (chart.error ? (
           <ErrorMessage>{chart.error}</ErrorMessage>
         ) : chart.loading ? (

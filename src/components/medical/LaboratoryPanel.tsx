@@ -369,6 +369,20 @@ export function LaboratoryPanel({
   );
 }
 function LabResultView({ result: r }: { result: LabResult }) {
+  const [downloading, setDownloading] = useState(false),
+    [downloadError, setDownloadError] = useState("");
+  async function download() {
+    setDownloading(true);
+    setDownloadError("");
+    try {
+      const { downloadLabResult } = await import("../../services/reports");
+      await downloadLabResult(r.id);
+    } catch (e) {
+      setDownloadError(readableError(e));
+    } finally {
+      setDownloading(false);
+    }
+  }
   return (
     <section className="lab-result">
       <div className="section-heading">
@@ -416,6 +430,14 @@ function LabResultView({ result: r }: { result: LabResult }) {
         </table>
       </div>
       {r.summary && <p className="clinical-note">{r.summary}</p>}
+      {downloadError && <ErrorMessage>{downloadError}</ErrorMessage>}
+      <button
+        className="primary"
+        disabled={downloading}
+        onClick={() => void download()}
+      >
+        {downloading ? "Priprema…" : "Preuzmi laboratorijski nalaz PDF"}
+      </button>
     </section>
   );
 }

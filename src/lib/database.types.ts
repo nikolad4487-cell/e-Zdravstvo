@@ -32,6 +32,29 @@ export type Database = {
     };
     Views: Record<string, never>;
     Functions: {
+      publish_medical_report: {
+        Args: {
+          patient_id: string;
+          booking_id: string | null;
+          previous_id: string | null;
+          data: Json;
+          request_id: string;
+        };
+        Returns: string;
+      };
+      list_medical_reports: {
+        Args: {
+          personal: boolean;
+          patient_filter: string | null;
+          page_number: number;
+        };
+        Returns: Json;
+      };
+      download_medical_report: { Args: { report_id: string }; Returns: Json };
+      download_laboratory_result: {
+        Args: { result_id: string };
+        Returns: Json;
+      };
       set_messaging_enabled: {
         Args: { doctor_id: string; enabled: boolean };
         Returns: undefined;

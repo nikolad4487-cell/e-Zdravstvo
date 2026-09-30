@@ -71,6 +71,9 @@ export function PortalLayout() {
           </NavLink>
           {active?.path === "/ordinacija" && (
             <>
+              <NavLink to="/ordinacija/nalazi" onClick={() => setOpen(false)}>
+                Specijalistički nalazi
+              </NavLink>
               {auth.roles.includes("DOCTOR") && (
                 <>
                   <NavLink
