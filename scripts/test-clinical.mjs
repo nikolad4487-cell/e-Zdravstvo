@@ -1637,5 +1637,73 @@ await test("patient access block removes doctor chart, prescribing, scheduling a
   assert.ok(log.some((x) => x.action === "PATIENT_RECORD_VIEWED"));
   assert.ok(log.every((x) => !("metadata" in x)));
 });
+await db.exec(
+  `insert into auth.users(id) values('${uid(152)}');insert into institution_users(institution_id,user_id) values('${org}','${uid(152)}');insert into user_roles(user_id,role,institution_id) values('${uid(152)}','PHARMACIST','${org}');`,
+);
+const pharmacyDocument = await as(1, () =>
+  rpc("issue_document", [pid, "PRESCRIPTION", rx, uid(153)]),
+);
+const pharmacyDoc = await as(4, () =>
+  rpc("get_document", [pharmacyDocument, "VIEW"]),
+);
+await test("pharmacist requires exact prescription and patient numbers and cannot read chart", async () => {
+  await as(5, () =>
+    assert.rejects(
+      rpc("pharmacy_lookup", [
+        pharmacyDoc.number,
+        pharmacyDoc.payload.patient.patient_number,
+      ]),
+    ),
+  );
+  assert.equal(
+    await as(152, () => rpc("pharmacy_lookup", [pharmacyDoc.number, "WRONG"])),
+    null,
+  );
+  const result = await as(152, () =>
+    rpc("pharmacy_lookup", [
+      pharmacyDoc.number,
+      pharmacyDoc.payload.patient.patient_number,
+    ]),
+  );
+  assert.equal(result.items.length, 1);
+  assert.ok(!("diagnoses" in result));
+  await as(152, () => assert.rejects(rpc("get_patient_chart", [pid])));
+  await as(152, () =>
+    assert.rejects(
+      rpc("dispense_prescription", [
+        pharmacyDocument,
+        pharmacyDoc.payload.patient.patient_number,
+        uid(11),
+      ]),
+    ),
+  );
+});
+await test("dispensing is atomic and immutable and visible to patient", async () => {
+  await as(152, () =>
+    rpc("dispense_prescription", [
+      pharmacyDocument,
+      pharmacyDoc.payload.patient.patient_number,
+      org,
+    ]),
+  );
+  await as(152, () =>
+    assert.rejects(
+      rpc("dispense_prescription", [
+        pharmacyDocument,
+        pharmacyDoc.payload.patient.patient_number,
+        org,
+      ]),
+    ),
+  );
+  const rows = await as(4, () => rpc("my_medications", [false, 0]));
+  const result = rows.find((x) => x.id === pharmacyDocument);
+  assert.equal(result.status, "DISPENSED");
+  assert.ok(result.dispensation);
+  await assert.rejects(
+    db.query("delete from prescription_dispensations where document_id=$1", [
+      pharmacyDocument,
+    ]),
+  );
+});
 console.log(`${passed} total clinical and document checks passed.`);
 await db.close();

@@ -31,6 +31,7 @@ const accounts = [
   ["pacijent", "Tin", "Primjerić", ["PATIENT"]],
   ["skola", "Nela", "Školić", ["SCHOOL_ADMIN"]],
   ["laboratorij", "Tea", "Testović", ["LAB_TECHNICIAN"]],
+  ["ljekarna", "Iva", "Primjerović", ["PHARMACIST"]],
 ];
 function assert(result) {
   if (result.error) throw new Error(result.error.message);

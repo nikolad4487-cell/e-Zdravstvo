@@ -32,6 +32,23 @@ export type Database = {
     };
     Views: Record<string, never>;
     Functions: {
+      pharmacy_lookup: {
+        Args: { document_number: string; patient_number: string };
+        Returns: Json;
+      };
+      dispense_prescription: {
+        Args: {
+          document_id: string;
+          patient_number: string;
+          institution_id: string;
+        };
+        Returns: undefined;
+      };
+      pharmacy_institutions: { Args: Record<string, never>; Returns: Json };
+      my_medications: {
+        Args: { active_only: boolean; page_number: number };
+        Returns: Json;
+      };
       my_patient_settings: { Args: Record<string, never>; Returns: Json };
       save_patient_contacts: { Args: { data: Json }; Returns: undefined };
       set_my_care_access: {

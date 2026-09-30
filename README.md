@@ -245,3 +245,9 @@ Moje e-Zdravstvo → POSTAVKE omogućuje izmjenu kontaktnih podataka kartona (ne
 Pacijent može pojedinačno ograničiti pristup članovima dodijeljenog skrbnog tima. Ograničenje se provjerava u bazi za čitanje kartona, liječnička pisanja, ordinacijske termine i komunikaciju. Ponovno dopuštenje ne vraća opozvanu administrativnu skrbnu ovlast. Pristup vlastitim već izdanim nalazima autora, usko ograničena laboratorijska obrada i bolničke narudžbe koriste zasebne ovlasti; postavka ne obećava povlačenje već dostavljenih dokumenata.
 
 Pacijent vidi stranice pojedinačnih pregleda i preuzimanja koja se mogu povezati s njegovim kartonom, uz vrijeme i korisnika; nikada ne dobiva cjelokupni audit, IP adrese ili metadata. Skupni popisi s null entity_id nisu prikazani kao pojedinačni pristupi. Obavijesti se isporučuju u portal; e-mail slanje, NIAS uređaji i prekogranična razmjena nisu uključeni.
+
+## Ljekarna i preuzeti lijekovi
+
+PHARMACIST otvara /ljekarna te pretražuje točan broj recepta uz interni broj pacijenta. Dobiva samo identitet za provjeru, propisane stavke, liječnika, valjanost i realizaciju; ne karton ili dijagnoze. Realizacija cijelog recepta zaključava zapis, provjerava važeću ljekarničku ulogu u odabranoj ustanovi i aktualnu valjanost recepta. Ponovna realizacija nije dopuštena. Evidencija preuzimanja je nepromjenjiva i auditirana; djelomična izdavanja i zamjene lijekova nisu implementirani.
+
+Moje e-Zdravstvo → LIJEKOVI prikazuje propisane lijekove i, kada postoji realizacija, ljekarnu, djelatnika i vrijeme preuzimanja. Dostupni su pretraživanje prikazane stranice, filtar važećih nerealiziranih recepata i stranice od 50 recepata. Demo seed uključuje ljekarna@demo.e-zdravstvo.test, isključivo testni račun.

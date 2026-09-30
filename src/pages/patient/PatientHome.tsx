@@ -18,6 +18,7 @@ import { CommunicationPanel } from "../../components/medical/CommunicationPanel"
 import { RenewalPanel } from "../../components/medical/RenewalPanel";
 import { MedicalReports } from "../../components/medical/MedicalReports";
 import { PatientSettings } from "./PatientSettings";
+import { PatientMedications } from "../../components/medical/PharmacyPanel";
 export function PatientHome() {
   const auth = useAuth(),
     [tab, setTab] = useState("POČETNA"),
@@ -61,6 +62,7 @@ export function PatientHome() {
           "DOKUMENTI",
           "PRIVITCI",
           "RECEPTI",
+          "LIJEKOVI",
           "UPUTNICE",
           "ISPRIČNICE",
           "TERMINI",
@@ -87,6 +89,7 @@ export function PatientHome() {
       )}
       {tab === "TERMINI" && <AppointmentPanel personal />}
       {tab === "POSTAVKE" && <PatientSettings />}
+      {tab === "LIJEKOVI" && <PatientMedications />}
       {tab === "KOMUNIKACIJA" && <CommunicationPanel personal />}
       {tab === "OBNOVA LIJEKOVA" && <RenewalPanel personal />}
       {tab === "NARUDŽBE" && <HospitalBookings mode="PERSONAL" />}

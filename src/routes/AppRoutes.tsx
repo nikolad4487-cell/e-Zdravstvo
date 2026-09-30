@@ -26,6 +26,7 @@ import { HospitalBookings } from "../components/medical/HospitalBookings";
 import { CommunicationPanel } from "../components/medical/CommunicationPanel";
 import { RenewalPanel } from "../components/medical/RenewalPanel";
 import { MedicalReports } from "../components/medical/MedicalReports";
+import { PharmacyPanel } from "../components/medical/PharmacyPanel";
 function Guard({ path }: { path?: string }) {
   const auth = useAuth();
   if (auth.loading) return <Loading />;
@@ -140,6 +141,8 @@ export function AppRoutes() {
                   <CentralHome />
                 ) : path === "/laboratorij" ? (
                   <LaboratoryPanel mode="LAB" />
+                ) : path === "/ljekarna" ? (
+                  <PharmacyPanel />
                 ) : path === "/skola" ? (
                   <SchoolPage />
                 ) : (
