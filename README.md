@@ -251,3 +251,7 @@ Pacijent vidi stranice pojedinačnih pregleda i preuzimanja koja se mogu povezat
 PHARMACIST otvara /ljekarna te pretražuje točan broj recepta uz interni broj pacijenta. Dobiva samo identitet za provjeru, propisane stavke, liječnika, valjanost i realizaciju; ne karton ili dijagnoze. Realizacija cijelog recepta zaključava zapis, provjerava važeću ljekarničku ulogu u odabranoj ustanovi i aktualnu valjanost recepta. Ponovna realizacija nije dopuštena. Evidencija preuzimanja je nepromjenjiva i auditirana; djelomična izdavanja i zamjene lijekova nisu implementirani.
 
 Moje e-Zdravstvo → LIJEKOVI prikazuje propisane lijekove i, kada postoji realizacija, ljekarnu, djelatnika i vrijeme preuzimanja. Dostupni su pretraživanje prikazane stranice, filtar važećih nerealiziranih recepata i stranice od 50 recepata. Demo seed uključuje ljekarna@demo.e-zdravstvo.test, isključivo testni račun.
+
+## Cijepljenja
+
+Karton → CIJEPLJENJA omogućuje liječniku upis cjepiva, ciljne bolesti, doze, serije, datuma, napomene i datuma sljedeće doze koji određuje liječnik. Pacijent vidi vlastite upise i može pretraživati po cjepivu/bolesti, uključujući COVID-19. Originali su nepromjenjivi; ispravak zahtijeva novu verziju s razlogom. Ovo je lokalna evidencija e-Zdravstva, bez državnih registara, COVID potvrda ili automatskih medicinskih preporuka. Prikazuje se do 500 najnovijih upisa.

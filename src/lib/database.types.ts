@@ -32,6 +32,19 @@ export type Database = {
     };
     Views: Record<string, never>;
     Functions: {
+      record_vaccination: {
+        Args: {
+          patient_id: string;
+          previous_id: string | null;
+          data: Json;
+          request_id: string;
+        };
+        Returns: string;
+      };
+      list_vaccinations: {
+        Args: { personal: boolean; patient_filter: string | null };
+        Returns: Json;
+      };
       pharmacy_lookup: {
         Args: { document_number: string; patient_number: string };
         Returns: Json;

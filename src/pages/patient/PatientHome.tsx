@@ -19,6 +19,7 @@ import { RenewalPanel } from "../../components/medical/RenewalPanel";
 import { MedicalReports } from "../../components/medical/MedicalReports";
 import { PatientSettings } from "./PatientSettings";
 import { PatientMedications } from "../../components/medical/PharmacyPanel";
+import { VaccinationPanel } from "../../components/medical/VaccinationPanel";
 export function PatientHome() {
   const auth = useAuth(),
     [tab, setTab] = useState("POČETNA"),
@@ -70,6 +71,7 @@ export function PatientHome() {
           "LABORATORIJ",
           "SPECIJALISTIČKI NALAZI",
           "POSJETI",
+          "CIJEPLJENJA",
           "TERAPIJA",
           "KARTON",
           "OBAVIJESTI",
@@ -90,6 +92,7 @@ export function PatientHome() {
       {tab === "TERMINI" && <AppointmentPanel personal />}
       {tab === "POSTAVKE" && <PatientSettings />}
       {tab === "LIJEKOVI" && <PatientMedications />}
+      {tab === "CIJEPLJENJA" && <VaccinationPanel personal />}
       {tab === "KOMUNIKACIJA" && <CommunicationPanel personal />}
       {tab === "OBNOVA LIJEKOVA" && <RenewalPanel personal />}
       {tab === "NARUDŽBE" && <HospitalBookings mode="PERSONAL" />}

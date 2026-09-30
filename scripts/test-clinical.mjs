@@ -1705,5 +1705,54 @@ await test("dispensing is atomic and immutable and visible to patient", async ()
     ]),
   );
 });
+let vaccinationId;
+const vaccinationData = {
+  vaccine: "Izmišljeno testno cjepivo",
+  target_disease: "TEST",
+  dose: "1",
+  batch: "TEST-001",
+  administered_on: new Date().toISOString().slice(0, 10),
+  notes: "Nije stvarno cijepljenje",
+};
+await test("vaccination recording is physician scoped with personal read access", async () => {
+  await as(4, () =>
+    assert.rejects(
+      rpc("record_vaccination", [pid, null, vaccinationData, uid(160)]),
+    ),
+  );
+  vaccinationId = await as(1, () =>
+    rpc("record_vaccination", [pid, null, vaccinationData, uid(160)]),
+  );
+  assert.equal(
+    (await as(4, () => rpc("list_vaccinations", [true, pid])))[0].id,
+    vaccinationId,
+  );
+  assert.equal(
+    (await as(6, () => rpc("list_vaccinations", [false, pid]))).length,
+    0,
+  );
+});
+await test("vaccination correction keeps original and rejects overwrite", async () => {
+  const updated = await as(1, () =>
+    rpc("record_vaccination", [
+      pid,
+      vaccinationId,
+      {
+        ...vaccinationData,
+        batch: "TEST-002",
+        correction_reason: "Ispravak testne serije",
+      },
+      uid(161),
+    ]),
+  );
+  assert.ok(
+    (await as(4, () => rpc("list_vaccinations", [true, pid]))).some(
+      (v) => v.superseded_by === updated,
+    ),
+  );
+  await assert.rejects(
+    db.query("update vaccinations set dose=$1 where id=$2", ["2", updated]),
+  );
+});
 console.log(`${passed} total clinical and document checks passed.`);
 await db.close();
