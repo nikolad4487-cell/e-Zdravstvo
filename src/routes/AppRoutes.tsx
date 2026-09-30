@@ -23,6 +23,8 @@ import { CareTeamsPage } from "../pages/admin/CareTeamsPage";
 import { AdministrationPage } from "../pages/admin/AdministrationPage";
 import { HospitalAdminPage } from "../pages/institution/HospitalAdminPage";
 import { HospitalBookings } from "../components/medical/HospitalBookings";
+import { CommunicationPanel } from "../components/medical/CommunicationPanel";
+import { RenewalPanel } from "../components/medical/RenewalPanel";
 function Guard({ path }: { path?: string }) {
   const auth = useAuth();
   if (auth.loading) return <Loading />;
@@ -109,6 +111,11 @@ export function AppRoutes() {
             )}
             {path === "/ordinacija" && (
               <>
+                <Route
+                  path="/ordinacija/komunikacija"
+                  element={<CommunicationPanel />}
+                />
+                <Route path="/ordinacija/obnova" element={<RenewalPanel />} />
                 <Route
                   path="/ordinacija/narudzbe"
                   element={<HospitalBookings mode="CARE" />}

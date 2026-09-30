@@ -1427,5 +1427,90 @@ await test("hospital cancellation retains history and releases slot atomically",
     db.query("delete from hospital_bookings where id=$1", [hb]),
   );
 });
+await test("messaging is opt-in and restricted to patient and assigned doctor", async () => {
+  await as(4, () =>
+    assert.rejects(
+      rpc("send_patient_message", [pid, doc, "Testna poruka", uid(130)]),
+    ),
+  );
+  await as(2, () => assert.rejects(rpc("set_messaging_enabled", [doc, true])));
+  await as(1, () => rpc("set_messaging_enabled", [doc, true]));
+  const msg = await as(4, () =>
+    rpc("send_patient_message", [pid, doc, "Testna poruka", uid(130)]),
+  );
+  assert.equal(
+    await as(4, () =>
+      rpc("send_patient_message", [pid, doc, "Testna poruka", uid(130)]),
+    ),
+    msg,
+  );
+  assert.equal(
+    (await as(1, () => rpc("read_messages", [pid, doc, null])))[0].body,
+    "Testna poruka",
+  );
+  await as(3, () => assert.rejects(rpc("read_messages", [pid, doc, null])));
+  await as(2, () => assert.rejects(rpc("read_messages", [pid, doc, null])));
+  await as(5, () => assert.rejects(rpc("read_messages", [pid, doc, null])));
+  await as(6, () => assert.rejects(rpc("read_messages", [pid, doc, null])));
+  await as(1, () => rpc("set_messaging_enabled", [doc, false]));
+  await as(4, () =>
+    assert.rejects(
+      rpc("send_patient_message", [pid, doc, "Druga poruka", uid(131)]),
+    ),
+  );
+  assert.equal(
+    (await as(4, () => rpc("read_messages", [pid, doc, null]))).length,
+    1,
+  );
+  await assert.rejects(
+    db.query("update messages set body=$1 where id=$2", ["overwrite", msg]),
+  );
+});
+const renewalTherapy = (await as(4, () => rpc("renewal_overview", [true, pid])))
+  .therapies[0];
+let renewal;
+await test("renewal request needs doctor approval of active therapy and cannot duplicate pending request", async () => {
+  await as(4, () =>
+    assert.rejects(
+      rpc("request_medication_renewal", [renewalTherapy.id, "Test"]),
+    ),
+  );
+  await as(4, () =>
+    assert.rejects(rpc("set_renewal_allowed", [renewalTherapy.id, true])),
+  );
+  await as(1, () => rpc("set_renewal_allowed", [renewalTherapy.id, true]));
+  renewal = await as(4, () =>
+    rpc("request_medication_renewal", [renewalTherapy.id, "Test"]),
+  );
+  assert.equal(
+    await as(4, () =>
+      rpc("request_medication_renewal", [renewalTherapy.id, "Test"]),
+    ),
+    renewal,
+  );
+  await as(3, () =>
+    assert.rejects(rpc("resolve_medication_renewal", [renewal, true, "", rx])),
+  );
+  await as(2, () =>
+    assert.rejects(rpc("resolve_medication_renewal", [renewal, true, "", rx])),
+  );
+});
+await test("renewal approval atomically creates a patient prescription and rejects replay", async () => {
+  const document = await as(1, () =>
+    rpc("resolve_medication_renewal", [renewal, true, "Odobreno", rx]),
+  );
+  assert.equal(
+    (await as(4, () => rpc("get_document", [document, "VIEW"]))).kind,
+    "PRESCRIPTION",
+  );
+  assert.equal(
+    (await as(4, () => rpc("renewal_overview", [true, pid]))).requests[0]
+      .status,
+    "APPROVED",
+  );
+  await as(1, () =>
+    assert.rejects(rpc("resolve_medication_renewal", [renewal, true, "", rx])),
+  );
+});
 console.log(`${passed} total clinical and document checks passed.`);
 await db.close();

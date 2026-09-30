@@ -14,6 +14,8 @@ import { dateLabel } from "../../utils/format";
 import { AppointmentPanel } from "../../components/medical/AppointmentPanel";
 import { LaboratoryPanel } from "../../components/medical/LaboratoryPanel";
 import { HospitalBookings } from "../../components/medical/HospitalBookings";
+import { CommunicationPanel } from "../../components/medical/CommunicationPanel";
+import { RenewalPanel } from "../../components/medical/RenewalPanel";
 export function PatientHome() {
   const auth = useAuth(),
     [tab, setTab] = useState("POČETNA"),
@@ -52,6 +54,8 @@ export function PatientHome() {
       <nav className="record-tabs" aria-label="Moj zdravstveni prostor">
         {[
           "POČETNA",
+          "KOMUNIKACIJA",
+          "OBNOVA LIJEKOVA",
           "DOKUMENTI",
           "PRIVITCI",
           "RECEPTI",
@@ -77,6 +81,8 @@ export function PatientHome() {
         <PatientOverview version={version} navigate={setTab} />
       )}
       {tab === "TERMINI" && <AppointmentPanel personal />}
+      {tab === "KOMUNIKACIJA" && <CommunicationPanel personal />}
+      {tab === "OBNOVA LIJEKOVA" && <RenewalPanel personal />}
       {tab === "NARUDŽBE" && <HospitalBookings mode="PERSONAL" />}
       {tab === "LABORATORIJ" && <LaboratoryPanel mode="PERSONAL" />}
       {tab === "DOKUMENTI" && (

@@ -71,6 +71,22 @@ export function PortalLayout() {
           </NavLink>
           {active?.path === "/ordinacija" && (
             <>
+              {auth.roles.includes("DOCTOR") && (
+                <>
+                  <NavLink
+                    to="/ordinacija/komunikacija"
+                    onClick={() => setOpen(false)}
+                  >
+                    Komunikacija
+                  </NavLink>
+                  <NavLink
+                    to="/ordinacija/obnova"
+                    onClick={() => setOpen(false)}
+                  >
+                    Obnova lijekova
+                  </NavLink>
+                </>
+              )}
               <NavLink to="/ordinacija/narudzbe" onClick={() => setOpen(false)}>
                 <Building2 size={19} />
                 Bolničke narudžbe

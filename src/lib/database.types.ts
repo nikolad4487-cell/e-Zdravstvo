@@ -32,6 +32,52 @@ export type Database = {
     };
     Views: Record<string, never>;
     Functions: {
+      set_messaging_enabled: {
+        Args: { doctor_id: string; enabled: boolean };
+        Returns: undefined;
+      };
+      message_threads: {
+        Args: { personal: boolean; search_term: string };
+        Returns: Json;
+      };
+      read_messages: {
+        Args: {
+          patient_id: string;
+          doctor_id: string;
+          before_time: string | null;
+        };
+        Returns: Json;
+      };
+      send_patient_message: {
+        Args: {
+          patient_id: string;
+          doctor_id: string;
+          body: string;
+          request_id: string;
+        };
+        Returns: string;
+      };
+      set_renewal_allowed: {
+        Args: { therapy_id: string; allowed: boolean };
+        Returns: undefined;
+      };
+      renewal_overview: {
+        Args: { personal: boolean; patient_filter: string | null };
+        Returns: Json;
+      };
+      request_medication_renewal: {
+        Args: { therapy_id: string; note: string };
+        Returns: string;
+      };
+      resolve_medication_renewal: {
+        Args: {
+          renewal_id: string;
+          approve: boolean;
+          response: string;
+          prescription_data: Json;
+        };
+        Returns: string | null;
+      };
       hospital_context: { Args: { manage: boolean }; Returns: Json };
       save_hospital_service: {
         Args: { service_id: string | null; data: Json };
