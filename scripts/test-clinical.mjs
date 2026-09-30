@@ -1597,5 +1597,45 @@ await test("report corrections preserve source, require reason and reject stale 
     db.query("delete from medical_reports where id=$1", [corrected]),
   );
 });
+await test("patient settings cannot change identity or access another patient", async () => {
+  await as(5, () => assert.rejects(rpc("my_patient_settings")));
+  await as(6, () =>
+    assert.rejects(rpc("save_patient_contacts", [{ phone: "123" }])),
+  );
+  await as(4, () =>
+    rpc("save_patient_contacts", [
+      {
+        phone: "TEST 123",
+        email: "fiction@demo.e-zdravstvo.test",
+        address: "Testna 1",
+        city: "Testni grad",
+        postal_code: "00000",
+        emergency_contact: "Testni kontakt",
+        first_name: "CHANGED",
+      },
+    ]),
+  );
+  const settings = await as(4, () => rpc("my_patient_settings"));
+  assert.equal(settings.patient.phone, "TEST 123");
+  assert.equal(settings.patient.name, "Tin Testni");
+  await as(4, () => assert.rejects(rpc("set_my_care_access", [uid(2), true])));
+});
+await test("patient access block removes doctor chart, prescribing, scheduling and messaging access", async () => {
+  await as(4, () => rpc("set_my_care_access", [uid(1), false]));
+  await as(1, () => assert.rejects(rpc("get_patient_chart", [pid])));
+  await as(1, () =>
+    assert.rejects(rpc("issue_document", [pid, "PRESCRIPTION", rx, uid(150)])),
+  );
+  await as(1, () => assert.rejects(rpc("read_messages", [pid, doc, null])));
+  assert.equal((await as(4, () => rpc("get_my_chart"))).patient.id, pid);
+  await as(4, () => rpc("set_my_care_access", [uid(1), true]));
+  assert.equal(
+    (await as(1, () => rpc("get_patient_chart", [pid]))).can_write,
+    true,
+  );
+  const log = await as(4, () => rpc("my_access_history", [0]));
+  assert.ok(log.some((x) => x.action === "PATIENT_RECORD_VIEWED"));
+  assert.ok(log.every((x) => !("metadata" in x)));
+});
 console.log(`${passed} total clinical and document checks passed.`);
 await db.close();

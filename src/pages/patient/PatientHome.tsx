@@ -17,6 +17,7 @@ import { HospitalBookings } from "../../components/medical/HospitalBookings";
 import { CommunicationPanel } from "../../components/medical/CommunicationPanel";
 import { RenewalPanel } from "../../components/medical/RenewalPanel";
 import { MedicalReports } from "../../components/medical/MedicalReports";
+import { PatientSettings } from "./PatientSettings";
 export function PatientHome() {
   const auth = useAuth(),
     [tab, setTab] = useState("POČETNA"),
@@ -70,6 +71,7 @@ export function PatientHome() {
           "TERAPIJA",
           "KARTON",
           "OBAVIJESTI",
+          "POSTAVKE",
         ].map((t) => (
           <button
             key={t}
@@ -84,6 +86,7 @@ export function PatientHome() {
         <PatientOverview version={version} navigate={setTab} />
       )}
       {tab === "TERMINI" && <AppointmentPanel personal />}
+      {tab === "POSTAVKE" && <PatientSettings />}
       {tab === "KOMUNIKACIJA" && <CommunicationPanel personal />}
       {tab === "OBNOVA LIJEKOVA" && <RenewalPanel personal />}
       {tab === "NARUDŽBE" && <HospitalBookings mode="PERSONAL" />}

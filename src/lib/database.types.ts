@@ -32,6 +32,13 @@ export type Database = {
     };
     Views: Record<string, never>;
     Functions: {
+      my_patient_settings: { Args: Record<string, never>; Returns: Json };
+      save_patient_contacts: { Args: { data: Json }; Returns: undefined };
+      set_my_care_access: {
+        Args: { target_user: string; allowed: boolean };
+        Returns: undefined;
+      };
+      my_access_history: { Args: { page_number: number }; Returns: Json };
       publish_medical_report: {
         Args: {
           patient_id: string;

@@ -237,3 +237,11 @@ Ordinacija → karton → OBNOVA LIJEKOVA omogućuje liječniku da pojedinačno 
 Karton → NALAZI omogućuje ovlaštenom liječniku objavu nalaza ili otpusnog pisma. Specijalist može napisati nalaz kroz Moji bolnički pacijenti nakon evidentiranog dolaska, bez dobivanja općeg pristupa pacijentovu kartonu. Moje e-Zdravstvo → SPECIJALISTIČKI NALAZI prikazuje izvorne i ispravljene verzije s PDF preuzimanjem. Izdavatelj, pacijent i ustanova pohranjeni su uz sadržaj kao povijesni snapshot. Ispravak zahtijeva razlog, zadržava original i odbija zastarjelu verziju. Nema hard deletea.
 
 Laboratorijski nalaz ima zasebno PDF preuzimanje svake verzije s parametrima, referentnim intervalima, komentarom i oznakom zamijenjene verzije. Svaki download ponovno provjerava ovlasti na serveru i bilježi audit. PDF prikazuje sadržaj pohranjen u sustavu; nije kvalificirano potpisani PDF. POSJETI u osobnom portalu izdvaja postojeću povijest pregleda. Vanjski nalazi i dalje se učitavaju kroz PRIVITKE/DOKUMENTE i ne predstavljaju se kao nalazi izdani u aplikaciji.
+
+## Postavke pacijenta
+
+Moje e-Zdravstvo → POSTAVKE omogućuje izmjenu kontaktnih podataka kartona (ne identiteta, uloga ili e-maila za prijavu), promjenu lozinke i odjavu drugih Supabase sesija. Odjava drugih sesija sprječava obnavljanje prijave; ranije izdani pristupni JWT vrijedi do isteka. Ne prikazuje se izmišljeni popis uređaja niti se obećava trenutno poništavanje takvih tokena.
+
+Pacijent može pojedinačno ograničiti pristup članovima dodijeljenog skrbnog tima. Ograničenje se provjerava u bazi za čitanje kartona, liječnička pisanja, ordinacijske termine i komunikaciju. Ponovno dopuštenje ne vraća opozvanu administrativnu skrbnu ovlast. Pristup vlastitim već izdanim nalazima autora, usko ograničena laboratorijska obrada i bolničke narudžbe koriste zasebne ovlasti; postavka ne obećava povlačenje već dostavljenih dokumenata.
+
+Pacijent vidi stranice pojedinačnih pregleda i preuzimanja koja se mogu povezati s njegovim kartonom, uz vrijeme i korisnika; nikada ne dobiva cjelokupni audit, IP adrese ili metadata. Skupni popisi s null entity_id nisu prikazani kao pojedinačni pristupi. Obavijesti se isporučuju u portal; e-mail slanje, NIAS uređaji i prekogranična razmjena nisu uključeni.
