@@ -1754,5 +1754,223 @@ await test("vaccination correction keeps original and rejects overwrite", async 
     db.query("update vaccinations set dose=$1 where id=$2", ["2", updated]),
   );
 });
+
+const moveBooking = await as(1, () =>
+  rpc("book_hospital_slot", [
+    pid,
+    hospitalAvailable[0].id,
+    null,
+    true,
+    "Testni prioritet",
+    uid(180),
+  ]),
+);
+const moveArgs = [
+  moveBooking,
+  hospitalAvailable[1].id,
+  1,
+  "Dogovor s pacijentom",
+  uid(181),
+];
+await test("hospital rescheduling denies patient nurse school and administrative bypass", async () => {
+  for (const user of [0, 3, 4, 5, 6])
+    await as(user, () =>
+      assert.rejects(rpc("reschedule_hospital_booking", moveArgs)),
+    );
+  assert.equal(
+    (
+      await as(4, () => rpc("list_hospital_bookings", ["PERSONAL", null, 0]))
+    ).find((b) => b.id === moveBooking).can_reschedule,
+    false,
+  );
+});
+await test("hospital rescheduling is atomic versioned and idempotent", async () => {
+  await as(1, () => rpc("reschedule_hospital_booking", moveArgs));
+  await as(1, () => rpc("reschedule_hospital_booking", moveArgs));
+  const row = (
+    await as(4, () => rpc("list_hospital_bookings", ["PERSONAL", null, 0]))
+  ).find((b) => b.id === moveBooking);
+  assert.equal(row.slot_id, hospitalAvailable[1].id);
+  assert.equal(row.version, 2);
+  const history = await as(4, () =>
+    rpc("hospital_reschedule_history", [moveBooking]),
+  );
+  assert.equal(history.length, 1);
+  assert.equal(history[0].reason, moveArgs[3]);
+  assert.equal(
+    (
+      await as(1, () =>
+        rpc("list_hospital_slots", [
+          hospitalService,
+          hospitalDate,
+          hospitalDate,
+          false,
+        ]),
+      )
+    )[0].id,
+    hospitalAvailable[0].id,
+  );
+  await as(1, () =>
+    assert.rejects(
+      rpc("reschedule_hospital_booking", [
+        moveBooking,
+        hospitalAvailable[0].id,
+        1,
+        "Zastarjela izmjena",
+        uid(182),
+      ]),
+    ),
+  );
+  await as(1, () =>
+    assert.rejects(
+      rpc("reschedule_hospital_booking", [
+        ...moveArgs.slice(0, 3),
+        "Promijenjen razlog",
+        uid(181),
+      ]),
+    ),
+  );
+  for (const user of [0, 3, 5, 6])
+    await as(user, () =>
+      assert.rejects(rpc("hospital_reschedule_history", [moveBooking])),
+    );
+  await as(4, () =>
+    assert.rejects(db.exec("select * from hospital_reschedules")),
+  );
+  await assert.rejects(
+    db.query(
+      "update hospital_reschedules set reason='Promjena' where booking_id=$1",
+      [moveBooking],
+    ),
+  );
+  await assert.rejects(
+    db.query("delete from hospital_reschedules where booking_id=$1", [
+      moveBooking,
+    ]),
+  );
+});
+await test("hospital provider can move within service and failed moves keep booking intact", async () => {
+  await as(2, () =>
+    rpc("reschedule_hospital_booking", [
+      moveBooking,
+      hospitalAvailable[0].id,
+      2,
+      "Dogovoreni novi termin",
+      uid(183),
+    ]),
+  );
+  await as(1, () =>
+    assert.rejects(
+      rpc("reschedule_hospital_booking", [
+        moveBooking,
+        uid(999),
+        3,
+        "Nepostojeći termin",
+        uid(184),
+      ]),
+    ),
+  );
+  await as(1, () =>
+    assert.rejects(
+      rpc("reschedule_hospital_booking", [
+        moveBooking,
+        hospitalAvailable[1].id,
+        3,
+        "",
+        uid(185),
+      ]),
+    ),
+  );
+  const current = (
+    await as(4, () => rpc("list_hospital_bookings", ["PERSONAL", null, 0]))
+  ).find((b) => b.id === moveBooking);
+  assert.equal(current.slot_id, hospitalAvailable[0].id);
+  assert.equal(current.version, 3);
+  await as(4, () =>
+    rpc("change_hospital_booking", [
+      moveBooking,
+      3,
+      "CANCELLED",
+      "Testno otkazivanje",
+    ]),
+  );
+  await as(1, () =>
+    assert.rejects(
+      rpc("reschedule_hospital_booking", [
+        moveBooking,
+        hospitalAvailable[1].id,
+        4,
+        "Otkazana narudžba",
+        uid(186),
+      ]),
+    ),
+  );
+});
+
+await test("rescheduling rejects occupied and priority-only targets without losing original", async () => {
+  await as(6, () =>
+    rpc("publish_hospital_slots", [
+      hospitalService,
+      hospitalDate + "T13:00",
+      30,
+      2,
+      false,
+    ]),
+  );
+  const free = await as(1, () =>
+    rpc("list_hospital_slots", [
+      hospitalService,
+      hospitalDate,
+      hospitalDate,
+      false,
+    ]),
+  );
+  const ordinary = free.filter((s) => !s.priority_only),
+    prioritySlot = free.find((s) => s.priority_only);
+  const secondPatient = await as(1, () =>
+    rpc("create_patient", [
+      {
+        first_name: "Test",
+        last_name: "Premještanje",
+        birth_date: "2000-01-01",
+        sex: "M",
+      },
+      doc,
+    ]),
+  );
+  const first = await as(1, () =>
+    rpc("book_hospital_slot", [pid, ordinary[0].id, null, false, "", uid(190)]),
+  );
+  await as(1, () =>
+    rpc("book_hospital_slot", [
+      secondPatient,
+      ordinary[1].id,
+      null,
+      false,
+      "",
+      uid(191),
+    ]),
+  );
+  for (const target of [ordinary[1].id, prioritySlot.id])
+    await as(1, () =>
+      assert.rejects(
+        rpc("reschedule_hospital_booking", [
+          first,
+          target,
+          1,
+          "Provjera dostupnosti",
+          uid(192),
+        ]),
+      ),
+    );
+  const current = (
+    await as(4, () => rpc("list_hospital_bookings", ["PERSONAL", null, 0]))
+  ).find((b) => b.id === first);
+  assert.equal(current.slot_id, ordinary[0].id);
+  assert.equal(current.version, 1);
+  assert.equal(
+    (await as(4, () => rpc("hospital_reschedule_history", [first]))).length,
+    0,
+  );
+});
 console.log(`${passed} total clinical and document checks passed.`);
-await db.close();

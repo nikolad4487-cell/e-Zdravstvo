@@ -58,3 +58,39 @@ export async function hospitalBookings(
     ),
   );
 }
+
+export async function hospitalRescheduleHistory(bookingId: string) {
+  return z
+    .array(
+      z.object({
+        id: z.string(),
+        created_at: z.string(),
+        reason: z.string(),
+        old_starts_at: z.string(),
+        new_starts_at: z.string(),
+      }),
+    )
+    .parse(
+      unwrap(
+        await db().rpc("hospital_reschedule_history", {
+          booking_id: bookingId,
+        }),
+      ),
+    );
+}
+export async function rescheduleHospital(
+  booking: { id: string; version: number },
+  slotId: string,
+  reason: string,
+  requestId: string,
+) {
+  unwrap(
+    await db().rpc("reschedule_hospital_booking", {
+      booking_id: booking.id,
+      new_slot_id: slotId,
+      expected_version: booking.version,
+      reason,
+      request_id: requestId,
+    }),
+  );
+}

@@ -259,3 +259,9 @@ Karton → CIJEPLJENJA omogućuje liječniku upis cjepiva, ciljne bolesti, doze,
 ## Navigacija osobnog portala
 
 Pacijentov bočni izbornik i početne kartice vode na zasebne rute /moje/narudzbe, /moje/posjeti, /moje/lijekovi i ostale module. Osvježavanje stranice zadržava odabrani modul. Početna stranica prikazuje najbližu potvrđenu bolničku narudžbu iz baze, zasebno od ordinacijskog termina. Mobilni izbornik i donja navigacija omogućuju pristup istim podacima.
+
+## Premještanje bolničkih narudžbi
+
+Liječnik sa skrbnom vezom ili specijalist narudžbe može premjestiti buduću potvrđenu narudžbu na slobodan termin iste bolničke usluge. Identitet pregleda, specijalist, prioritet i povezana uputnica ostaju isti. Obvezan razlog prikazuje se pacijentu. Pacijent sam ne premješta narudžbu.
+
+Transakcija zaključava narudžbu i termine, provjerava aktualnu verziju, raspoloživost i preklapanje bolničkih narudžbi pacijenta. Tek uspješnim spremanjem oslobađa prethodni termin. Ponovljeni identični zahtjev ne duplicira povijest ili obavijesti. Neuspjeli pokušaj zadržava izvornu rezervaciju. Povijest premještanja je nepromjenjiva, auditirana i dostupna samo pacijentu te ovlaštenim liječnicima, do 100 najnovijih promjena. Otkazane, započete i prošle narudžbe ne mogu se premještati. Zajednička provjera bolničkih i ordinacijskih rasporeda ostaje sljedeća zasebna dorada.

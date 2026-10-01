@@ -139,6 +139,20 @@ export type Database = {
         };
         Returns: string | null;
       };
+      reschedule_hospital_booking: {
+        Args: {
+          booking_id: string;
+          new_slot_id: string;
+          expected_version: number;
+          reason: string;
+          request_id: string;
+        };
+        Returns: undefined;
+      };
+      hospital_reschedule_history: {
+        Args: { booking_id: string };
+        Returns: Json;
+      };
       hospital_context: { Args: { manage: boolean }; Returns: Json };
       save_hospital_service: {
         Args: { service_id: string | null; data: Json };

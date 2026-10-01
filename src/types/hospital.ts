@@ -53,6 +53,8 @@ export const hospitalBookingSchema = z.object({
   patient_number: z.string(),
   can_cancel: z.boolean(),
   can_process: z.boolean(),
+  can_reschedule: z.boolean(),
+  service_id: z.string(),
 });
 export type HospitalService = z.infer<typeof hospitalServiceSchema>;
 export type HospitalSlot = z.infer<typeof hospitalSlotSchema>;

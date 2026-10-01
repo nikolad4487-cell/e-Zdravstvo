@@ -6,6 +6,8 @@ import {
   hospitalBookings,
   hospitalContext,
   hospitalSlots,
+  hospitalRescheduleHistory,
+  rescheduleHospital,
 } from "../../services/hospital";
 import { useResource } from "../../hooks/useResource";
 import { useScheduleRefresh } from "../../hooks/useScheduleRefresh";
@@ -31,6 +33,8 @@ export function HospitalBookings({
   patientId?: string;
   canBook?: boolean;
 }) {
+  const [reschedule, setReschedule] = useState<HospitalBooking | null>(null);
+  const [history, setHistory] = useState<HospitalBooking | null>(null);
   const [report, setReport] = useState<HospitalBooking | null>(null);
   const [page, setPage] = useState(0),
     [cancelled, setCancelled] = useState(false),
@@ -161,6 +165,17 @@ export function HospitalBookings({
                         Napiši nalaz
                       </button>
                     )}
+                  <button className="text-link" onClick={() => setHistory(b)}>
+                    Povijest premještanja
+                  </button>
+                  {b.can_reschedule && (
+                    <button
+                      className="secondary"
+                      onClick={() => setReschedule(b)}
+                    >
+                      Premjesti termin
+                    </button>
+                  )}
                   {b.can_cancel && b.status === "BOOKED" && (
                     <button
                       className="secondary"
@@ -216,6 +231,21 @@ export function HospitalBookings({
           Sljedeća
         </button>
       </div>
+      {history && (
+        <RescheduleHistory booking={history} onClose={() => setHistory(null)} />
+      )}
+      {reschedule && (
+        <BookHospital
+          patientId={reschedule.patient_id}
+          reschedule={reschedule}
+          onClose={() => setReschedule(null)}
+          onSaved={() => {
+            setReschedule(null);
+            resource.refresh();
+            setSuccess("Termin je premješten. Pacijent je obaviješten.");
+          }}
+        />
+      )}
       {report && (
         <ReportEditor
           patientId={report.patient_id}
@@ -274,6 +304,7 @@ export function HospitalBookings({
   );
 }
 function BookHospital({
+  reschedule,
   patientId,
   onClose,
   onSaved,
@@ -281,17 +312,19 @@ function BookHospital({
   patientId: string;
   onClose: () => void;
   onSaved: () => void;
+  reschedule?: HospitalBooking;
 }) {
   const referrals = useResource(
-    () => listDocuments(patientId, "REFERRAL"),
+    () =>
+      reschedule ? Promise.resolve([]) : listDocuments(patientId, "REFERRAL"),
     patientId,
   );
   const context = useResource(() => hospitalContext(), "booking-context"),
     [institution, setInstitution] = useState(""),
     [specialty, setSpecialty] = useState(""),
-    [service, setService] = useState(""),
+    [service, setService] = useState(reschedule?.service_id ?? ""),
     [from, setFrom] = useState(zagrebDate()),
-    [priority, setPriority] = useState(false),
+    [priority, setPriority] = useState(reschedule?.priority ?? false),
     [selected, setSelected] = useState<HospitalSlot | null>(null),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
@@ -308,16 +341,24 @@ function BookHospital({
     setBusy(true);
     setError("");
     try {
-      unwrap(
-        await db().rpc("book_hospital_slot", {
-          patient_id: patientId,
-          slot_id: selected.id,
-          referral_id: data.referral_id || null,
-          priority,
-          priority_reason: data.reason ?? "",
-          request_id: requestId,
-        }),
-      );
+      if (reschedule)
+        await rescheduleHospital(
+          reschedule,
+          selected.id,
+          data.move_reason,
+          requestId,
+        );
+      else
+        unwrap(
+          await db().rpc("book_hospital_slot", {
+            patient_id: patientId,
+            slot_id: selected.id,
+            referral_id: data.referral_id || null,
+            priority,
+            priority_reason: data.reason ?? "",
+            request_id: requestId,
+          }),
+        );
       onSaved();
     } catch (e) {
       setError(readableError(e));
@@ -327,7 +368,14 @@ function BookHospital({
     }
   }
   return (
-    <Modal title="Naručivanje u ustanovu" wide busy={busy} onClose={onClose}>
+    <Modal
+      title={
+        reschedule ? "Premještanje bolničkog termina" : "Naručivanje u ustanovu"
+      }
+      wide
+      busy={busy}
+      onClose={onClose}
+    >
       <div className="modal-content">
         {(context.error || slots.error || error) && (
           <ErrorMessage>{context.error || slots.error || error}</ErrorMessage>
@@ -346,24 +394,38 @@ function BookHospital({
               <p>{chosen?.doctor_name}</p>
               <p>{chosen?.instructions}</p>
               <p>
-                Potvrdom rezervirate termin. Narudžba će odmah biti vidljiva
-                pacijentu.
+                {reschedule
+                  ? "Potvrdom premještate narudžbu i oslobađate prethodni termin. Pacijent će dobiti obavijest."
+                  : "Potvrdom rezervirate termin. Narudžba će odmah biti vidljiva pacijentu."}
               </p>
             </div>
-            <Field name="referral_id" label="Povezana uputnica">
-              <option value="">Bez povezane uputnice</option>
-              {referrals.data
-                ?.filter(
-                  (d) => d.status === "ISSUED" && d.expires_on >= zagrebDate(),
-                )
-                .map((d) => (
-                  <option key={d.id} value={d.id}>
-                    {d.number}
-                  </option>
-                ))}
-            </Field>
+            {!reschedule && (
+              <Field name="referral_id" label="Povezana uputnica">
+                <option value="">Bez povezane uputnice</option>
+                {referrals.data
+                  ?.filter(
+                    (d) =>
+                      d.status === "ISSUED" && d.expires_on >= zagrebDate(),
+                  )
+                  .map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.number}
+                    </option>
+                  ))}
+              </Field>
+            )}
+            {reschedule && (
+              <Field
+                name="move_reason"
+                label="Razlog premještanja (vidljiv pacijentu)"
+                required
+                minLength={5}
+                maxLength={500}
+                type="textarea"
+              />
+            )}
             {referrals.error && <ErrorMessage>{referrals.error}</ErrorMessage>}
-            {priority && (
+            {priority && !reschedule && (
               <Field
                 name="reason"
                 label="Razlog prioriteta"
@@ -383,79 +445,97 @@ function BookHospital({
                 Natrag
               </button>
               <button className="primary" disabled={busy}>
-                {busy ? "Rezerviranje…" : "Potvrdi narudžbu"}
+                {busy
+                  ? "Spremanje…"
+                  : reschedule
+                    ? "Potvrdi premještanje"
+                    : "Potvrdi narudžbu"}
               </button>
             </div>
           </form>
         ) : (
           <>
+            {reschedule && (
+              <p className="confirm-box">
+                {reschedule.service_name} · {reschedule.institution_name}
+                <br />
+                Trenutačni termin:{" "}
+                {dateLabel(zagrebDate(new Date(reschedule.starts_at)))} u{" "}
+                {zagrebTime(reschedule.starts_at)}. Odaberite novi slobodan
+                termin za isti pregled.
+              </p>
+            )}
             <div className="form-grid">
-              <label className="field">
-                <span>Ustanova</span>
-                <select
-                  value={institution}
-                  onChange={(e) => {
-                    setInstitution(e.target.value);
-                    setSpecialty("");
-                    setService("");
-                  }}
-                >
-                  <option value="">Odaberite ustanovu</option>
-                  {[
-                    ...new Map(
-                      context.data?.services.map((s) => [
-                        s.institution_id,
-                        s.institution_name,
-                      ]),
-                    ).entries(),
-                  ].map(([id, name]) => (
-                    <option value={id} key={id}>
-                      {name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="field">
-                <span>Specijalnost</span>
-                <select
-                  value={specialty}
-                  onChange={(e) => {
-                    setSpecialty(e.target.value);
-                    setService("");
-                  }}
-                >
-                  <option value="">Odaberite specijalnost</option>
-                  {[
-                    ...new Set(
-                      context.data?.services
-                        .filter((s) => s.institution_id === institution)
-                        .map((s) => s.specialty),
-                    ),
-                  ].map((s) => (
-                    <option key={s}>{s}</option>
-                  ))}
-                </select>
-              </label>
-              <label className="field">
-                <span>Pregled / pretraga</span>
-                <select
-                  value={service}
-                  onChange={(e) => setService(e.target.value)}
-                >
-                  <option value="">Odaberite pregled</option>
-                  {context.data?.services
-                    .filter(
-                      (s) =>
-                        s.institution_id === institution &&
-                        s.specialty === specialty,
-                    )
-                    .map((s) => (
-                      <option value={s.id} key={s.id}>
-                        {s.name} · {s.doctor_name}
-                      </option>
-                    ))}
-                </select>
-              </label>
+              {!reschedule && (
+                <>
+                  <label className="field">
+                    <span>Ustanova</span>
+                    <select
+                      value={institution}
+                      onChange={(e) => {
+                        setInstitution(e.target.value);
+                        setSpecialty("");
+                        setService("");
+                      }}
+                    >
+                      <option value="">Odaberite ustanovu</option>
+                      {[
+                        ...new Map(
+                          context.data?.services.map((s) => [
+                            s.institution_id,
+                            s.institution_name,
+                          ]),
+                        ).entries(),
+                      ].map(([id, name]) => (
+                        <option value={id} key={id}>
+                          {name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="field">
+                    <span>Specijalnost</span>
+                    <select
+                      value={specialty}
+                      onChange={(e) => {
+                        setSpecialty(e.target.value);
+                        setService("");
+                      }}
+                    >
+                      <option value="">Odaberite specijalnost</option>
+                      {[
+                        ...new Set(
+                          context.data?.services
+                            .filter((s) => s.institution_id === institution)
+                            .map((s) => s.specialty),
+                        ),
+                      ].map((s) => (
+                        <option key={s}>{s}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="field">
+                    <span>Pregled / pretraga</span>
+                    <select
+                      value={service}
+                      onChange={(e) => setService(e.target.value)}
+                    >
+                      <option value="">Odaberite pregled</option>
+                      {context.data?.services
+                        .filter(
+                          (s) =>
+                            s.institution_id === institution &&
+                            s.specialty === specialty,
+                        )
+                        .map((s) => (
+                          <option value={s.id} key={s.id}>
+                            {s.name} · {s.doctor_name}
+                          </option>
+                        ))}
+                    </select>
+                  </label>
+                </>
+              )}
               <label className="field">
                 <span>Pretraži 31 dan od</span>
                 <input
@@ -465,14 +545,16 @@ function BookHospital({
                   onChange={(e) => setFrom(e.target.value || zagrebDate())}
                 />
               </label>
-              <label>
-                <input
-                  type="checkbox"
-                  checked={priority}
-                  onChange={(e) => setPriority(e.target.checked)}
-                />{" "}
-                Prioritetni pacijent
-              </label>
+              {!reschedule && (
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={priority}
+                    onChange={(e) => setPriority(e.target.checked)}
+                  />{" "}
+                  Prioritetni pacijent
+                </label>
+              )}
             </div>
             {context.loading || slots.loading ? (
               <p role="status">Učitavanje dostupnosti…</p>
@@ -511,6 +593,52 @@ function BookHospital({
             ) : (
               <p>Odaberite ustanovu i pregled za prikaz slobodnih termina.</p>
             )}
+          </>
+        )}
+      </div>
+    </Modal>
+  );
+}
+
+function RescheduleHistory({
+  booking,
+  onClose,
+}: {
+  booking: HospitalBooking;
+  onClose: () => void;
+}) {
+  const history = useResource(
+    () => hospitalRescheduleHistory(booking.id),
+    booking.id,
+  );
+  return (
+    <Modal title="Povijest premještanja" onClose={onClose}>
+      <div className="modal-content">
+        <h3>{booking.service_name}</h3>
+        {history.error && <ErrorMessage>{history.error}</ErrorMessage>}
+        {history.loading ? (
+          <p role="status">Učitavanje povijesti…</p>
+        ) : (
+          <>
+            {!history.data?.length && <p>Narudžba nije premještana.</p>}
+            {history.data?.map((h) => (
+              <section className="clinical-note" key={h.id}>
+                <p>
+                  {dateLabel(zagrebDate(new Date(h.old_starts_at)))}{" "}
+                  {zagrebTime(h.old_starts_at)} →{" "}
+                  {dateLabel(zagrebDate(new Date(h.new_starts_at)))}{" "}
+                  {zagrebTime(h.new_starts_at)}
+                </p>
+                <p>{h.reason}</p>
+                <small>
+                  Evidentirano: {dateLabel(h.created_at)}{" "}
+                  {zagrebTime(h.created_at)}
+                </small>
+              </section>
+            ))}
+            <p className="muted">
+              Prikazuje se do 100 najnovijih premještanja.
+            </p>
           </>
         )}
       </div>
