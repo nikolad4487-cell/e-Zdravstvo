@@ -105,6 +105,9 @@ export function AppRoutes() {
       ].map((path) => (
         <Route key={path} element={<Guard path={path} />}>
           <Route element={<PortalLayout />}>
+            {path === "/moje" && (
+              <Route path="/moje/:section" element={<PatientHome />} />
+            )}
             {(path === "/central" || path === "/ustanove") && (
               <Route
                 path={path + "/bolnicki-termini"}

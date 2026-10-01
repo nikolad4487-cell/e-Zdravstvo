@@ -32,6 +32,7 @@ export type Database = {
     };
     Views: Record<string, never>;
     Functions: {
+      my_next_hospital_booking: { Args: Record<string, never>; Returns: Json };
       record_vaccination: {
         Args: {
           patient_id: string;

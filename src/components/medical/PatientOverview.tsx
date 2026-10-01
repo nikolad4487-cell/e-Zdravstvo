@@ -13,6 +13,8 @@ import { ErrorMessage } from "../ui/Feedback";
 import { dateLabel } from "../../utils/format";
 import { kindLabels, documentStatusLabels } from "../../types/documents";
 import { zagrebTime } from "../../utils/calendar";
+import { patientModules } from "../../lib/patientModules";
+import { nextHospitalBooking } from "../../services/hospital";
 export function PatientOverview({
   version,
   navigate,
@@ -21,6 +23,7 @@ export function PatientOverview({
   navigate: (tab: string) => void;
 }) {
   const resource = useResource(getPatientDashboard, String(version));
+  const hospital = useResource(nextHospitalBooking, String(version));
   if (resource.error) return <ErrorMessage>{resource.error}</ErrorMessage>;
   if (resource.loading)
     return <p role="status">Učitavanje osobnog pregleda…</p>;
@@ -59,6 +62,66 @@ export function PatientOverview({
   ];
   return (
     <>
+      <section className="card spaced">
+        <div className="section-heading">
+          <h2>Sljedeća bolnička narudžba</h2>
+          <button className="text-link" onClick={() => navigate("NARUDŽBE")}>
+            Sve narudžbe →
+          </button>
+        </div>
+        {hospital.error ? (
+          <ErrorMessage>{hospital.error}</ErrorMessage>
+        ) : hospital.loading ? (
+          <p role="status">Učitavanje narudžbe…</p>
+        ) : hospital.data ? (
+          <>
+            <strong>
+              {dateLabel(hospital.data.starts_at)} u{" "}
+              {zagrebTime(hospital.data.starts_at)}
+            </strong>
+            <p>
+              {hospital.data.service_name} · {hospital.data.institution_name}
+            </p>
+            <p>
+              {hospital.data.location}
+              {hospital.data.priority ? " · Prioritetna narudžba" : ""}
+            </p>
+          </>
+        ) : (
+          <p>Nemate budućih potvrđenih bolničkih narudžbi.</p>
+        )}
+      </section>
+      <div className="patient-module-grid">
+        {patientModules
+          .filter((m) =>
+            [
+              "POSJETI",
+              "KOMUNIKACIJA",
+              "NARUDŽBE",
+              "LIJEKOVI",
+              "OBNOVA LIJEKOVA",
+              "LABORATORIJ",
+              "SPECIJALISTIČKI NALAZI",
+              "PRIVITCI",
+              "CIJEPLJENJA",
+              "POSTAVKE",
+            ].includes(m.tab),
+          )
+          .map((m) => (
+            <button
+              className="card patient-module"
+              key={m.tab}
+              onClick={() => navigate(m.tab)}
+            >
+              <m.Icon size={23} />
+              <span>
+                <strong>{m.label}</strong>
+                <small>{m.description}</small>
+              </span>
+              <ArrowUpRight size={17} />
+            </button>
+          ))}
+      </div>
       <section className="card spaced">
         <div className="section-heading">
           <h2>Sljedeći termin</h2>

@@ -137,7 +137,7 @@ supabase/
 scripts/           # testovi baze i sigurni demo provisioning
 ```
 
-Faze 2–5 imaju funkcionalni klinički tok, privatne privitke i pacijentov dashboard. Dodani su termini i čekaonica, laboratorij, administracija skrbnih timova i otvaranje računa. Preostaju strukturirani specijalistički nalazi, cijepljenja, ljekarnički tok i radni rasporedi. Brojevi prikazanih popisa ograničeni su na 50 pacijenata i 100 najnovijih dokumenata; pretražite pacijenta za njegov karton. Nisu dodane prazne stranice za neimplementirane module.
+Faze 2–5 imaju funkcionalni klinički tok, privatne privitke i pacijentov dashboard. Dodani su termini i čekaonica, laboratorij, administracija skrbnih timova i otvaranje računa. Dodani su bolničke narudžbe, komunikacija, obnova terapije, strukturirani specijalistički nalazi, cijepljenja i ljekarnički tok. Radni rasporedi osoblja ostaju zaseban budući modul. Brojevi prikazanih popisa ograničeni su na 50 pacijenata i 100 najnovijih dokumenata; pretražite pacijenta za njegov karton. Nisu dodane prazne stranice za neimplementirane module.
 
 Ovlasti skrbnog tima postavljaju se kroz Central i Ustanove. Central može povezati nepovezani karton s pacijentovim računom. Liječnik pri kreiranju pacijenta dobiva vlastitu skrbnu vezu. Ne postoji javna samostalna registracija ni preuzimanje tuđeg kartona.
 
@@ -255,3 +255,7 @@ Moje e-Zdravstvo → LIJEKOVI prikazuje propisane lijekove i, kada postoji reali
 ## Cijepljenja
 
 Karton → CIJEPLJENJA omogućuje liječniku upis cjepiva, ciljne bolesti, doze, serije, datuma, napomene i datuma sljedeće doze koji određuje liječnik. Pacijent vidi vlastite upise i može pretraživati po cjepivu/bolesti, uključujući COVID-19. Originali su nepromjenjivi; ispravak zahtijeva novu verziju s razlogom. Ovo je lokalna evidencija e-Zdravstva, bez državnih registara, COVID potvrda ili automatskih medicinskih preporuka. Prikazuje se do 500 najnovijih upisa.
+
+## Navigacija osobnog portala
+
+Pacijentov bočni izbornik i početne kartice vode na zasebne rute /moje/narudzbe, /moje/posjeti, /moje/lijekovi i ostale module. Osvježavanje stranice zadržava odabrani modul. Početna stranica prikazuje najbližu potvrđenu bolničku narudžbu iz baze, zasebno od ordinacijskog termina. Mobilni izbornik i donja navigacija omogućuju pristup istim podacima.

@@ -17,6 +17,7 @@ import { Disclaimer, ErrorMessage } from "../components/ui/Feedback";
 import { useAuth } from "../hooks/useAuth";
 import { portals, roleLabels } from "../lib/roles";
 import { GlobalSearch } from "../components/medical/GlobalSearch";
+import { patientModules, patientPath } from "../lib/patientModules";
 export function PortalLayout() {
   const auth = useAuth();
   const location = useLocation();
@@ -126,6 +127,32 @@ export function PortalLayout() {
             </>
           )}
         </nav>
+        {active?.path === "/moje" && (
+          <nav aria-label="Navigacija pacijenta">
+            {patientModules
+              .filter(
+                (m) =>
+                  m.slug &&
+                  ![
+                    "RECEPTI",
+                    "TERAPIJA",
+                    "DOKUMENTI",
+                    "ISPRIČNICE",
+                    "TERMINI",
+                  ].includes(m.tab),
+              )
+              .map((m) => (
+                <NavLink
+                  key={m.tab}
+                  to={patientPath(m.tab)}
+                  onClick={() => setOpen(false)}
+                >
+                  <m.Icon size={18} />
+                  {m.label}
+                </NavLink>
+              ))}
+          </nav>
+        )}
         {active?.path === "/central" && (
           <nav>
             <NavLink

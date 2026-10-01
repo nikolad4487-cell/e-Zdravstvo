@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { patientModules, patientPath } from "../../lib/patientModules";
 import { useAuth } from "../../hooks/useAuth";
 import { useResource } from "../../hooks/useResource";
 import { getMyChart } from "../../services/clinical";
@@ -21,8 +23,11 @@ import { PatientSettings } from "./PatientSettings";
 import { PatientMedications } from "../../components/medical/PharmacyPanel";
 import { VaccinationPanel } from "../../components/medical/VaccinationPanel";
 export function PatientHome() {
+  const navigate = useNavigate(),
+    { section = "" } = useParams();
+  const tab = patientModules.find((m) => m.slug === section)?.tab ?? "POČETNA";
+  const setTab = (value: string) => navigate(patientPath(value));
   const auth = useAuth(),
-    [tab, setTab] = useState("POČETNA"),
     [version, setVersion] = useState(0);
   const chart = useResource(getMyChart, auth.profile?.id ?? "");
   useEffect(() => {
