@@ -433,7 +433,7 @@ await test("email confirmation status is honest when sender configuration or pat
     await as(1, () =>
       rpc("hospital_booking_email_status", [withoutAccount.booking_id]),
     ),
-    "NO_ACCOUNT",
+    "UNAVAILABLE",
   );
   await as(4, () =>
     assert.rejects(

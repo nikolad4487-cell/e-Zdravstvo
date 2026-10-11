@@ -47,18 +47,16 @@ export async function prioritySlots(
   to: string,
 ) {
   if (!service) return [];
-  return z
-    .array(prioritySlotSchema)
-    .parse(
-      unwrap(
-        await db().rpc("priority_hospital_slots", {
-          patient_id: patient,
-          service_id: service,
-          date_from: from,
-          date_to: to,
-        }),
-      ),
-    );
+  return z.array(prioritySlotSchema).parse(
+    unwrap(
+      await db().rpc("priority_hospital_slots", {
+        patient_id: patient,
+        service_id: service,
+        date_from: from,
+        date_to: to,
+      }),
+    ),
+  );
 }
 export async function priorityReferrals(
   patient: string,
@@ -99,8 +97,8 @@ export const emailStatusLabels: Record<string, string> = {
     "Potvrda e-mailom nije poslana: pacijent nije uključio e-mail obavijesti.",
   UNVERIFIED:
     "Potvrda e-mailom nije poslana: pacijentova e-mail adresa nije potvrđena.",
-  NO_ACCOUNT:
-    "Potvrda e-mailom nije poslana: pacijent nema povezan korisnički račun.",
+  NO_EMAIL:
+    "Potvrda e-mailom nije poslana: unesite valjanu e-mail adresu u karton pacijenta.",
   FAILED: "Slanje potvrde e-mailom nije uspjelo.",
   CANCELLED: "Slanje potvrde e-mailom je otkazano.",
   NOT_QUEUED: "Potvrda e-mailom nije u redu za slanje.",

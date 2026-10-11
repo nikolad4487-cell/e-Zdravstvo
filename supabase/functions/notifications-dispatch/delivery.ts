@@ -16,6 +16,7 @@ interface AppointmentDetails {
 export interface EmailJob {
   id: string;
   email: string;
+  portalAccess?: boolean;
   appointment?: AppointmentDetails;
   confirmation?: AppointmentDetails;
 }
@@ -93,9 +94,11 @@ export function renderNotification(job: EmailJob, applicationUrl: string) {
       : job.appointment
         ? "/moje/termini"
         : "/moje/narudzbe");
-  const footer =
-    "Detalje i upute provjerite prijavom u portal. Postavke e-mail obavijesti možete promijeniti u svojem računu.";
-  const text = `${title}\n\n${intro}\n\n${rows.map(([label, value]) => `${label}: ${value}`).join("\n")}\n\nOtvori portal: ${link}\n\n${footer}`;
+  const portalAccess = job.portalAccess !== false;
+  const footer = portalAccess
+    ? "Detalje i upute provjerite prijavom u portal. Postavke e-mail obavijesti možete promijeniti u svojem računu."
+    : "Za dodatne informacije ili promjenu termina obratite se svojem liječniku. Sačuvajte ovu poruku s podacima o pregledu.";
+  const text = `${title}\n\n${intro}\n\n${rows.map(([label, value]) => `${label}: ${value}`).join("\n")}${portalAccess ? `\n\nOtvori portal: ${link}` : ""}\n\n${footer}`;
   const html = `<!doctype html><html lang="hr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${escapeHtml(title)}</title></head>
 <body style="margin:0;padding:0;background:#f1f5f9;font-family:Arial,Helvetica,sans-serif;color:#0f172a">
 <table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr><td align="center" style="padding:24px 12px">
@@ -104,7 +107,7 @@ export function renderNotification(job: EmailJob, applicationUrl: string) {
 <tr><td style="padding:24px"><h1 style="margin:0 0 16px;font-size:24px;line-height:1.3">${escapeHtml(title)}</h1>
 <p style="font-size:16px;line-height:1.6">${escapeHtml(intro)}</p>
 <table role="presentation" width="100%" cellspacing="0" cellpadding="0">${rows.map(([label, value]) => `<tr><td style="padding:12px 0;border-bottom:1px solid #e2e8f0;font-size:14px;line-height:1.6;overflow-wrap:anywhere"><span style="color:#475569">${escapeHtml(label)}</span><br><strong>${escapeHtml(value)}</strong></td></tr>`).join("")}</table>
-<p style="margin:28px 0"><a href="${escapeHtml(link)}" style="display:inline-block;background:#0f766e;color:white;padding:14px 22px;border-radius:6px;text-decoration:none;font-weight:bold">Otvori e-Zdravstvo</a></p>
+${portalAccess ? `<p style="margin:28px 0"><a href="${escapeHtml(link)}" style="display:inline-block;background:#0f766e;color:white;padding:14px 22px;border-radius:6px;text-decoration:none;font-weight:bold">Otvori e-Zdravstvo</a></p>` : ""}
 <p style="font-size:13px;line-height:1.6;color:#64748b">${escapeHtml(footer)}</p></td></tr></table>
 <p style="font-size:12px;color:#64748b">Automatska obavijest sustava e-Zdravstvo.</p></td></tr></table></body></html>`;
   return { subject: `${title} — e-Zdravstvo`, text, html };

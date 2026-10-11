@@ -348,5 +348,355 @@ await test("unauthorized scheduling cannot create an email", async () => {
     before,
   );
 });
+
+await db.query(
+  "update patients set user_id=null,email='contact@example.test' where id=$1",
+  [patient],
+);
+let contactBooking, contactJob;
+await test("accountless clinic booking uses the chart address and deduplicates requests", async () => {
+  contactBooking = await as(1, () =>
+    rpc("save_appointment", [null, null, data("16:00"), id(900)]),
+  );
+  assert.equal(
+    await as(1, () =>
+      rpc("save_appointment", [null, null, data("16:00"), id(900)]),
+    ),
+    contactBooking,
+  );
+  const jobs = await claim();
+  assert.equal(jobs.length, 1);
+  contactJob = jobs[0];
+  assert.equal(contactJob.email, "contact@example.test");
+  assert.equal(contactJob.portalAccess, false);
+  assert.equal(contactJob.appointment.eventType, "BOOKED");
+  assert.deepEqual(await claim(), []);
+  await finish(contactJob, false);
+  assert.equal(
+    (
+      await db.query("select status from appointments where id=$1", [
+        contactBooking,
+      ])
+    ).rows[0].status,
+    "SCHEDULED",
+  );
+  await db.query(
+    "update private.notification_email_outbox set next_attempt_at=now() where id=$1",
+    [contactJob.id],
+  );
+  const [retry] = await claim();
+  assert.equal(retry.id, contactJob.id);
+  assert.equal(retry.email, contactJob.email);
+  await finish(retry, true);
+});
+await test("accountless clinic changes and cancellation supersede old events and omit medical reasons", async () => {
+  await as(1, () =>
+    rpc("save_appointment", [contactBooking, 1, data("17:00"), id(901)]),
+  );
+  const [changed] = await claim();
+  assert.equal(changed.appointment.eventType, "RESCHEDULED");
+  await as(1, () =>
+    rpc("set_appointment_status", [
+      contactBooking,
+      2,
+      "CANCELLED",
+      "SECRET contact cancellation",
+    ]),
+  );
+  const [cancelled] = await claim();
+  assert.equal(cancelled.appointment.eventType, "CANCELLED");
+  assert.ok(!JSON.stringify(cancelled).includes("SECRET"));
+  assert.equal(
+    (
+      await db.query(
+        "select status from private.notification_email_outbox where id=$1",
+        [changed.id],
+      )
+    ).rows[0].status,
+    "CANCELLED",
+  );
+  await finish(cancelled, true);
+});
+let contactHospital, contactService, contactSlots;
+await test("accountless PRIORITY booking queues a chart-address confirmation and reports PENDING", async () => {
+  const dep = await as(5, () =>
+    rpc("save_hospital_department", [
+      null,
+      org,
+      "Testni kontaktni odjel",
+      30,
+      true,
+    ]),
+  );
+  contactService = await as(5, () =>
+    rpc("create_priority_hospital_service", [
+      dep,
+      otherDoc,
+      "Specijalistički pregled",
+      "Testni kontaktni odjel",
+      "Ambulanta 3",
+      "SECRET instructions",
+    ]),
+  );
+  const weekday = (
+    await db.query("select extract(isodow from $1::date)::int n", [date])
+  ).rows[0].n;
+  await as(2, () =>
+    rpc("set_hospital_clinic_shift", [contactService, weekday, "MORNING"]),
+  );
+  contactSlots = await as(1, () =>
+    rpc("priority_hospital_slots", [patient, contactService, date, date]),
+  );
+  const args = [
+    patient,
+    contactService,
+    contactSlots[0].starts_at,
+    null,
+    {
+      reason: "SECRET referral reason",
+      expires_on: date,
+      notes: "SECRET notes",
+    },
+    "SECRET priority reason",
+    id(910),
+  ];
+  const result = await as(1, () => rpc("book_priority_hospital", args));
+  contactHospital = result.booking_id;
+  assert.deepEqual(
+    await as(1, () => rpc("book_priority_hospital", args)),
+    result,
+  );
+  assert.equal(
+    await as(1, () => rpc("hospital_booking_email_status", [contactHospital])),
+    "PENDING",
+  );
+  const [job] = await claim();
+  assert.equal(job.email, "contact@example.test");
+  assert.equal(job.confirmation.priority, true);
+  assert.equal(job.confirmation.eventType, "BOOKED");
+  assert.ok(!JSON.stringify(job).includes("SECRET"));
+  await finish(job, true);
+  assert.equal(
+    await as(1, () => rpc("hospital_booking_email_status", [contactHospital])),
+    "SENT",
+  );
+});
+await test("accountless hospital rescheduling and cancellation send only the latest state", async () => {
+  await as(5, () =>
+    rpc("publish_hospital_slots", [
+      contactService,
+      date + "T08:00",
+      30,
+      1,
+      true,
+    ]),
+  );
+  const slots = await as(1, () =>
+    rpc("list_hospital_slots", [contactService, date, date, false]),
+  );
+  await as(1, () =>
+    rpc("reschedule_hospital_booking", [
+      contactHospital,
+      slots[0].id,
+      1,
+      "SECRET change reason",
+      id(911),
+    ]),
+  );
+  const [changed] = await claim();
+  assert.equal(changed.confirmation.eventType, "RESCHEDULED");
+  await as(1, () =>
+    rpc("change_hospital_booking", [
+      contactHospital,
+      2,
+      "CANCELLED",
+      "SECRET cancel reason",
+    ]),
+  );
+  const [cancelled] = await claim();
+  assert.equal(cancelled.confirmation.eventType, "CANCELLED");
+  assert.ok(!JSON.stringify(cancelled).includes("SECRET"));
+  await finish(cancelled, true);
+});
+await test("a changed contact address cancels pending delivery without retargeting it", async () => {
+  await as(1, () =>
+    rpc("save_appointment", [null, null, data("18:00"), id(920)]),
+  );
+  const [job] = await claim();
+  await finish(job, false);
+  await db.query(
+    "update patients set email='changed@example.test' where id=$1",
+    [patient],
+  );
+  await db.query(
+    "update private.notification_email_outbox set next_attempt_at=now() where id=$1",
+    [job.id],
+  );
+  assert.deepEqual(await claim(), []);
+  assert.equal(
+    (
+      await db.query(
+        "select status from private.notification_email_outbox where id=$1",
+        [job.id],
+      )
+    ).rows[0].status,
+    "CANCELLED",
+  );
+});
+await test("missing and malformed contact addresses preserve appointments without queueing mail", async () => {
+  for (const [n, email] of [
+    null,
+    "not-an-email",
+    "a@example.test\nBcc: x@example.test",
+  ].entries()) {
+    await db.query("update patients set email=$1 where id=$2", [
+      email,
+      patient,
+    ]);
+    const before = (
+      await db.query(
+        "select count(*)::int n from private.notification_email_outbox",
+      )
+    ).rows[0].n;
+    const appointment = await as(1, () =>
+      rpc("save_appointment", [
+        null,
+        null,
+        data(String(19 + n) + ":00"),
+        id(930 + n),
+      ]),
+    );
+    assert.ok(appointment);
+    assert.equal(
+      (
+        await db.query(
+          "select count(*)::int n from private.notification_email_outbox",
+        )
+      ).rows[0].n,
+      before,
+    );
+    assert.equal(
+      await as(1, () =>
+        rpc("hospital_booking_email_status", [contactHospital]),
+      ),
+      "NO_EMAIL",
+    );
+  }
+});
+await test("contact retries also stop within the provider idempotency window", async () => {
+  await db.query(
+    "update patients set email='contact@example.test' where id=$1",
+    [patient],
+  );
+  const nextDate = new Date(Date.now() + 15 * 86400000)
+    .toISOString()
+    .slice(0, 10);
+  await as(1, () =>
+    rpc("save_appointment", [
+      null,
+      null,
+      { ...data("08:00"), local_time: nextDate + "T08:00" },
+      id(950),
+    ]),
+  );
+  const [job] = await claim();
+  await db.query(
+    "update private.notification_email_outbox set first_attempt_at=now()-interval '24 hours',locked_until=now()-interval '1 minute' where id=$1",
+    [job.id],
+  );
+  assert.deepEqual(await claim(), []);
+  assert.equal(
+    (
+      await db.query(
+        "select status from private.notification_email_outbox where id=$1",
+        [job.id],
+      )
+    ).rows[0].status,
+    "FAILED",
+  );
+});
+await test("linking an account invalidates pending contact mail instead of sending twice", async () => {
+  const nextDate = new Date(Date.now() + 15 * 86400000)
+    .toISOString()
+    .slice(0, 10);
+  const booked = await as(1, () =>
+    rpc("save_appointment", [
+      null,
+      null,
+      { ...data("09:00"), local_time: nextDate + "T09:00" },
+      id(951),
+    ]),
+  );
+  const before = (
+    await db.query(
+      "select count(*)::int n from private.notification_email_outbox",
+    )
+  ).rows[0].n;
+  await db.query(
+    "select private.queue_contact_appointment_email($1,null,'BOOKED')",
+    [booked],
+  );
+  assert.equal(
+    (
+      await db.query(
+        "select count(*)::int n from private.notification_email_outbox",
+      )
+    ).rows[0].n,
+    before,
+  );
+  const [job] = await claim();
+  await db.query("update patients set user_id=$1 where id=$2", [
+    id(3),
+    patient,
+  ]);
+  assert.deepEqual(await claim(), []);
+  assert.equal(
+    (
+      await db.query(
+        "select status from private.notification_email_outbox where id=$1",
+        [job.id],
+      )
+    ).rows[0].status,
+    "CANCELLED",
+  );
+});
+await test("account preferences and verified login remain authoritative when a chart email exists", async () => {
+  await db.query(
+    "update patients set user_id=$1,email='contact@example.test' where id=$2",
+    [id(3), patient],
+  );
+  await as(3, () => rpc("save_notification_preferences", [false, true]));
+  await as(1, () =>
+    rpc("save_appointment", [null, null, data("22:00"), id(940)]),
+  );
+  assert.deepEqual(await claim(), []);
+  await as(3, () => rpc("save_notification_preferences", [true, true]));
+  await db.query("update auth.users set email_confirmed_at=null where id=$1", [
+    id(3),
+  ]);
+  await as(1, () =>
+    rpc("save_appointment", [null, null, data("23:00"), id(941)]),
+  );
+  assert.deepEqual(await claim(), []);
+});
+await test("frontend cannot create contact events, read addresses or invoke the private queue", async () => {
+  for (const n of [0, 1, 3, 5])
+    await as(n, async () => {
+      await assert.rejects(
+        db.query("select * from private.contact_appointment_email_events"),
+      );
+      await assert.rejects(
+        db.query(
+          "select private.queue_contact_appointment_email(null,$1,'BOOKED')",
+          [contactHospital],
+        ),
+      );
+      if (n !== 1 && n !== 3)
+        await assert.rejects(
+          rpc("hospital_booking_email_status", [contactHospital]),
+        );
+    });
+});
+
 await db.close();
 console.log(`${passed} appointment email checks passed.`);

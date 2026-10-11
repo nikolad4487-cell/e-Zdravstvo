@@ -182,4 +182,22 @@ describe("Croatian appointment templates", () => {
     );
     expect(content.html + content.text).not.toContain("SECRET");
   });
+  it("gives accountless recipients complete details without instructions to log in", () => {
+    const content = renderNotification(
+      {
+        id: "contact",
+        email: "contact@example.test",
+        portalAccess: false,
+        appointment,
+      },
+      config.applicationUrl,
+    );
+    expect(content.text).toContain("Liječnik:");
+    expect(content.text).toContain(
+      "Za dodatne informacije ili promjenu termina",
+    );
+    expect(content.html).not.toContain("Otvori e-Zdravstvo");
+    expect(content.text).not.toContain("Otvori portal");
+    expect(content.html + content.text).not.toContain("prijavom u portal");
+  });
 });

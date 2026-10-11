@@ -986,7 +986,7 @@ await test("new sensitive tables are inaccessible directly to browser and anonym
 await test("public readiness exposes only the schema version without clinical access", async () => {
   assert.equal(
     await as(0, () => rpc("application_schema_version")),
-    2026101103,
+    2026101104,
   );
   await as(0, () => assert.rejects(rpc("get_patient_chart", [patient])));
 });

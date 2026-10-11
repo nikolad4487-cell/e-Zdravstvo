@@ -132,3 +132,14 @@ Fiksna bočna traka ranije nije imala vlastito pomicanje, pa su na nižim ekrani
 Kartice kartona prelamaju se u više redova, zaglavlje pacijenta dopušta prelamanje, a stupci sadržaja mogu se suziti bez širenja stranice. Pregledavanje opcija više ne zahtijeva smanjivanje zumiranja preglednika. Nakon objave osvježite već otvorenu aplikaciju i po potrebi vratite zumiranje na 100 %.
 
 Provjera: svih 29 testova u pregledniku i produkcijski build prolaze. Devet novih provjera pokriva zaslone 1366×768, 1024×600 i 1280×400, uspravni i položeni mobilni prikaz, pristup pacijentovim modulima, odjavu nakon pomicanja stranice te prelamanje kartica bez vodoravnog prelijevanja. Nema novih migracija ili varijabli okruženja.
+
+
+## Potvrde za pacijente bez korisničkog računa (11. 10. 2026.)
+
+Migracija `202610110006_patient_contact_confirmation_email` dodaje privatne događaje za potvrde ordinacijskih i bolničkih pregleda pacijentima bez računa. Adresa se uzima isključivo iz kartona; frontend ne šalje adresu ni sadržaj poruke. Zakazivanje, promjena i otkazivanje stvaraju zaseban događaj za verziju rezervacije. Pacijenti s računom zadržavaju potvrđenu adresu računa i svoje postavke obavijesti.
+
+Red dostave koristi postojeći Resend dispatcher, evidenciju pokušaja, vremenski ograničene leaseove i stabilan idempotencijski ključ. Promjena adrese, povezivanje računa, arhiviranje pacijenta ili noviji događaj poništavaju zastarjelo slanje. Poruka za pacijenta bez računa sadrži podatke za dolazak i kontakt s liječnikom, bez uputa za prijavu u portal.
+
+Pri primjeni migracije jednom se dodaju potvrde za postojeće buduće bolničke rezervacije pacijenata bez računa s valjanom adresom. Otkazani i prošli pregledi ne uključuju se. Nova revizija baze je `2026101104`. Prvo objavite `notifications-dispatch`, zatim primijenite migraciju i objavite frontend. Nove varijable okruženja nisu potrebne.
+
+Provjera: `pnpm run test:email` pokriva pacijente s računom i bez računa, prioritetno naručivanje, promjene i otkazivanje, duplikate, neuspjehe dostave, promjene adrese, povezivanje računa i zabranu proizvoljnog slanja. `pnpm test` provjerava HTML i tekst poruke. Za provjeru u aplikaciji unesite e-mail u karton pacijenta bez računa i zakažite budući pregled; slanje se obrađuje automatski svakih pet minuta.
