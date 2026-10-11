@@ -19,14 +19,12 @@ export const vaccinationSchema = z.object({
 });
 export type Vaccination = z.infer<typeof vaccinationSchema>;
 export async function vaccinations(personal: boolean, patientId?: string) {
-  return z
-    .array(vaccinationSchema)
-    .parse(
-      unwrap(
-        await db().rpc("list_vaccinations", {
-          personal,
-          patient_filter: patientId ?? null,
-        }),
-      ),
-    );
+  return z.array(vaccinationSchema).parse(
+    unwrap(
+      await db().rpc("list_vaccinations", {
+        personal,
+        patient_filter: patientId ?? null,
+      }),
+    ),
+  );
 }

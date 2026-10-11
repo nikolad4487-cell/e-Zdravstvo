@@ -86,6 +86,17 @@ await test("issued referrals and excuses queue one signed immutable PDF each and
   const jobs = await claim();
   assert.equal(jobs.length, 2);
   const referral = jobs.find((j) => j.document.kind === "REFERRAL");
+  assert.equal(referral.document.layoutVersion, 2);
+  assert.match(referral.document.layout.verificationToken, /^[0-9a-f-]{36}$/i);
+  const school = jobs.find((j) => j.document.kind === "SCHOOL_EXCUSE");
+  assert.equal(
+    school.document.layout.schoolDocument.number,
+    school.document.number,
+  );
+  assert.equal(
+    school.document.layout.schoolDocument.signature.integrity_valid,
+    true,
+  );
   assert.ok(JSON.stringify(referral.document).includes("PRIVATE REFERRAL"));
   assert.ok(
     referral.document.sections.some(
@@ -240,6 +251,17 @@ await test("laboratory PDF snapshot is taken after all result parameters are pub
       (s) => s.label === "ABC / Testni parametar" && s.text.includes("42 test"),
     ),
   );
+  assert.deepEqual(j.document.layout.laboratoryRows, [
+    {
+      code: "ABC",
+      name: "Testni parametar",
+      value: "42",
+      unit: "test",
+      referenceLow: "1",
+      referenceHigh: "50",
+      flag: "NORMAL",
+    },
+  ]);
   assert.ok(JSON.stringify(j.document).includes("PRIVATE LAB COMMENT"));
   await finish(j, true);
 });

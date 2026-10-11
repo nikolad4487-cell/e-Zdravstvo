@@ -50,13 +50,11 @@ describe("booking PDF attachments", () => {
   ] as const)(
     "sends %s with its PDF while keeping extended demographics out of the email body",
     async (eventType, prefix) => {
-      const request = vi
-        .fn<typeof fetch>()
-        .mockResolvedValue(
-          new Response(JSON.stringify({ id: "provider-test" }), {
-            status: 200,
-          }),
-        );
+      const request = vi.fn<typeof fetch>().mockResolvedValue(
+        new Response(JSON.stringify({ id: "provider-test" }), {
+          status: 200,
+        }),
+      );
       await deliverNotification(
         {
           id: "job-test",

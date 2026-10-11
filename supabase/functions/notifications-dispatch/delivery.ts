@@ -201,7 +201,18 @@ export async function deliverNotification(
     ? [
         {
           filename: `${job.document.number}.pdf`,
-          content: bytesToBase64(await documentPdf(job.document)),
+          content: bytesToBase64(
+            await documentPdf(
+              job.document,
+              job.document.layout?.verificationToken &&
+                /^[0-9a-f-]{36}$/i.test(job.document.layout.verificationToken)
+                ? new URL(
+                    "/verify/" + job.document.layout.verificationToken,
+                    config.applicationUrl,
+                  ).href
+                : undefined,
+            ),
+          ),
           content_type: "application/pdf",
         },
       ]

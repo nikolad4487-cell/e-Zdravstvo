@@ -11,6 +11,7 @@ export const reportSchema = z.object({
   booking_id: z.string().nullable(),
   report_type: z.enum(["SPECIALIST", "DISCHARGE"]),
   reported_on: z.string(),
+  created_at: z.string(),
   diagnosis: z.string(),
   content: z.string(),
   conclusion: z.string(),
@@ -32,18 +33,27 @@ export async function medicalReports(
   patientId?: string,
   page = 0,
 ) {
-  return z
-    .array(reportSchema)
-    .parse(
-      unwrap(
-        await db().rpc("list_medical_reports", {
-          personal,
-          patient_filter: patientId ?? null,
-          page_number: page,
-        }),
-      ),
-    );
+  return z.array(reportSchema).parse(
+    unwrap(
+      await db().rpc("list_medical_reports", {
+        personal,
+        patient_filter: patientId ?? null,
+        page_number: page,
+      }),
+    ),
+  );
 }
+
+const printDateTime = (value: string) =>
+  new Intl.DateTimeFormat("hr-HR", {
+    timeZone: "Europe/Zagreb",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(value));
+
 export async function downloadMedicalReport(id: string) {
   const r = reportSchema.parse(
       unwrap(await db().rpc("download_medical_report", { report_id: id })),
@@ -51,12 +61,12 @@ export async function downloadMedicalReport(id: string) {
     { exportReportPdf } = await import("../utils/reportPdf");
   await exportReportPdf(
     r.report_type === "DISCHARGE" ? "Otpusno pismo" : "Specijalistički nalaz",
-    r.number,
+    r.number + "-v" + r.version,
     [
       { label: "Pacijent", text: r.patient_name + " · " + r.patient_number },
       {
         label: "Izdavatelj",
-        text: r.institution_name + "\n" + r.doctor_name + " · " + r.specialty,
+        text: [r.institution_name, r.doctor_name, r.specialty].join("\n"),
       },
       {
         label: "Datum i verzija",
@@ -74,6 +84,7 @@ export async function downloadMedicalReport(id: string) {
         ? [{ label: "Razlog ispravka", text: r.correction_reason }]
         : []),
     ],
+    r.created_at,
   );
 }
 export async function downloadLabResult(id: string) {
@@ -96,14 +107,18 @@ export async function downloadLabResult(id: string) {
       { label: "Pacijent", text: r.patient_name + " · " + r.patient_number },
       {
         label: "Laboratorij",
-        text: r.laboratory_name + "\n" + r.result.author,
+        text: r.laboratory_name,
       },
       {
-        label: "Uzorkovanje i objava",
+        label: "Autor",
+        text: r.result.author,
+      },
+      {
+        label: "Uzorkovanje / objava",
         text:
-          dateLabel(r.result.sampled_at) +
+          printDateTime(r.result.sampled_at) +
           " / " +
-          dateLabel(r.result.reported_at) +
+          printDateTime(r.result.reported_at) +
           (r.result.superseded_by ? "\nZAMIJENJENO NOVIJOM VERZIJOM" : ""),
       },
       ...r.result.parameters.map((p) => ({
@@ -115,5 +130,18 @@ export async function downloadLabResult(id: string) {
         ? [{ label: "Razlog ispravka", text: r.result.correction_reason }]
         : []),
     ],
+    r.result.reported_at,
+    {
+      laboratoryRows: r.result.parameters.map((p) => ({
+        code: p.code,
+        name: p.name,
+        value: String(p.value),
+        unit: p.unit,
+        referenceLow: p.reference_low === null ? null : String(p.reference_low),
+        referenceHigh:
+          p.reference_high === null ? null : String(p.reference_high),
+        flag: p.flag,
+      })),
+    },
   );
 }

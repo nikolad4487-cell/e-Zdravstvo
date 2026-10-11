@@ -2441,3 +2441,64 @@ dd {
     grid-template-columns: 1fr;
   }
 }
+
+.referral-sheet {
+  background: #fff;
+  color: #183c66;
+  padding: clamp(16px, 4vw, 32px);
+  border-radius: 12px;
+  overflow-wrap: anywhere;
+}
+.referral-sheet-date {
+  font-size: 0.8rem;
+  color: #3979b6;
+}
+.referral-sheet h3 {
+  color: #132335;
+  border-bottom: 1px solid #c5d5e7;
+  padding-bottom: 18px;
+  margin: 8px 0 22px;
+}
+.referral-sheet h4 {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin: 22px 0;
+}
+.referral-sheet dl {
+  margin: 0;
+}
+.referral-sheet-row {
+  display: grid;
+  grid-template-columns: minmax(90px, 24%) minmax(0, 1fr);
+  gap: 16px;
+  padding: 8px 0;
+}
+.referral-sheet dt {
+  font-size: 0.7rem;
+  line-height: 1.5;
+  text-transform: uppercase;
+  color: #6c89ad;
+  letter-spacing: 0.04em;
+  font-weight: 700;
+}
+.referral-sheet dd {
+  margin: 0;
+  white-space: pre-wrap;
+}
+.referral-sheet p {
+  white-space: pre-wrap;
+}
+.referral-sheet .referral-sheet-band {
+  background: #f3f7fb;
+  padding: 10px 12px;
+}
+.referral-sheet .signature-details {
+  color: #183c66;
+}
+@media (max-width: 420px) {
+  .referral-sheet-row {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+}

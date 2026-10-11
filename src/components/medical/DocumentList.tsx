@@ -1,3 +1,4 @@
+import { ReferralDocumentContent } from "./ReferralDocumentContent";
 import { useEffect, useState } from "react";
 import {
   Download,
@@ -27,6 +28,7 @@ export function DocumentContent({
 }: {
   document: ClinicalDocument;
 }) {
+  if (d.kind === "REFERRAL") return <ReferralDocumentContent document={d} />;
   const p = d.payload,
     details = p.details;
   return (
@@ -102,16 +104,6 @@ export function DocumentContent({
           )}
           <p>{details.school}</p>
         </div>
-      )}
-      {d.kind === "REFERRAL" && (
-        <>
-          <h3>
-            {details.specialty} ·{" "}
-            {details.priority === "URGENT" ? "Hitno" : "Redovno"}
-          </h3>
-          <p className="note-text">{details.reason}</p>
-          <p className="note-text">{details.diagnosis}</p>
-        </>
       )}
       <p className="note-text spaced">{details.notes}</p>
       {d.revocation_reason && (

@@ -4,14 +4,23 @@ import QRCode from "qrcode";
 import { kindLabels, documentStatusLabels } from "../types/documents";
 import type { ClinicalDocument } from "../types/documents";
 import { dateLabel } from "./format";
+import { clinicalDocumentPdf } from "../../supabase/functions/notifications-dispatch/clinical-document-pdf";
+import { referralPrintModel } from "./documentPrintModel";
 import { schoolExcusePdf, savePdf } from "./schoolExcusePdf";
 
 export async function downloadDocumentPdf(
   d: ClinicalDocument,
   verificationUrl: string,
 ) {
-  if (d.kind === "SCHOOL_EXCUSE" && d.payload.details.template) {
+  if (d.kind === "SCHOOL_EXCUSE") {
     savePdf(await schoolExcusePdf(d, verificationUrl), d.number);
+    return;
+  }
+  if (d.kind === "REFERRAL") {
+    savePdf(
+      await clinicalDocumentPdf(referralPrintModel(d), verificationUrl),
+      d.number,
+    );
     return;
   }
   const pdf = await PDFDocument.create();
@@ -76,18 +85,6 @@ export async function downloadDocumentPdf(
       dateLabel(d.expires_on),
   );
   y -= 12;
-  if (d.kind === "SCHOOL_EXCUSE") {
-    line("Razdoblje opravdanog izostanka", 13, teal);
-    line(dateLabel(t.date_from) + " - " + dateLabel(t.date_to), 16);
-    if (t.school) line("Škola: " + t.school);
-    if (t.category) line("Kategorija: " + t.category);
-  }
-  if (d.kind === "REFERRAL") {
-    line("Specijalnost: " + t.specialty, 13, teal);
-    line("Prioritet: " + (t.priority === "URGENT" ? "Hitno" : "Redovno"));
-    line("Razlog upućivanja: " + t.reason);
-    if (t.diagnosis) line("Dijagnoza: " + t.diagnosis);
-  }
   for (const item of t.items ?? []) {
     line(item.name + " · " + item.strength, 13, teal);
     line("Doziranje: " + item.dosage);
