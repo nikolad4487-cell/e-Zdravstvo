@@ -8,12 +8,19 @@ export function ReferralDocumentContent({
   document: ClinicalDocument;
 }) {
   const p = d.payload,
-    t = p.details;
-  const row = (label: string, text: string | undefined | null) => (
+    t = p.details,
+    type = referralTypeLabels[t.referral_type ?? ""] ?? t.referral_type;
+  const row = (label: string, text?: string | null) => (
     <div className="referral-sheet-row">
       <dt>{label}</dt>
-      <dd>{text || "Nije navedeno"}</dd>
+      <dd>{text || "—"}</dd>
     </div>
+  );
+  const band = (text: string) => (
+    <h4 className="referral-sheet-band">
+      <span>-</span>
+      {text}
+    </h4>
   );
   return (
     <article className="referral-sheet">
@@ -21,26 +28,32 @@ export function ReferralDocumentContent({
         Uputnica propisana {dateLabel(d.issued_at)}
       </p>
       <h3>{t.specialty || "Uputnica"}</h3>
-      <h4>Detalji uputnice</h4>
+      <h4 className="referral-sheet-details">Detalji uputnice</h4>
       <dl>
+        {row("Vrsta pregleda", type)}
+        {row("Propisao", p.institution + "\n" + p.doctor)}
+        {row("Upućuje se specijalistu", t.specialty)}
+      </dl>
+      {band("Postupci")}
+      <dl>
+        {row("-", type)}
+        {row("Razlog upućivanja", t.reason)}
+      </dl>
+      {band("Dijagnoze")}
+      <dl>
+        {row("Dijagnoza", t.diagnosis)}
+        {t.notes && row("Napomena", t.notes)}
+        {row("ID uputnice", d.number)}
+      </dl>
+      <dl className="referral-sheet-identification">
         {row("Pacijent", p.patient.first_name + " " + p.patient.last_name)}
         {row(
-          "Vrsta pregleda",
-          referralTypeLabels[t.referral_type ?? ""] ?? t.referral_type,
+          "Rođen / broj pacijenta",
+          dateLabel(p.patient.birth_date) + " / " + p.patient.patient_number,
         )}
-        {row("Propisao", p.doctor + "\n" + p.institution)}
-        {row("Adresa ustanove", p.institution_address)}
         {row("Prioritet", t.priority === "URGENT" ? "Hitno" : "Redovno")}
         {row("Vrijedi do", dateLabel(d.expires_on))}
         {row("Status", documentStatusLabels[d.status] ?? d.status)}
-      </dl>
-      <h4 className="referral-sheet-band">Razlog upućivanja</h4>
-      <p>{t.reason || "Nije navedeno"}</p>
-      <h4 className="referral-sheet-band">Dijagnoze</h4>
-      <p>{t.diagnosis || "Nije navedeno"}</p>
-      <dl>
-        {t.notes && row("Napomena", t.notes)}
-        {row("ID uputnice", d.number)}
       </dl>
       {d.revocation_reason && (
         <p className="error-message">

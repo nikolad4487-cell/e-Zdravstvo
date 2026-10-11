@@ -1,6 +1,7 @@
 import { PDFDocument, rgb } from "pdf-lib";
 import fontkit from "@pdf-lib/fontkit";
 import { BOOKING_FONT_BASE64 } from "./fonts/booking-font.ts";
+import { clinicalDocumentPdfV2 } from "./clinical-document-pdf-v2.ts";
 import { clinicalDocumentPdf } from "./clinical-document-pdf.ts";
 import type { DocumentPrintLayout } from "./document-layout-model.ts";
 export interface DocumentEmailDetails {
@@ -9,7 +10,7 @@ export interface DocumentEmailDetails {
   title: string;
   issuedAt: string;
   sections: { label: string; text: string }[];
-  layoutVersion?: 2;
+  layoutVersion?: 2 | 3;
   layout?: DocumentPrintLayout;
 }
 /** Receives an immutable, server-generated snapshot of the issued document. */
@@ -34,7 +35,8 @@ export async function documentPdf(
     )
   )
     throw new Error("Invalid document snapshot");
-  if (d.layoutVersion === 2) return clinicalDocumentPdf(d, verificationUrl);
+  if (d.layoutVersion === 2) return clinicalDocumentPdfV2(d, verificationUrl);
+  if (d.layoutVersion === 3) return clinicalDocumentPdf(d, verificationUrl);
   const pdf = await PDFDocument.create();
   pdf.registerFontkit(fontkit);
   const font = await pdf.embedFont(

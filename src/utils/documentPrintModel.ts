@@ -17,7 +17,7 @@ export function referralPrintModel(d: ClinicalDocument): DocumentEmailDetails {
     title: "Uputnica",
     number: d.number,
     issuedAt: d.issued_at,
-    layoutVersion: 2,
+    layoutVersion: 3,
     layout: {
       status: documentStatusLabels[d.status] ?? d.status,
       verificationToken: d.verification_token,

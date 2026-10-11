@@ -2444,61 +2444,88 @@ dd {
 
 .referral-sheet {
   background: #fff;
-  color: #183c66;
-  padding: clamp(16px, 4vw, 32px);
-  border-radius: 12px;
+  color: #244878;
+  font-family: Arial, sans-serif;
+  padding: clamp(20px, 4vw, 35px);
+  border-radius: 8px;
+  max-width: 620px;
+  margin: 0 auto;
   overflow-wrap: anywhere;
+  font-size: 0.84rem;
 }
 .referral-sheet-date {
-  font-size: 0.8rem;
-  color: #3979b6;
+  font-size: 0.68rem;
+  color: #3188e6;
+  letter-spacing: 0.035em;
+  margin: 0 0 5px;
 }
 .referral-sheet h3 {
-  color: #132335;
+  color: #000;
+  font-size: 0.97rem;
+  font-weight: 700;
   border-bottom: 1px solid #c5d5e7;
-  padding-bottom: 18px;
-  margin: 8px 0 22px;
+  padding-bottom: 16px;
+  margin: 0 0 20px;
 }
 .referral-sheet h4 {
-  font-size: 0.75rem;
+  font-size: 0.63rem;
   text-transform: uppercase;
-  letter-spacing: 0.12em;
-  margin: 22px 0;
+  letter-spacing: 0.14em;
+  font-weight: 700;
+}
+.referral-sheet .referral-sheet-details {
+  margin: 0 0 19px;
+  padding-left: calc(18% + 18px);
 }
 .referral-sheet dl {
   margin: 0;
 }
 .referral-sheet-row {
   display: grid;
-  grid-template-columns: minmax(90px, 24%) minmax(0, 1fr);
-  gap: 16px;
-  padding: 8px 0;
+  grid-template-columns: minmax(70px, 18%) minmax(0, 1fr);
+  gap: 18px;
+  padding: 7px 0;
 }
 .referral-sheet dt {
-  font-size: 0.7rem;
-  line-height: 1.5;
+  font-size: 0.57rem;
+  line-height: 1.45;
   text-transform: uppercase;
-  color: #6c89ad;
-  letter-spacing: 0.04em;
+  color: #98aecb;
+  letter-spacing: 0.045em;
   font-weight: 700;
 }
 .referral-sheet dd {
   margin: 0;
   white-space: pre-wrap;
+  line-height: 1.5;
 }
 .referral-sheet p {
   white-space: pre-wrap;
 }
 .referral-sheet .referral-sheet-band {
-  background: #f3f7fb;
-  padding: 10px 12px;
+  display: grid;
+  grid-template-columns: minmax(70px, 18%) minmax(0, 1fr);
+  gap: 18px;
+  background: #f6f9fc;
+  padding: 8px 4px;
+  margin: 8px 0 4px;
+}
+.referral-sheet .referral-sheet-identification {
+  margin-top: 18px;
+  padding-top: 12px;
+  border-top: 1px solid #e2eaf4;
 }
 .referral-sheet .signature-details {
-  color: #183c66;
+  color: #244878;
+  font-size: 0.72rem;
 }
-@media (max-width: 420px) {
-  .referral-sheet-row {
-    grid-template-columns: 1fr;
-    gap: 4px;
+@media (max-width: 380px) {
+  .referral-sheet-row,
+  .referral-sheet .referral-sheet-band {
+    grid-template-columns: 64px minmax(0, 1fr);
+    gap: 12px;
+  }
+  .referral-sheet .referral-sheet-details {
+    padding-left: 76px;
   }
 }

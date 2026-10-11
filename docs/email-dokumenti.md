@@ -22,3 +22,10 @@ Administratorska provjera bez izlaganja kliničkog sadržaja:
 select status,count(*) from private.document_email_outbox group by status;
 select outcome,count(*) from private.document_email_attempts group by outcome;
 ```
+
+
+## Izgled prema referentnim dokumentima
+
+Novi poslovi za uputnicu, specijalistički i laboratorijski nalaz koriste `layoutVersion: 3` iz migracije `202610110012_reference_document_layout.sql`. Specijalistički nalaz koristi crnu tipografiju, centrirano zaglavlje ustanove, naslov NALAZ, protokol, odvojene kliničke odlomke i liječnika dolje desno. Laboratorijski nalaz ima zaobljeno uokvireno zaglavlje, dva stupca identifikacijskih podataka, okvir broja nalaza i kompaktnu tablicu s tankim crnim linijama. Uputnica prati plave lijeve oznake i rubrike Postupci / Dijagnoze iz referentne slike.
+
+Koriste se izvorni podaci aplikacije. Logotipi, kontakti, osobni podaci i službene šifre iz priloženih primjera ne ugrađuju se u generirane dokumente. Laboratorijska šifra znači stvarnu šifru pretrage iz aplikacije; vrsta uzorka i kategorije pretraga ne izmišljaju se. Ispričnica i njen odabrani predložak ostaju nepromijenjeni. Postojeći poslovi verzije 2 koriste sačuvani `clinical-document-pdf-v2.ts` kako se već pokušani privitak ne bi promijenio tijekom ponovnog slanja. Najprije objavite worker, zatim migraciju.

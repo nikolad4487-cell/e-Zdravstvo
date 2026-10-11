@@ -14,7 +14,7 @@ export async function exportReportPdf(
     number,
     issuedAt,
     sections,
-    layoutVersion: 2,
+    layoutVersion: 3,
     layout,
   });
   savePdf(bytes, number);

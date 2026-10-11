@@ -4,6 +4,7 @@ import {
   documentPdf,
   type DocumentEmailDetails,
 } from "../../supabase/functions/notifications-dispatch/document-pdf";
+import { clinicalDocumentPdfV2 } from "../../supabase/functions/notifications-dispatch/clinical-document-pdf-v2";
 import { schoolExcusePdf } from "../utils/schoolExcusePdf";
 import { schoolExcuseDocumentPdf } from "../../supabase/functions/notifications-dispatch/school-excuse-pdf";
 import { documentSchema } from "../types/documents";
@@ -13,7 +14,7 @@ const base: DocumentEmailDetails = {
   title: "Uputnica",
   number: "EZ-UPU-2026-00000001",
   issuedAt: date,
-  layoutVersion: 2,
+  layoutVersion: 3,
   sections: [
     { label: "Pacijent", text: "Ana Primjerić" },
     { label: "Vrsta / specijalnost", text: "SPECIALIST / Kardiologija" },
@@ -75,6 +76,11 @@ export const schoolFixture = documentSchema.parse({
   },
 });
 describe("shared clinical print layouts", () => {
+  it("preserves the existing version 2 PDF for jobs that may already have been attempted", async () => {
+    const d = { ...base, layoutVersion: 2 as const };
+    expect(await documentPdf(d)).toEqual(await clinicalDocumentPdfV2(d));
+  });
+
   it("paginates long referrals without changing retry bytes", async () => {
     const d = {
       ...base,
@@ -115,7 +121,7 @@ describe("shared clinical print layouts", () => {
       },
     };
     const bytes = await documentPdf(d);
-    expect((await PDFDocument.load(bytes)).getPageCount()).toBeGreaterThan(3);
+    expect((await PDFDocument.load(bytes)).getPageCount()).toBeGreaterThan(1);
     expect(bytes).toEqual(await documentPdf(d));
   });
   it("uses the same school excuse PDF for browser downloads and mail attachments", async () => {

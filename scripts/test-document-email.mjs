@@ -86,7 +86,12 @@ await test("issued referrals and excuses queue one signed immutable PDF each and
   const jobs = await claim();
   assert.equal(jobs.length, 2);
   const referral = jobs.find((j) => j.document.kind === "REFERRAL");
-  assert.equal(referral.document.layoutVersion, 2);
+  assert.equal(referral.document.layoutVersion, 3);
+  assert.equal(
+    jobs.find((j) => j.document.kind === "SCHOOL_EXCUSE").document
+      .layoutVersion,
+    2,
+  );
   assert.match(referral.document.layout.verificationToken, /^[0-9a-f-]{36}$/i);
   const school = jobs.find((j) => j.document.kind === "SCHOOL_EXCUSE");
   assert.equal(
