@@ -1,3 +1,4 @@
+import { DiagnosisPicker } from "./DiagnosisPicker";
 import { useState } from "react";
 import { db } from "../../lib/supabase";
 import { getContext, unwrap } from "../../services/clinical";
@@ -198,37 +199,17 @@ export function ClinicalModal({
                 <span>BMI (automatski)</span>
                 <output className="bmi-output">{bmi}</output>
               </div>
-              <Field
+              <DiagnosisPicker
                 name="primary_diagnosis"
                 label="Glavna dijagnoza"
-                defaultValue={a?.diagnoses.find((d) => d.is_primary)?.id ?? ""}
-              >
-                <option value="">Bez dijagnoze</option>
-                {context.data?.diagnoses.map((d) => (
-                  <option key={d.id} value={d.id}>
-                    {d.code} · {d.name}
-                  </option>
-                ))}
-              </Field>
-              <label className="field">
-                <span>Sekundarne dijagnoze</span>
-                <select
-                  name="secondary_diagnoses"
-                  multiple
-                  defaultValue={
-                    a?.diagnoses
-                      .filter((d) => !d.is_primary)
-                      .map((d) => d.id) ?? []
-                  }
-                >
-                  {context.data?.diagnoses.map((d) => (
-                    <option key={d.id} value={d.id}>
-                      {d.code} · {d.name}
-                    </option>
-                  ))}
-                </select>
-                <small>Za više odabira držite Ctrl / Cmd.</small>
-              </label>
+                initial={a?.diagnoses.filter((d) => d.is_primary) ?? []}
+              />
+              <DiagnosisPicker
+                name="secondary_diagnoses"
+                label="Sekundarne dijagnoze"
+                multiple
+                initial={a?.diagnoses.filter((d) => !d.is_primary) ?? []}
+              />
               {(
                 [
                   ["therapy", "Terapija"],
@@ -265,14 +246,7 @@ export function ClinicalModal({
           )}
           {action === "diagnosis" && (
             <>
-              <Field name="diagnosis_id" label="Dijagnoza" required>
-                <option value="">Odaberite dijagnozu</option>
-                {context.data?.diagnoses.map((d) => (
-                  <option key={d.id} value={d.id}>
-                    {d.code} · {d.name}
-                  </option>
-                ))}
-              </Field>
+              <DiagnosisPicker name="diagnosis_id" label="Dijagnoza" required />
               <Field
                 name="diagnosed_at"
                 label="Datum postavljanja"

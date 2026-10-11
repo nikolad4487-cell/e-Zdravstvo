@@ -32,6 +32,16 @@ export type Database = {
     };
     Views: Record<string, never>;
     Functions: {
+      search_diagnosis_codes: {
+        Args: { search_term: string; page_number: number };
+        Returns: Json;
+      };
+      medical_code_catalogs: { Args: Record<string, never>; Returns: Json };
+      search_medical_codes: {
+        Args: { catalog_id: string; search_term: string; page_number: number };
+        Returns: Json;
+      };
+      medical_code_source: { Args: { catalog_id: string }; Returns: Json };
       priority_hospital_context: { Args: { manage: boolean }; Returns: Json };
       create_priority_hospital_service: {
         Args: {

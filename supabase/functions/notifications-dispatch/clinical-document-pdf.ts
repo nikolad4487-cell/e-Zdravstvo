@@ -213,7 +213,12 @@ export async function clinicalDocumentPdf(
     y -= 27;
     draw("D E T A L J I  U P U T N I C E", left + 97, y, 7.3, blue, true);
     y -= 28;
-    field("Vrsta pregleda", referralTypeLabels[type] ?? type);
+    field(
+      "Vrsta pregleda",
+      d.layout?.referralCode
+        ? "(" + d.layout.referralCode + ") " + d.layout.referralCodeName
+        : (referralTypeLabels[type] ?? type),
+    );
     const [prescriber, facility, ...address] = take(
       "Liječnik / ustanova",
     ).split("\n");
@@ -223,7 +228,12 @@ export async function clinicalDocumentPdf(
     );
     field("Upućuje se specijalistu", specialty.join(" / "));
     band("Postupci");
-    field("-", referralTypeLabels[type] ?? type);
+    if (d.layout?.examinationCode)
+      field(d.layout.examinationCode, d.layout.examinationName ?? "");
+    if (d.layout?.visitCode)
+      field(d.layout.visitCode, d.layout.visitName ?? "");
+    if (!d.layout?.examinationCode && !d.layout?.visitCode)
+      field("-", referralTypeLabels[type] ?? type);
     field("Razlog upućivanja", take("Razlog upućivanja"));
     band("Dijagnoze");
     field("Dijagnoza", take("Dijagnoza"));

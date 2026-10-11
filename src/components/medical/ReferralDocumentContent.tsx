@@ -30,13 +30,20 @@ export function ReferralDocumentContent({
       <h3>{t.specialty || "Uputnica"}</h3>
       <h4 className="referral-sheet-details">Detalji uputnice</h4>
       <dl>
-        {row("Vrsta pregleda", type)}
+        {row(
+          "Vrsta pregleda",
+          t.referral_code
+            ? "(" + t.referral_code + ") " + t.referral_code_name
+            : type,
+        )}
         {row("Propisao", p.institution + "\n" + p.doctor)}
         {row("Upućuje se specijalistu", t.specialty)}
       </dl>
       {band("Postupci")}
       <dl>
-        {row("-", type)}
+        {t.examination_code && row(t.examination_code, t.examination_name)}
+        {t.visit_code && row(t.visit_code, t.visit_name)}
+        {!t.examination_code && !t.visit_code && row("-", type)}
         {row("Razlog upućivanja", t.reason)}
       </dl>
       {band("Dijagnoze")}

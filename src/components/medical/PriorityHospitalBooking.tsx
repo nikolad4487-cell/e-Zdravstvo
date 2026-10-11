@@ -1,3 +1,5 @@
+import { DiagnosisPicker } from "./DiagnosisPicker";
+import { ReferenceCodeField } from "./ReferenceCodeField";
 import { useState } from "react";
 import { z } from "zod";
 import { useResource } from "../../hooks/useResource";
@@ -98,6 +100,10 @@ export function PriorityHospitalBooking({
                 source === "NEW"
                   ? {
                       reason: data.referral_reason,
+                      referral_code: data.referral_code,
+                      examination_code: data.examination_code,
+                      visit_code: data.visit_code,
+                      diagnosis_id: data.diagnosis_id,
                       expires_on: data.expires_on,
                       notes: data.referral_notes,
                     }
@@ -368,6 +374,25 @@ export function PriorityHospitalBooking({
                   </section>
                 ) : (
                   <div className="form-grid spaced">
+                    <ReferenceCodeField
+                      list="2.2.5"
+                      name="referral_code"
+                      label="Vrsta uputnice"
+                      required
+                      defaultValue="A1"
+                      allowed={["A1", "A2", "A4", "C1"]}
+                    />
+                    <ReferenceCodeField
+                      list="2.2.42"
+                      name="examination_code"
+                      label="Vrsta pregleda (SKZZ)"
+                    />
+                    <ReferenceCodeField
+                      list="2.2.39"
+                      name="visit_code"
+                      label="Pregled (PZZ)"
+                    />
+                    <DiagnosisPicker name="diagnosis_id" label="Dijagnoza" />
                     <Field
                       name="referral_reason"
                       label="Razlog upućivanja"

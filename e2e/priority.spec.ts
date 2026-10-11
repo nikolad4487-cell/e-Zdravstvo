@@ -68,6 +68,42 @@ async function fixture(page: Page) {
           issued_at: "2026-10-11T10:00:00Z",
         },
       ];
+    else if (name === "search_medical_codes")
+      data =
+        args.catalog_id === "2.2.5"
+          ? [
+              {
+                list_id: "2.2.5",
+                code: "A1",
+                name: "Konzilijarni pregled",
+                description: "Konzilijarni pregled",
+              },
+            ]
+          : args.catalog_id === "2.2.42"
+            ? [
+                {
+                  list_id: "2.2.42",
+                  code: "1",
+                  name: "Jednostavni pregled",
+                  description: "Jednostavni pregled",
+                },
+              ]
+            : [
+                {
+                  list_id: "2.2.39",
+                  code: "01",
+                  name: "Prvi pregled",
+                  description: "Prvi pregled",
+                },
+              ];
+    else if (name === "search_diagnosis_codes")
+      data = [
+        {
+          id: "diagnosis-1",
+          code: "E66.9",
+          name: "Pretilost, nespecificirana",
+        },
+      ];
     else if (name === "book_priority_hospital")
       data = { booking_id: "booking-1", referral_id: "referral-1" };
     else if (name === "hospital_booking_email_status") data = "UNAVAILABLE";
@@ -162,6 +198,22 @@ test("new referral is submitted with the reservation and changing hospital clear
     .getByLabel("Razlog prioritetnog pregleda", { exact: false })
     .fill("Testna indikacija pregleda");
   await page
+    .getByRole("combobox", { name: "Vrsta pregleda (SKZZ)" })
+    .selectOption("1");
+  await page
+    .getByRole("combobox", { name: "Pregled (PZZ)" })
+    .selectOption("01");
+  await page.getByRole("searchbox", { name: "Traži: Dijagnoza" }).fill("E669");
+  await page
+    .getByRole("combobox", { name: "Dijagnoza", exact: true })
+    .selectOption("diagnosis-1");
+  await page
+    .getByRole("searchbox", { name: "Traži: Dijagnoza" })
+    .fill("druga pretraga");
+  await expect(
+    page.getByRole("combobox", { name: "Dijagnoza", exact: true }),
+  ).toHaveValue("diagnosis-1");
+  await page
     .getByRole("button", { name: "Potvrdi prioritetni pregled", exact: true })
     .click();
   await expect(page.getByRole("status")).toContainText(
@@ -172,6 +224,12 @@ test("new referral is submitted with the reservation and changing hospital clear
   ).toMatchObject({
     patient_id: "fictional-patient",
     referral_id: null,
-    new_referral: { reason: "Testno upućivanje pacijenta" },
+    new_referral: {
+      reason: "Testno upućivanje pacijenta",
+      referral_code: "A1",
+      examination_code: "1",
+      visit_code: "01",
+      diagnosis_id: "diagnosis-1",
+    },
   });
 });

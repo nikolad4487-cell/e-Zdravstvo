@@ -2529,3 +2529,21 @@ dd {
     padding-left: 76px;
   }
 }
+
+.diagnosis-picker {
+  gap: 8px;
+  min-width: 0;
+}
+.diagnosis-picker select {
+  width: 100%;
+}
+.catalog-page-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.catalog-source-text {
+  white-space: pre-wrap;
+  font-size: 0.85rem;
+  overflow-wrap: anywhere;
+}

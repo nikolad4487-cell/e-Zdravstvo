@@ -77,6 +77,9 @@ const createRef = async (
     ]),
   );
 const newRef = {
+  referral_code: "A1",
+  examination_code: "1",
+  visit_code: "01",
   reason: "Izmišljena indikacija",
   expires_on: shift(monday, 90),
   notes: "",
@@ -190,6 +193,16 @@ await test("new referral and priority booking are created atomically and retries
   assert.equal(row.priority, true);
   assert.equal(row.patient_id, patient);
   assert.equal(row.referral_id, booked.referral_id);
+  const official = (
+    await db.query(
+      "select payload->'details' details from documents where id=$1",
+      [booked.referral_id],
+    )
+  ).rows[0].details;
+  assert.equal(official.referral_code, "A1");
+  assert.equal(official.referral_code_name, "Konzilijarni pregled");
+  assert.equal(official.examination_code, "1");
+  assert.equal(official.visit_code, "01");
   assert.equal(
     (
       await db.query("select count(*)::integer n from documents where id=$1", [
@@ -223,6 +236,7 @@ await test("out-of-shift, misaligned and invalid referrals roll back slots, docu
     ["13:30", newRef],
     ["08:00", { ...newRef, expires_on: shift(monday, -1) }],
     ["08:00", { ...newRef, reason: "x" }],
+    ["08:00", { ...newRef, referral_code: "FAKE" }],
   ]) {
     const before = (
       await db.query(

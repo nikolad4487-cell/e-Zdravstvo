@@ -51,6 +51,9 @@ await db.query(
 const today = new Date().toISOString().slice(0, 10),
   future = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
 const refData = {
+  referral_code: "A1",
+  examination_code: "1",
+  visit_code: "01",
   referral_type: "SPECIALIST",
   specialty: "Kardiologija",
   reason: "PRIVATE REFERRAL",
@@ -86,7 +89,14 @@ await test("issued referrals and excuses queue one signed immutable PDF each and
   const jobs = await claim();
   assert.equal(jobs.length, 2);
   const referral = jobs.find((j) => j.document.kind === "REFERRAL");
-  assert.equal(referral.document.layoutVersion, 3);
+  assert.equal(referral.document.layoutVersion, 4);
+  assert.equal(referral.document.layout.referralCode, "A1");
+  assert.equal(
+    referral.document.layout.referralCodeName,
+    "Konzilijarni pregled",
+  );
+  assert.equal(referral.document.layout.examinationName, "Jednostavni pregled");
+  assert.equal(referral.document.layout.visitName, "Prvi pregled");
   assert.equal(
     jobs.find((j) => j.document.kind === "SCHOOL_EXCUSE").document
       .layoutVersion,

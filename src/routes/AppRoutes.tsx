@@ -1,3 +1,4 @@
+import { MedicalCodesPage } from "../pages/shared/MedicalCodesPage";
 import { Navigate, Outlet, Route, Routes, Link } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { homeFor, canAccess } from "../lib/roles";
@@ -108,6 +109,19 @@ export function AppRoutes() {
       ].map((path) => (
         <Route key={path} element={<Guard path={path} />}>
           <Route element={<PortalLayout />}>
+            {[
+              "/ordinacija",
+              "/central",
+              "/ustanove",
+              "/laboratorij",
+              "/ljekarna",
+            ].includes(path) && (
+              <Route
+                path={path + "/sifrarnici"}
+                element={<MedicalCodesPage />}
+              />
+            )}
+
             {["/ordinacija", "/central", "/ustanove"].includes(path) && (
               <Route
                 path={path + "/bolnicke-ambulante"}

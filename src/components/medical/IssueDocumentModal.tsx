@@ -1,3 +1,6 @@
+import { DiagnosisPicker } from "./DiagnosisPicker";
+import { ReferenceCodeField } from "./ReferenceCodeField";
+import { referralCategories } from "../../services/medicalCodes";
 import { useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { useResource } from "../../hooks/useResource";
@@ -31,6 +34,7 @@ export function IssueDocumentModal({
   onClose: () => void;
   onSaved: () => void;
 }) {
+  const [selectedDiagnosis, setSelectedDiagnosis] = useState("");
   const context = useResource(getContext, "issue-context");
   const excuse = useResource(
     async () =>
@@ -56,6 +60,8 @@ export function IssueDocumentModal({
     e.preventDefault();
     setError("");
     const data = values(e.currentTarget);
+    if (kind === "REFERRAL")
+      data.referral_type = referralCategories[data.referral_code];
     const summary = [
       `${chart.patient.first_name} ${chart.patient.last_name}`,
       `Vrijedi do: ${dateLabel(data.expires_on)}`,
@@ -99,13 +105,14 @@ export function IssueDocumentModal({
           `Razlog: ${excuse.data?.reasons.find((r) => r.id === data.reason_id)?.name}`,
           `Ambulanta: ${excuse.data?.clinics.find((c) => c.id === data.clinic_id)?.name}`,
           data.print_diagnosis === "true"
-            ? `Šifra bolesti na PDF-u: ${context.data?.diagnoses.find((d) => d.id === data.diagnosis_id)?.code}`
+            ? `Šifra bolesti na PDF-u: ${selectedDiagnosis}`
             : "Šifra bolesti se ne ispisuje na PDF-u.",
           `Škola: ${data.school || "Nije navedena"}`,
           data.notes,
         );
       } else
         summary.push(
+          "Vrsta uputnice: " + data.referral_code,
           referralTypes[data.referral_type],
           data.specialty,
           data.reason,
@@ -243,27 +250,34 @@ export function IssueDocumentModal({
         )}
         {kind === "REFERRAL" && (
           <div className="form-grid spaced">
-            <Field name="referral_type" label="Vrsta uputnice" required>
-              {Object.entries(referralTypes).map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </Field>
+            <ReferenceCodeField
+              list="2.2.5"
+              name="referral_code"
+              label="Vrsta uputnice (CEZIH)"
+              required
+              defaultValue="A1"
+            />
+            <ReferenceCodeField
+              list="2.2.42"
+              name="examination_code"
+              label="Vrsta pregleda (SKZZ)"
+            />
+            <ReferenceCodeField
+              list="2.2.39"
+              name="visit_code"
+              label="Pregled (PZZ)"
+            />
             <Field
               name="specialty"
               label="Specijalnost / odredište"
               required
               maxLength={200}
             />
-            <Field name="diagnosis_id" label="Dijagnoza">
-              <option value="">Nije navedena</option>
-              {context.data?.diagnoses.map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.code} · {d.name}
-                </option>
-              ))}
-            </Field>
+            <DiagnosisPicker
+              name="diagnosis_id"
+              label="Dijagnoza"
+              onSelected={(items) => setSelectedDiagnosis(items[0]?.code ?? "")}
+            />
             <Field name="priority" label="Prioritet">
               <option value="REGULAR">Redovno</option>
               <option value="URGENT">Hitno</option>
@@ -337,14 +351,11 @@ export function IssueDocumentModal({
                 </option>
               ))}
             </Field>
-            <Field name="diagnosis_id" label="Šifra bolesti">
-              <option value="">Bez dijagnoze na ispričnici</option>
-              {context.data?.diagnoses.map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.code} · {d.name}
-                </option>
-              ))}
-            </Field>
+            <DiagnosisPicker
+              name="diagnosis_id"
+              label="Šifra bolesti"
+              onSelected={(items) => setSelectedDiagnosis(items[0]?.code ?? "")}
+            />
             <label className="field-full">
               <input type="checkbox" name="print_diagnosis" value="true" />{" "}
               Ispiši odabranu šifru bolesti na PDF-u koji se predaje školi

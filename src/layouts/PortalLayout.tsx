@@ -175,6 +175,22 @@ export function PortalLayout() {
                 </NavLink>
               </nav>
             )}
+          {[
+            "/ordinacija",
+            "/central",
+            "/ustanove",
+            "/laboratorij",
+            "/ljekarna",
+          ].includes(active?.path ?? "") && (
+            <nav>
+              <NavLink
+                to={active?.path + "/sifrarnici"}
+                onClick={() => setOpen(false)}
+              >
+                Medicinski šifrarnici
+              </NavLink>
+            </nav>
+          )}
           {active?.path === "/moje" && (
             <nav aria-label="Navigacija pacijenta">
               {patientModules

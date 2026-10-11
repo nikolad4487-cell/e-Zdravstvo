@@ -17,9 +17,15 @@ export function referralPrintModel(d: ClinicalDocument): DocumentEmailDetails {
     title: "Uputnica",
     number: d.number,
     issuedAt: d.issued_at,
-    layoutVersion: 3,
+    layoutVersion: 4,
     layout: {
       status: documentStatusLabels[d.status] ?? d.status,
+      referralCode: t.referral_code,
+      referralCodeName: t.referral_code_name,
+      examinationCode: t.examination_code,
+      examinationName: t.examination_name,
+      visitCode: t.visit_code,
+      visitName: t.visit_name,
       verificationToken: d.verification_token,
     },
     sections: [

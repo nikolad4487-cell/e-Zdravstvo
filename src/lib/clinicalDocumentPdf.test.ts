@@ -5,6 +5,8 @@ import {
   type DocumentEmailDetails,
 } from "../../supabase/functions/notifications-dispatch/document-pdf";
 import { clinicalDocumentPdfV2 } from "../../supabase/functions/notifications-dispatch/clinical-document-pdf-v2";
+import { clinicalDocumentPdfV3 } from "../../supabase/functions/notifications-dispatch/clinical-document-pdf-v3";
+import { clinicalDocumentPdf } from "../../supabase/functions/notifications-dispatch/clinical-document-pdf";
 import { schoolExcusePdf } from "../utils/schoolExcusePdf";
 import { schoolExcuseDocumentPdf } from "../../supabase/functions/notifications-dispatch/school-excuse-pdf";
 import { documentSchema } from "../types/documents";
@@ -76,6 +78,24 @@ export const schoolFixture = documentSchema.parse({
   },
 });
 describe("shared clinical print layouts", () => {
+  it("preserves version 3 retry bytes and renders official codes only in version 4", async () => {
+    const layout = {
+      referralCode: "A1",
+      referralCodeName: "Konzilijarni pregled",
+      examinationCode: "1",
+      examinationName: "Jednostavni pregled",
+      visitCode: "01",
+      visitName: "Prvi pregled",
+    };
+    const old = { ...base, layout };
+    expect(await documentPdf(old)).toEqual(await clinicalDocumentPdfV3(old));
+    const current = { ...old, layoutVersion: 4 as const };
+    const bytes = await documentPdf(current);
+    expect(bytes).toEqual(await clinicalDocumentPdf(current));
+    expect(bytes).toEqual(await documentPdf(current));
+    expect(bytes).not.toEqual(await documentPdf(old));
+    expect((await PDFDocument.load(bytes)).getPageCount()).toBe(1);
+  });
   it("preserves the existing version 2 PDF for jobs that may already have been attempted", async () => {
     const d = { ...base, layoutVersion: 2 as const };
     expect(await documentPdf(d)).toEqual(await clinicalDocumentPdfV2(d));

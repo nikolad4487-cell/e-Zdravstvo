@@ -1,0 +1,15 @@
+{
+  "mkb": {
+    "file": "HZJZ-MKB-List.xlsx",
+    "sha256": "3f82dbb01f99124fece8b57c6b44c4cc5c6b9bca1f6a779a99560601917edaee",
+    "count": 39848
+  },
+  "cezih": {
+    "file": "01_22_CEZIH_Specifikacija_kodnih_lista_Rev_BF.pdf",
+    "sha256": "0bcdc405a79ddbdee74885d548dc66ffba346f6f2dd2db7742c29aec55038a46",
+    "revision": "RevBE 2023-07-12 (printed in supplied PDF)",
+    "lists": 200,
+    "entries": 1648
+  },
+  "imported_on": "2026-10-11"
+}

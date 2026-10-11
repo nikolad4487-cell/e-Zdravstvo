@@ -1,3 +1,4 @@
+import { DiagnosisPicker } from "./DiagnosisPicker";
 import { useState } from "react";
 import {
   medicalReports,
@@ -202,6 +203,7 @@ export function ReportEditor({
   onClose: () => void;
   onSaved: () => void;
 }) {
+  const [diagnosis, setDiagnosis] = useState(previous?.diagnosis ?? "");
   const [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
     [draft, setDraft] = useState<Record<string, string> | null>(null),
@@ -285,12 +287,28 @@ export function ReportEditor({
               max={zagrebDate()}
             />
           </div>
+          <DiagnosisPicker
+            name="report_diagnosis_id"
+            label="Dodaj MKB šifru u nalaz"
+            onSelected={(items) => {
+              const d = items[0];
+              if (d) {
+                const line = d.code + " · " + d.name;
+                setDiagnosis((value) =>
+                  value.split("\n").includes(line)
+                    ? value
+                    : [value, line].filter(Boolean).join("\n"),
+                );
+              }
+            }}
+          />
           <Field
             name="diagnosis"
             label="Dijagnoze i šifre"
             type="textarea"
             maxLength={2000}
-            defaultValue={previous?.diagnosis}
+            value={diagnosis}
+            onChange={(e) => setDiagnosis(e.target.value)}
           />
           <Field
             name="content"

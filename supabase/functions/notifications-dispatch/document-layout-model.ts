@@ -63,6 +63,13 @@ export interface SchoolPrintDocument {
   };
 }
 export interface DocumentPrintLayout {
+  referralCode?: string;
+  referralCodeName?: string;
+  examinationCode?: string;
+  examinationName?: string;
+  visitCode?: string;
+  visitName?: string;
+
   laboratoryRows?: LabPdfRow[];
   schoolDocument?: SchoolPrintDocument;
   verificationToken?: string;
