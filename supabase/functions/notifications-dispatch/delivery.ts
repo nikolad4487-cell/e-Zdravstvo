@@ -1,25 +1,15 @@
+import {
+  bookingPdf,
+  bytesToBase64,
+  type BookingPdfDetails,
+} from "./booking-pdf.ts";
 export const APPOINTMENT_SENDER = "e-Zdravstvo <narudzbe@e-zdravstvo.tech>";
-interface AppointmentDetails {
-  eventType?: "BOOKED" | "RESCHEDULED" | "CANCELLED";
-  patientName?: string;
-  bookingReference?: string;
-  startsAt: string;
-  durationMinutes: number;
-  institution?: string;
-  hospital?: string;
-  doctor?: string;
-  specialist?: string;
-  department?: string;
-  kind?: string;
-  priority?: boolean;
-  location: string;
-}
 export interface EmailJob {
   id: string;
   email: string;
   portalAccess?: boolean;
-  appointment?: AppointmentDetails;
-  confirmation?: AppointmentDetails;
+  appointment?: BookingPdfDetails;
+  confirmation?: BookingPdfDetails;
 }
 export interface EmailConfiguration {
   apiKey: string;
@@ -50,6 +40,11 @@ export function renderNotification(job: EmailJob, applicationUrl: string) {
         : priority
           ? "Potvrda prioritetnog pregleda"
           : "Potvrda zakazanog pregleda";
+  const attachmentNotice = details
+    ? event === "CANCELLED"
+      ? "U privitku je PDF potvrda otkazivanja narudžbe."
+      : "U privitku je PDF potvrda narudžbe s podacima o pacijentu i terminu pregleda."
+    : "";
   const heading = !details
     ? "Nova obavijest u e-Zdravstvu"
     : event === "CANCELLED"
@@ -72,16 +67,16 @@ export function renderNotification(job: EmailJob, applicationUrl: string) {
         : "Potvrđeno";
   const accent =
     event === "CANCELLED"
-      ? "#f87171"
+      ? "#b42318"
       : event === "RESCHEDULED"
-        ? "#fbbf24"
-        : "#34d399";
+        ? "#946200"
+        : "#087443";
   const badgeBackground =
     event === "CANCELLED"
-      ? "#361a1d"
+      ? "#fef3f2"
       : event === "RESCHEDULED"
-        ? "#342b15"
-        : "#082b1b";
+        ? "#fff8e6"
+        : "#e8f5ee";
   const portalAccess = job.portalAccess !== false;
   const rows: [string, string][] = details
     ? [
@@ -142,27 +137,28 @@ export function renderNotification(job: EmailJob, applicationUrl: string) {
     : "Za dodatne informacije ili promjenu termina obratite se svojem liječniku. Sačuvajte ovu poruku s podacima o pregledu.";
   const footer =
     "Ova poruka poslana je automatski. Molimo ne odgovarajte na nju.";
-  const text = `${heading}\n\nPoštovani/a,\n\n${intro}${details ? `\n\nStatus rezervacije: ${status}` : ""}\n\n${rows.map(([label, value]) => `${label}: ${value}`).join("\n")}${instructions ? `\n\n${instructions}` : ""}\n\nSrdačan pozdrav,\nTim e-Zdravstvo${portalAccess ? `\n\nOtvori portal: ${link}` : ""}\n\n${contact}\n\n${footer}`;
-  const html = `<!doctype html><html lang="hr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="dark"><meta name="supported-color-schemes" content="dark"><title>${escapeHtml(title)}</title>
+  const text = `${heading}\n\nPoštovani/a,\n\n${intro}${attachmentNotice ? `\n\n${attachmentNotice}` : ""}${details ? `\n\nStatus rezervacije: ${status}` : ""}\n\n${rows.map(([label, value]) => `${label}: ${value}`).join("\n")}${instructions ? `\n\n${instructions}` : ""}\n\nSrdačan pozdrav,\nTim e-Zdravstvo${portalAccess ? `\n\nOtvori portal: ${link}` : ""}\n\n${contact}\n\n${footer}`;
+  const html = `<!doctype html><html lang="hr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="light"><meta name="supported-color-schemes" content="light"><title>${escapeHtml(title)}</title>
 <style>@media only screen and (max-width:480px){.email-outer{padding:12px 8px!important}.email-body{padding:20px 16px!important}}</style></head>
-<body bgcolor="#050607" style="margin:0;padding:0;background:#050607;font-family:Arial,Helvetica,sans-serif;color:#e5e7eb;color-scheme:dark">
-<table role="presentation" width="100%" cellspacing="0" cellpadding="0" bgcolor="#050607"><tr><td class="email-outer" align="center" style="padding:24px 12px">
-<table role="presentation" width="100%" cellspacing="0" cellpadding="0" bgcolor="#0b0d0f" style="max-width:640px;background:#0b0d0f;border:1px solid #292d32;border-radius:12px">
+<body bgcolor="#f5f7fa" style="margin:0;padding:0;background:#f5f7fa;font-family:Arial,Helvetica,sans-serif;color:#1f2937;color-scheme:light">
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" bgcolor="#f5f7fa"><tr><td class="email-outer" align="center" style="padding:24px 12px">
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" bgcolor="#ffffff" style="max-width:640px;background:#ffffff;border:1px solid #dce2e8;border-radius:12px">
 <tr><td class="email-body" style="padding:24px"><table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>
-<td width="30" style="vertical-align:middle;color:#60a5fa;font-size:24px;line-height:1">&#9825;</td>
-<td style="font-size:16px;line-height:1.5;color:#e5e7eb"><strong>e-Zdravstvo</strong><br><span style="font-size:14px;color:#aeb5bf">${details ? "Automatska potvrda termina" : "Automatska obavijest"}</span></td></tr></table>
-<div style="margin-top:20px;border-top:1px solid #25292e"></div>
-<h1 style="margin:24px 0 20px;font-size:18px;line-height:1.5;color:#f3f4f6"><span style="color:${accent}">${event === "CANCELLED" ? "&#8855;" : "&#10003;"}</span>&nbsp; ${escapeHtml(heading)}</h1>
+<td width="30" style="vertical-align:middle;color:#087f8c;font-size:24px;line-height:1">&#9825;</td>
+<td style="font-size:16px;line-height:1.5;color:#1f2937"><strong>e-Zdravstvo</strong><br><span style="font-size:14px;color:#526173">${details ? "Automatska potvrda termina" : "Automatska obavijest"}</span></td></tr></table>
+<div style="margin-top:20px;border-top:1px solid #dce2e8"></div>
+<h1 style="margin:24px 0 20px;font-size:18px;line-height:1.5;color:#111827"><span style="color:${accent}">${event === "CANCELLED" ? "&#8855;" : "&#10003;"}</span>&nbsp; ${escapeHtml(heading)}</h1>
 <p style="margin:0 0 16px;font-size:16px;line-height:1.6">Poštovani/a,</p>
 <p style="margin:0 0 24px;font-size:16px;line-height:1.6">${escapeHtml(intro)}</p>
-${details ? `<table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr><td style="padding:12px;border-bottom:1px solid #25292e;font-size:12px;color:#aeb5bf">Status rezervacije</td><td align="right" style="padding:12px;border-bottom:1px solid #25292e"><span style="display:inline-block;border-radius:16px;background:${badgeBackground};color:${accent};padding:5px 10px;font-size:12px;font-weight:bold">${status}</span></td></tr></table>` : ""}
-<table role="presentation" width="100%" cellspacing="0" cellpadding="0">${rows.map(([label, value]) => `<tr><td style="padding:10px 12px;font-size:16px;line-height:1.5;overflow-wrap:anywhere;word-break:break-word;color:#e5e7eb"><span style="font-size:12px;color:#aeb5bf">${escapeHtml(label)}</span><br><strong style="display:inline-block;padding-top:5px">${escapeHtml(value)}</strong></td></tr>`).join("")}</table>
+${attachmentNotice ? `<p style="margin:0 0 20px;font-size:15px;line-height:1.6;color:#526173">${escapeHtml(attachmentNotice)}</p>` : ""}
+${details ? `<table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr><td style="padding:12px;border-bottom:1px solid #dce2e8;font-size:12px;color:#526173">Status rezervacije</td><td align="right" style="padding:12px;border-bottom:1px solid #dce2e8"><span style="display:inline-block;border-radius:16px;background:${badgeBackground};color:${accent};padding:5px 10px;font-size:12px;font-weight:bold">${status}</span></td></tr></table>` : ""}
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0">${rows.map(([label, value]) => `<tr><td style="padding:10px 12px;font-size:16px;line-height:1.5;overflow-wrap:anywhere;word-break:break-word;color:#1f2937"><span style="font-size:12px;color:#526173">${escapeHtml(label)}</span><br><strong style="display:inline-block;padding-top:5px">${escapeHtml(value)}</strong></td></tr>`).join("")}</table>
 ${instructions ? `<p style="margin:24px 0 16px;font-size:16px;line-height:1.6">${escapeHtml(instructions)}</p>` : ""}
 <p style="margin:20px 0;font-size:16px;line-height:1.6">Srdačan pozdrav,<br>Tim e-Zdravstvo</p>
-${portalAccess ? `<p style="margin:20px 0"><a href="${escapeHtml(link)}" style="color:#93c5fd;text-decoration:underline;font-size:14px">Otvori e-Zdravstvo</a></p>` : ""}
-<p style="font-size:13px;line-height:1.6;color:#aeb5bf">${escapeHtml(contact)}</p>
-<div style="margin:20px 0;border-top:1px solid #25292e"></div>
-<p style="margin:0;font-size:13px;line-height:1.6;color:#aeb5bf">${escapeHtml(footer)}</p>
+${portalAccess ? `<p style="margin:20px 0"><a href="${escapeHtml(link)}" style="color:#087f8c;text-decoration:underline;font-size:14px">Otvori e-Zdravstvo</a></p>` : ""}
+<p style="font-size:13px;line-height:1.6;color:#526173">${escapeHtml(contact)}</p>
+<div style="margin:20px 0;border-top:1px solid #dce2e8"></div>
+<p style="margin:0;font-size:13px;line-height:1.6;color:#526173">${escapeHtml(footer)}</p>
 </td></tr></table></td></tr></table></body></html>`;
   return { subject: `${title} — e-Zdravstvo`, text, html };
 }
@@ -174,6 +170,16 @@ export async function deliverNotification(
   if (config.from !== APPOINTMENT_SENDER)
     throw new Error("Unexpected notification sender");
   const content = renderNotification(job, config.applicationUrl);
+  const details = job.appointment ?? job.confirmation;
+  const attachments = details
+    ? [
+        {
+          filename: `${details.eventType === "CANCELLED" ? "otkazivanje" : details.eventType === "RESCHEDULED" ? "promjena-termina" : "narudzba"}-${details.bookingReference?.replace(/[^A-Za-z0-9_-]/g, "") || "pacijenta"}.pdf`,
+          content: bytesToBase64(await bookingPdf(details)),
+          content_type: "application/pdf",
+        },
+      ]
+    : undefined;
   const response = await request("https://api.resend.com/emails", {
     method: "POST",
     headers: {
@@ -185,6 +191,7 @@ export async function deliverNotification(
       from: APPOINTMENT_SENDER,
       to: [job.email],
       ...content,
+      ...(attachments ? { attachments } : {}),
     }),
     signal: AbortSignal.timeout(15000),
   });

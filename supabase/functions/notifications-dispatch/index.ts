@@ -47,7 +47,8 @@ Deno.serve(async (request) => {
       error: "Notification sender is not configured correctly",
     });
   const { data: jobs, error } = await db.rpc("claim_notification_emails", {
-    batch_size: 20,
+    // Bound PDF rendering CPU per invocation; remaining jobs stay queued.
+    batch_size: 3,
   });
   if (error || !Array.isArray(jobs))
     return json(500, { error: "Email queue unavailable" });

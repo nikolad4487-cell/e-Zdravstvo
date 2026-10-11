@@ -150,3 +150,10 @@ Provjera: `pnpm run test:email` pokriva pacijente s računom i bez računa, prio
 E-mail koristi tamnu karticu s oznakom e-Zdravstvo, statusom Potvrđeno / Promijenjeno / Otkazano, podacima pacijenta i pregleda, uputom za dolazak, pozdravom i automatskom napomenom. HTML i tekst sadrže iste podatke. Ugrađena mobilna prilagodba provjerena je na širini 390 px, bez vodoravnog preljeva.
 
 Migracija `202610110007_booking_email_references` dodaje privatne brojeve stvarnih rezervacija u obliku `PREG-2026-00125`. Isti broj prati potvrdu, promjenu i otkazivanje; ordinarni i bolnički pregledi dijele jedinstveni redni broj. Postojeće rezervacije dobivaju evidencijski broj, a snimke već pokušanih e-mailova ostaju sačuvane. Nove tajne ili promjene frontend varijabli nisu potrebne.
+
+
+## PDF narudžba uz e-mail (11. 10. 2026.)
+
+E-mail koristi svijetli predložak i uključuje PDF potvrdu narudžbe oblikovanu prema dostavljenom bolničkom obrascu. PDF sadrži podatke konkretne rezervacije i privatnu snimku osnovnih podataka pacijenta; promjena i otkazivanje imaju jasno označen status. Nepostojeći MBO i šifra postupka nisu izmišljeni. QR sadrži samo trajni broj rezervacije, a dokument ne zamjenjuje uputnicu.
+
+Migracija `202610110008_booking_pdf_details` dodaje poslužiteljski ograničene snimke podataka za PDF. Font s hrvatskim znakovima uključen je uz SIL OFL licencu u Edge funkciju. PDF se stvara bez mrežnog preuzimanja fonta; sadržaj privitka identičan je u ponovnim pokušajima. Postojeće već pokušane snimke ostaju sačuvane. Nove varijable nisu potrebne.

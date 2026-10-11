@@ -63,6 +63,19 @@ await test("authorized booking queues one confirmation with only arrival details
   assert.equal(job.appointment.kind, "Kontrolni pregled");
   assert.match(job.appointment.location, /Testna ulica 2/);
   assert.equal(job.email, "fictional3@example.test");
+  assert.equal(job.appointment.pdfDetails.patientBirthDate, "2000-01-01");
+  assert.deepEqual(
+    Object.keys(job.appointment.pdfDetails).sort(),
+    [
+      "patientBirthDate",
+      "patientAddress",
+      "patientPhone",
+      "institutionAddress",
+      "institutionPhone",
+      "bookedAt",
+      "bookedBy",
+    ].sort(),
+  );
   assert.match(job.appointment.bookingReference, /^PREG-\d{4}-\d{5,}$/);
   assert.deepEqual(await claim(), []);
 });
@@ -393,6 +406,10 @@ await test("accountless clinic booking uses the chart address and deduplicates r
   assert.equal(jobs.length, 1);
   contactJob = jobs[0];
   assert.equal(contactJob.email, "contact@example.test");
+  assert.equal(
+    contactJob.appointment.pdfDetails.patientBirthDate,
+    "2000-01-01",
+  );
   assert.match(contactJob.appointment.bookingReference, /^PREG-\d{4}-\d{5,}$/);
   assert.equal(contactJob.portalAccess, false);
   assert.equal(contactJob.appointment.eventType, "BOOKED");

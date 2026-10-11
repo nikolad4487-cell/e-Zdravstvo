@@ -468,6 +468,7 @@ await test("configured email confirmation contains schedule details and cancella
     [
       "eventType",
       "bookingReference",
+      "pdfDetails",
       "patientName",
       "kind",
       "priority",

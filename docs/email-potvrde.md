@@ -15,7 +15,7 @@ U **Supabase Dashboard → odabrani projekt → Edge Functions → Secrets** pos
 
 `SUPABASE_URL` i `SUPABASE_SERVICE_ROLE_KEY` Supabase postavlja Edge funkciji automatski. Resend ključ **ne treba dodavati u Vercel frontend**, `VITE_*` varijable, repozitorij ili razgovor. Frontend zadržava postojeći javni Supabase URL i anon ključ.
 
-Za novu instalaciju primijenite migracije do `202610110007_booking_email_references.sql`, objavite `notifications-dispatch` uz isključenu gateway JWT provjeru (`supabase functions deploy notifications-dispatch --no-verify-jwt`) i konfigurirajte POST poziv svakih pet minuta s `Authorization: Bearer <NOTIFICATIONS_JOB_TOKEN>`. Funkcija sama provjerava taj token, ignorira tijelo zahtjeva i dohvaća samo serverski red. Nema API-ja za odabir proizvoljnog primatelja ili sadržaja.
+Za novu instalaciju primijenite migracije do `202610110008_booking_pdf_details.sql`, objavite `notifications-dispatch` uz isključenu gateway JWT provjeru (`supabase functions deploy notifications-dispatch --no-verify-jwt`) i konfigurirajte POST poziv svakih pet minuta s `Authorization: Bearer <NOTIFICATIONS_JOB_TOKEN>`. Funkcija sama provjerava taj token, ignorira tijelo zahtjeva i dohvaća samo serverski red. Nema API-ja za odabir proizvoljnog primatelja ili sadržaja.
 
 Nakon postavljanja tajni i objave funkcije uključite uslugu u Supabase SQL Editoru:
 
@@ -39,9 +39,13 @@ Pacijent **s korisničkim računom** koristi potvrđenu adresu za prijavu i uklj
 - Promjena termina: obavijest s novim datumom i vremenom.
 - Otkazivanje: zasebna obavijest o otkazivanju.
 
-HTML na hrvatskom prati tamni predložak potvrde: kartica s oznakom e-Zdravstvo, naslovom i statusom, podacima u jednom stupcu, pozdravom i napomenom da se na poruku ne odgovara. Prilagodljiva širina i tekstualna inačica podržavaju mobitele i klijente bez HTML-a. Datum i vrijeme uvijek se prikazuju u zoni `Europe/Zagreb`, uz ljetno/zimsko računanje vremena. Uključeni su ime pacijenta, ustanova, liječnik, vrsta pregleda, datum, vrijeme, lokacija i broj rezervacije. Broj `PREG-<godina>-<redni broj>` dolazi iz privatne evidencije stvarne rezervacije i ostaje isti pri promjeni ili otkazivanju. Već pokušani stari poslovi zadržavaju svoju izvornu snimku podataka. Ako adresa ustanove nedostaje, pacijenta s računom upućuje se na portal, a pacijenta bez računa na liječnika. Slobodni tekst vrste pregleda u ordinaciji koristi sigurnu opću oznaku ako nije jedna od standardnih vrsta; time se ne prenose eventualno upisani simptomi ili dijagnoze. Bolnica koristi naziv pregleda iz kataloga usluga. U katalogu zato koristite nazive vrsta pregleda, a ne medicinske podatke pojedinog pacijenta.
+HTML na hrvatskom koristi svijetli predložak potvrde: kartica s oznakom e-Zdravstvo, naslovom i statusom, podacima u jednom stupcu, pozdravom i napomenom da se na poruku ne odgovara. Prilagodljiva širina i tekstualna inačica podržavaju mobitele i klijente bez HTML-a. Datum i vrijeme uvijek se prikazuju u zoni `Europe/Zagreb`, uz ljetno/zimsko računanje vremena. Uključeni su ime pacijenta, ustanova, liječnik, vrsta pregleda, datum, vrijeme, lokacija i broj rezervacije. Broj `PREG-<godina>-<redni broj>` dolazi iz privatne evidencije stvarne rezervacije i ostaje isti pri promjeni ili otkazivanju. Već pokušani stari poslovi zadržavaju svoju izvornu snimku podataka. Ako adresa ustanove nedostaje, pacijenta s računom upućuje se na portal, a pacijenta bez računa na liječnika. Slobodni tekst vrste pregleda u ordinaciji koristi sigurnu opću oznaku ako nije jedna od standardnih vrsta; time se ne prenose eventualno upisani simptomi ili dijagnoze. Bolnica koristi naziv pregleda iz kataloga usluga. U katalogu zato koristite nazive vrsta pregleda, a ne medicinske podatke pojedinog pacijenta.
 
-U porukama nema dijagnoze, sadržaja uputnice, nalaza, terapije, razloga prioriteta, promjene ili otkazivanja. Vrijednosti su HTML-escaped. Za pacijenta s računom poveznica vodi na portal i zahtijeva prijavu. Pacijent bez računa dobiva sve podatke za dolazak i uputu da se za dodatne informacije ili promjenu termina obrati liječniku, bez poveznice ili uputa za prijavu.
+Svaka potvrda pregleda, promjena i otkazivanje uključuju PDF privitak. PDF na bijeloj A4 stranici prati raspored bolničke narudžbe: zaglavlje ustanove, trajni broj, status, podaci pacijenta, usluga, datum narudžbe, termin, lokacija, liječnik i upute. Datum rođenja, adresa i telefon pacijenta pojavljuju se samo u PDF-u, prema privatnoj snimci rezervacije. MBO i šifra postupka nisu strukturirani u postojećem modelu i prikazuju se kao „Nije evidentirano”; ne preuzimaju se iz oglednog dokumenta ni slobodnog teksta osiguranja. QR kod sadrži samo broj rezervacije.
+
+Privitak se izrađuje na poslužitelju preko postojećih `pdf-lib`, `fontkit` i `qrcode` paketa. Font s hrvatskim znakovima uključen je u funkciju, bez vanjskih preuzimanja. Fiksni metapodaci omogućuju identične PDF bajtove pri ponovnom pokušaju. PDF se šalje Resendu kao base64 privitak, bez javnog linka ili pohrane u javni bucket. Dispatcher obrađuje do tri poruke po pozivu kako bi ograničio CPU pri izradi PDF-a; ostale ostaju u redu.
+
+U porukama i PDF-u nema dijagnoze, sadržaja uputnice, nalaza, terapije, razloga prioriteta, promjene ili otkazivanja. Vrijednosti su HTML-escaped. Za pacijenta s računom poveznica vodi na portal i zahtijeva prijavu. Pacijent bez računa dobiva sve podatke za dolazak i uputu da se za dodatne informacije ili promjenu termina obrati liječniku, bez poveznice ili uputa za prijavu.
 
 ## Pouzdanost i evidencija
 
@@ -84,7 +88,7 @@ Za provjeru stvarne dostave koristite vlastitu adresu u testnom kartonu:
 
 1. Za pacijenta bez računa unesite vlastitu valjanu adresu u **Uredi pacijenta → E-mail**. Za pacijenta s računom potvrdite adresu računa i uključite **Obavijesti e-poštom**, pa spremite postavke.
 2. Kao ovlašteni liječnik zakažite budući pregled tom pacijentu. Pričekajte sljedeći ciklus rasporeda, do približno pet minuta.
-3. Provjerite sandučić i neželjenu poštu te Resend → Emails. Pošiljatelj mora biti `e-Zdravstvo <narudzbe@e-zdravstvo.tech>`, a detalji odgovarati portalu. Provjerite prikaz na mobitelu.
+3. Provjerite sandučić i neželjenu poštu te Resend → Emails. Pošiljatelj mora biti `e-Zdravstvo <narudzbe@e-zdravstvo.tech>`, a detalji odgovarati portalu. Provjerite prikaz na mobitelu i otvorite PDF privitak; broj, podaci pacijenta i termin moraju odgovarati rezervaciji.
 4. Promijenite termin, pričekajte dostavu i provjerite novu poruku s novim datumom/vremenom. Zatim otkažite pregled i provjerite obavijest o otkazivanju.
 5. Ponovite spremanje istog zahtjeva ili izvršavanje rasporeda: već poslana potvrda ne smije doći ponovno.
 

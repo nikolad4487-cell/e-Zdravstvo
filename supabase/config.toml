@@ -70,5 +70,6 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.notifications-dispatch]
+import_map = "./functions/notifications-dispatch/deno.json"
 # This scheduled worker validates NOTIFICATIONS_JOB_TOKEN explicitly.
 verify_jwt = false
