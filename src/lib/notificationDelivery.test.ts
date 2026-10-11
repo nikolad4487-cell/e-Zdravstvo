@@ -6,6 +6,35 @@ const config = {
   applicationUrl: "https://example.test",
 };
 describe("notification email delivery", () => {
+  it("sends a priority booking confirmation with Zagreb time and a portal link", async () => {
+    const request = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(
+        new Response(JSON.stringify({ id: "confirmation-1" }), { status: 200 }),
+      );
+    await deliverNotification(
+      {
+        id: "confirmation-job",
+        email: "fictional@example.test",
+        confirmation: {
+          startsAt: "2026-10-12T05:00:00Z",
+          durationMinutes: 15,
+          hospital: "Testna bolnica",
+          department: "Kardiologija",
+          specialist: "dr. Test",
+          location: "Ambulanta 1",
+        },
+      },
+      config,
+      request,
+    );
+    const body = JSON.parse(request.mock.calls[0][1]?.body as string);
+    expect(body.subject).toContain("Potvrda prioritetnog pregleda");
+    expect(body.text).toContain("07:00");
+    expect(body.text).toContain("Kardiologija");
+    expect(body.text).toContain("https://example.test/moje/narudzbe");
+    expect(body.text).not.toContain("test-only-key");
+  });
   it("sends only a generic portal link and a stable idempotency key", async () => {
     const request = vi
       .fn<typeof fetch>()
@@ -31,14 +60,12 @@ describe("notification email delivery", () => {
     expect(Object.keys(body).sort()).toEqual(["from", "subject", "text", "to"]);
   });
   it("honors rate limiting without returning provider error details", async () => {
-    const request = vi
-      .fn<typeof fetch>()
-      .mockResolvedValue(
-        new Response("sensitive provider body", {
-          status: 429,
-          headers: { "retry-after": "120" },
-        }),
-      );
+    const request = vi.fn<typeof fetch>().mockResolvedValue(
+      new Response("sensitive provider body", {
+        status: 429,
+        headers: { "retry-after": "120" },
+      }),
+    );
     expect(
       await deliverNotification(
         { id: "job-1", email: "fictional@example.test" },

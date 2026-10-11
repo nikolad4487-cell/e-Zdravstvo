@@ -32,6 +32,71 @@ export type Database = {
     };
     Views: Record<string, never>;
     Functions: {
+      priority_hospital_context: { Args: { manage: boolean }; Returns: Json };
+      create_priority_hospital_service: {
+        Args: {
+          department_id: string;
+          doctor_id: string;
+          name: string;
+          specialty: string;
+          location: string;
+          instructions: string;
+        };
+        Returns: string;
+      };
+      save_hospital_department: {
+        Args: {
+          department_id: string | null;
+          institution_id: string;
+          name: string;
+          duration_minutes: number;
+          active: boolean;
+        };
+        Returns: string;
+      };
+      assign_hospital_department: {
+        Args: { service_id: string; department_id: string };
+        Returns: undefined;
+      };
+      set_hospital_clinic_shift: {
+        Args: { service_id: string; weekday: number; shift: string | null };
+        Returns: undefined;
+      };
+      priority_hospital_slots: {
+        Args: {
+          patient_id: string;
+          service_id: string;
+          date_from: string;
+          date_to: string;
+        };
+        Returns: Json;
+      };
+      priority_hospital_referrals: {
+        Args: {
+          patient_id: string;
+          service_id: string;
+          starts_at: string;
+          search_term: string;
+          page_number: number;
+        };
+        Returns: Json;
+      };
+      book_priority_hospital: {
+        Args: {
+          patient_id: string;
+          service_id: string;
+          starts_at: string;
+          referral_id: string | null;
+          new_referral: Json | null;
+          priority_reason: string;
+          request_id: string;
+        };
+        Returns: Json;
+      };
+      hospital_booking_email_status: {
+        Args: { booking_id: string };
+        Returns: string;
+      };
       search_attachments: {
         Args: {
           patient_filter: string;

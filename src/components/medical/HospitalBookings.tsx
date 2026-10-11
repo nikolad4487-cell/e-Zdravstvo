@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { PriorityHospitalBooking } from "./PriorityHospitalBooking";
 import { ReportEditor } from "./MedicalReports";
 import { listDocuments } from "../../services/documents";
 import { Link } from "react-router-dom";
@@ -85,7 +86,7 @@ export function HospitalBookings({
         </div>
         {canBook && patientId && (
           <button className="primary" onClick={() => setBooking(true)}>
-            Naruči u ustanovu
+            Naruči prioritetni pregled
           </button>
         )}
         {mode === "CARE" && !patientId && (
@@ -151,7 +152,7 @@ export function HospitalBookings({
                 )}
                 {b.priority && (
                   <p className="medical-alert">
-                    Prioritetni pacijent · {b.priority_reason}
+                    PRIORITETNI pregled · {b.priority_reason}
                   </p>
                 )}
                 {b.instructions && <p>Upute: {b.instructions}</p>}
@@ -258,13 +259,13 @@ export function HospitalBookings({
         />
       )}
       {booking && patientId && (
-        <BookHospital
+        <PriorityHospitalBooking
           patientId={patientId}
           onClose={() => setBooking(false)}
-          onSaved={() => {
+          onSaved={(message) => {
             setBooking(false);
             resource.refresh();
-            setSuccess("Narudžba je potvrđena i vidljiva pacijentu.");
+            setSuccess(message);
           }}
         />
       )}

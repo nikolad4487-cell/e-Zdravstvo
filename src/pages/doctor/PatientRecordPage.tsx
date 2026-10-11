@@ -19,6 +19,7 @@ import { DocumentList } from "../../components/medical/DocumentList";
 import { AppointmentPanel } from "../../components/medical/AppointmentPanel";
 import { LaboratoryPanel } from "../../components/medical/LaboratoryPanel";
 import { HospitalBookings } from "../../components/medical/HospitalBookings";
+import { PriorityHospitalBooking } from "../../components/medical/PriorityHospitalBooking";
 import { RenewalPanel } from "../../components/medical/RenewalPanel";
 import { MedicalReports } from "../../components/medical/MedicalReports";
 import { VaccinationPanel } from "../../components/medical/VaccinationPanel";
@@ -28,6 +29,7 @@ import type { DocumentKind } from "../../types/documents";
 import { age, dateLabel } from "../../utils/format";
 export function PatientRecordPage() {
   const [issue, setIssue] = useState<DocumentKind | null>(null),
+    [priorityBooking, setPriorityBooking] = useState(false),
     [documentVersion, setDocumentVersion] = useState(0);
   const { id = "" } = useParams();
   const chart = useResource(() => getChart(id), id);
@@ -75,6 +77,12 @@ export function PatientRecordPage() {
             <button className="primary" onClick={() => open("encounter")}>
               <Stethoscope size={17} />
               Novi pregled
+            </button>
+            <button
+              className="secondary"
+              onClick={() => setPriorityBooking(true)}
+            >
+              Naruči prioritetni pregled
             </button>
           </div>
         )}
@@ -309,6 +317,19 @@ export function PatientRecordPage() {
             setTab("DOKUMENTI");
             setDocumentVersion((v) => v + 1);
             setSuccess("Dokument je izdan i dostupan pacijentu.");
+          }}
+        />
+      )}
+      {priorityBooking && (
+        <PriorityHospitalBooking
+          patientId={id}
+          patientName={`${p.first_name} ${p.last_name}`}
+          onClose={() => setPriorityBooking(false)}
+          onSaved={(message) => {
+            setPriorityBooking(false);
+            setTab("NARUDŽBE");
+            setDocumentVersion((v) => v + 1);
+            setSuccess(message);
           }}
         />
       )}

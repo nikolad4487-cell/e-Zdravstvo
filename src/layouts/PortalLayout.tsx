@@ -141,6 +141,12 @@ export function PortalLayout() {
             auth.roles.includes("SYSTEM_ADMIN")) && (
             <nav>
               <NavLink
+                to={active?.path + "/bolnicke-ambulante"}
+                onClick={() => setOpen(false)}
+              >
+                Bolnički odjeli i smjene
+              </NavLink>
+              <NavLink
                 to={active?.path + "/raspored-osoblja"}
                 onClick={() => setOpen(false)}
               >

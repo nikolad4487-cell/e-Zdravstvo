@@ -22,6 +22,7 @@ pnpm run test:db
 pnpm run test:clinical
 pnpm run test:workflows
 pnpm run test:laboratory
+pnpm run test:priority
 pnpm exec playwright install chromium
 pnpm run test:e2e
 ```
@@ -49,7 +50,7 @@ Nova Edge funkcija `notifications-dispatch` provjerava poseban `NOTIFICATIONS_JO
 
 Postavite raspored POST poziva svakih pet minuta na `/functions/v1/notifications-dispatch` s `Authorization: Bearer <NOTIFICATIONS_JOB_TOKEN>`. Token čuvajte u tajnama rasporeda/Vaultu. Bez konfiguracije e-maila funkcija generira samo obavijesti portala. Podsjetnici se generiraju za aktivne termine unutar sljedeća 24 sata; ne ponavljaju se za isti termin i vrijeme početka. Pomak termina dobiva novi podsjetnik. Otkazivanje ne briše već dostavljen podsjetnik.
 
-Nakon provjere domene, dostave i rasporeda, pozovite `configure_notification_delivery({enabled:true})` **service-role klijentom** da korisnici mogu uključiti e-mail. Zadano je isključen. E-mail šalje samo opću obavijest s poveznicom na portal, bez dijagnoze, nalaza ili teksta privatne poruke. Dostava zahtijeva potvrđenu adresu, poštuje korisnički pristanak i najviše pet pokušaja. Obrada jednog poziva ograničena je na 20 poruka; nadzirite kapacitet reda prije šire primjene. E-mailovi nisu poslani ovom provjerom; dostava e-maila ostaje isključena do verifikacije pošiljatelja.
+Nakon provjere domene, dostave i rasporeda, pozovite `configure_notification_delivery({enabled:true})` **service-role klijentom** da korisnici mogu uključiti e-mail. Zadano je isključen. Opće obavijesti sadrže poveznicu na portal. Potvrde prioritetnih pregleda dodatno sadrže datum, vrijeme, trajanje, bolnicu, odjel, specijalista i lokaciju; ne uključuju dijagnozu, nalaz ni sadržaj uputnice ili privatne poruke. Dostava zahtijeva potvrđenu adresu, poštuje korisnički pristanak i najviše pet pokušaja. Obrada jednog poziva ograničena je na 20 poruka; nadzirite kapacitet reda prije šire primjene. E-mailovi nisu poslani ovom provjerom; dostava e-maila ostaje isključena do verifikacije pošiljatelja.
 
 ## Skrbnici i ljekarna
 
@@ -82,3 +83,21 @@ Nova migracija `202610110001_laboratory_search` dodaje `search_laboratory` i ind
 `pnpm run test:laboratory` koristi jednokratnu PGlite bazu s izmišljenim podacima za provjeru cijele povijesti, paginacije, kombiniranih filtara, datumskih granica i ovlasti. Pregledničke provjere koriste stvarni laboratorijski prikaz s lažnim odgovorima API-ja, bez stvarnih korisnika i podataka; provjeravaju primjenu/poništavanje filtara, povratak na prvu stranicu i mobilni prikaz.
 
 Migracija je primijenjena 11. listopada na konfigurirani Supabase projekt. SHA-256 zapisa migracije odgovara izvornom SQL-u; javni API potvrđuje verziju `20261011`, a anonimni poziv pretrage odbijen je kodom `42501`. Build i 188 lokalnih provjera prolaze: 11 jedinica, 24 pravila baze, 97 kliničkih provjera, 30 tijekova rada, 12 laboratorijskih provjera i 14 pregledničkih provjera. Prijavljeni tijek na stvarnom Supabaseu nije provjeren ovom isporukom.
+
+## Prioritetni bolnički pregledi — 11. listopada 2026.
+
+Iz otvorenog kartona koristite **Naruči prioritetni pregled**. Bolnica i odjel ograničavaju izbor specijalista. Njegove smjene automatski određuju slobodne datume i vremena u sljedećih 31 dan; početni datum pretrage može se promijeniti. Jutarnja smjena traje 07:00–13:30, poslijepodnevna 13:30–19:00. Trajanje pregleda određuje odjel: 15 ili 30 minuta. Svaki termin mora u cijelosti stati u smjenu. Bez postavljene smjene nema ponuđenih termina.
+
+U **Bolnički odjeli i smjene** administrator bolnice dodaje odjele, određuje trajanje te povezuje postojeće usluge ili dodaje ambulantu specijalista. Prilikom migracije postojeće bolničke usluge povezane su s odjelima prema njihovoj specijalnosti; početno trajanje tih odjela je 30 minuta, a administrator ga može promijeniti. Nisu dodani izmišljeni liječnici ni bolnice. Specijalist uređuje smjene svojih ambulanti; administrator može uređivati ambulante u svojoj ustanovi. Smjene postavljaju i opće radno vrijeme specijalista za taj dan, prema rasponu njegovih aktivnih bolničkih ambulanti. Odsutnosti i zauzeti termini u ordinaciji ili drugoj bolničkoj ambulanti uklanjaju se iz ponude. Promjena rasporeda ili trajanja odjela ne mijenja postojeće potvrđene narudžbe.
+
+Liječnik bilo koje grane može naručiti pacijenta kojem ima aktivnu ovlast liječnika koji ga liječi. Administrativna uloga, medicinska sestra ili sam pacijent ne mogu stvarati prioritetne narudžbe. Pristup blokiran od strane pacijenta uklanja i ovu ovlast.
+
+Potrebna je uputnica za istog pacijenta i istu specijalnost, vrste specijalistički pregled, bolničko liječenje ili kontrola, koja vrijedi na dan pregleda i nije vezana uz drugu neotkazanu narudžbu. Postojeće uputnice mogu se pretraživati po broju i listati po stranicama. Nova uputnica i rezervacija spremaju se u jednoj transakciji: neuspjela rezervacija ne ostavlja uputnicu ni termin. Uputnica je vrste specijalistički pregled, s redovnom hitnošću; bolnička narudžba uvijek nosi zasebnu oznaku PRIORITETNI pregled i razlog prioriteta. Ponovljeni zahtjev s istim sadržajem ne izdaje dodatnu uputnicu ni narudžbu. Unikatni indeks i zaključavanje zajedničkog rasporeda sprječavaju dvostruko zauzimanje termina.
+
+Potvrda je odmah dostupna pacijentu u portalu. E-mail potvrda šalje se kroz postojeći red i raspored dostave ako je usluga aktivna, pacijent ima povezan račun s potvrđenom adresom i uključene e-mail obavijesti. Ekran nakon rezervacije razlikuje red slanja, poslanu potvrdu i nedostajuću konfiguraciju/pristanak/adresu; ne prikazuje neposlanu potvrdu kao poslanu. Otkazivanje ili premještanje poništava zastarjelu potvrdu koja još čeka obradu. Poslana poruka ne može se opozvati. `NOTIFICATION_FROM_EMAIL` još nije postavljen u konfiguriranom projektu, pa slanje ostaje isključeno.
+
+Migracije `202610110002_priority_hospital_clinics` i `202610110003_hospital_confirmation_email` pripadaju ovoj isporuci. Novi frontend traži reviziju sheme `2026101102`; prije objave primijenite obje migracije i objavite novu verziju funkcije `notifications-dispatch`. Starije ručno objavljene bolničke usluge, termini, narudžbe i povijest ostaju sačuvani.
+
+Obje migracije primijenjene su 11. listopada na konfigurirani Supabase projekt; SHA-256 zapisa odgovara izvornom SQL-u. API potvrđuje reviziju `2026101102`, a anonimni pristup bolničkom kontekstu odbijen je kodom `42501`. Nova verzija `notifications-dispatch` objavljena je bez promjene postojećeg rasporeda i tajnog tokena.
+
+Provjere uključuju 13 novih testova baze za prioritetni postupak, test sadržaja e-mail potvrde i dva preglednička postupka s izmišljenim odgovorima API-ja (postojeća/nova uputnica, promjena bolnice i mobilni prikaz). Lokalni build i ukupno 207 provjera prolaze. PGlite i lažni odgovori preglednika ne zamjenjuju prijavljeni Supabase Auth/API/Edge postupak; stvarni e-mail nije poslan ovom provjerom.
