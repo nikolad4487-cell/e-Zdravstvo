@@ -60,7 +60,7 @@ await ok(
   await admin.from("institutions").insert({
     id: org,
     name: "Fictional local integration institution",
-    code: "CI-" + run,
+    code: "CI-" + run.toUpperCase(),
   }),
 );
 await ok(
