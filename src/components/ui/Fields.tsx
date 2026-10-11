@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { ChangeEventHandler, ReactNode } from "react";
 export function Field({
   label,
   name,
@@ -20,6 +20,10 @@ export function Field({
   placeholder?: string;
   maxLength?: number;
   minLength?: number;
+  value?: string;
+  onChange?: ChangeEventHandler<
+    HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+  >;
 }) {
   return (
     <label className="field">
@@ -28,7 +32,13 @@ export function Field({
         {required && <b> *</b>}
       </span>
       {children ? (
-        <select name={name} defaultValue={defaultValue} required={required}>
+        <select
+          name={name}
+          defaultValue={defaultValue}
+          required={required}
+          value={props.value}
+          onChange={props.onChange}
+        >
           {children}
         </select>
       ) : type === "textarea" ? (
@@ -38,6 +48,8 @@ export function Field({
           required={required}
           maxLength={props.maxLength ?? 10000}
           minLength={props.minLength}
+          value={props.value}
+          onChange={props.onChange}
         />
       ) : (
         <input

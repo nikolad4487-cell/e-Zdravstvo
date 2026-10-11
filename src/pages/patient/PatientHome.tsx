@@ -1,4 +1,6 @@
+import { GuardianPortal } from "../../components/medical/GuardianPortal";
 import { useEffect, useState } from "react";
+import { ClinicRequests } from "../../components/medical/ClinicRequests";
 import { useNavigate, useParams } from "react-router-dom";
 import { patientModules, patientPath } from "../../lib/patientModules";
 import { useAuth } from "../../hooks/useAuth";
@@ -63,6 +65,8 @@ export function PatientHome() {
       <nav className="record-tabs" aria-label="Moj zdravstveni prostor">
         {[
           "POČETNA",
+          "ZAHTJEVI ZA TERMIN",
+          "SKRBNIŠTVO",
           "KOMUNIKACIJA",
           "OBNOVA LIJEKOVA",
           "DOKUMENTI",
@@ -91,10 +95,12 @@ export function PatientHome() {
           </button>
         ))}
       </nav>
+      {tab === "SKRBNIŠTVO" && <GuardianPortal />}
       {tab === "POČETNA" && (
         <PatientOverview version={version} navigate={setTab} />
       )}
       {tab === "TERMINI" && <AppointmentPanel personal />}
+      {tab === "ZAHTJEVI ZA TERMIN" && <ClinicRequests personal />}
       {tab === "POSTAVKE" && <PatientSettings />}
       {tab === "LIJEKOVI" && <PatientMedications />}
       {tab === "CIJEPLJENJA" && <VaccinationPanel personal />}

@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { Pagination } from "../ui/Pagination";
 import { Upload, FileText, Download, Archive } from "lucide-react";
 import { useResource } from "../../hooks/useResource";
 import {
@@ -31,9 +32,42 @@ export function AttachmentList({
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
     [success, setSuccess] = useState("");
+  const [search, setSearch] = useState(""),
+    [term, setTerm] = useState(""),
+    [category, setCategory] = useState(""),
+    [from, setFrom] = useState(""),
+    [to, setTo] = useState(""),
+    [page, setPage] = useState(0);
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setTerm(search);
+      setPage(0);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search]);
+  useEffect(() => setPage(0), [patientId, includeArchived, category, from, to]);
   const resource = useResource(
-    () => listAttachments(patientId, includeArchived),
-    `${patientId}:${includeArchived}:${version}`,
+    async () => {
+      if (from && to && from > to)
+        throw new Error("Početni datum ne smije biti nakon završnog datuma.");
+      return listAttachments(patientId, includeArchived, {
+        search: term,
+        category,
+        from,
+        to,
+        page,
+      });
+    },
+    JSON.stringify([
+      patientId,
+      includeArchived,
+      version,
+      term,
+      category,
+      from,
+      to,
+      page,
+    ]),
   );
   function changed(message: string) {
     setSuccess(message);
@@ -86,6 +120,43 @@ export function AttachmentList({
             Učitaj dokument
           </button>
         )}
+      </div>
+      <div className="form-grid">
+        <Field
+          name="attachment_search"
+          label="Pretraži sve učitane dokumente"
+          value={search}
+          maxLength={100}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Naziv dokumenta, datoteka ili osoba koja ga je učitala"
+        />
+        <Field
+          name="attachment_category"
+          label="Vrsta dokumenta"
+          value={category}
+          onChange={(e) => setCategory(e.target.value)}
+        >
+          <option value="">Sve vrste</option>
+          {Object.entries(attachmentCategories).map(([value, label]) => (
+            <option value={value} key={value}>
+              {label}
+            </option>
+          ))}
+        </Field>
+        <Field
+          name="attachment_from"
+          label="Učitano od"
+          type="date"
+          value={from}
+          onChange={(e) => setFrom(e.target.value)}
+        />
+        <Field
+          name="attachment_to"
+          label="Učitano do"
+          type="date"
+          value={to}
+          onChange={(e) => setTo(e.target.value)}
+        />
       </div>
       <label className="checkbox-row">
         <input
@@ -172,6 +243,12 @@ export function AttachmentList({
           )}
         </div>
       )}
+      <Pagination
+        page={page}
+        size={resource.data?.length ?? 0}
+        loading={resource.loading}
+        onChange={setPage}
+      />
       {upload && (
         <UploadModal
           patientId={patientId}

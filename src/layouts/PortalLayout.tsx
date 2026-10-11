@@ -111,6 +111,12 @@ export function PortalLayout() {
                 Termini
               </NavLink>
               <NavLink
+                to="/ordinacija/zahtjevi-za-termin"
+                onClick={() => setOpen(false)}
+              >
+                Zahtjevi za termin
+              </NavLink>
+              <NavLink
                 to="/ordinacija/laboratorij"
                 onClick={() => setOpen(false)}
               >
@@ -127,6 +133,21 @@ export function PortalLayout() {
             </>
           )}
         </nav>
+        {["/ordinacija", "/central", "/ustanove"].includes(
+          active?.path ?? "",
+        ) &&
+          (auth.roles.includes("DOCTOR") ||
+            auth.roles.includes("INSTITUTION_ADMIN") ||
+            auth.roles.includes("SYSTEM_ADMIN")) && (
+            <nav>
+              <NavLink
+                to={active?.path + "/raspored-osoblja"}
+                onClick={() => setOpen(false)}
+              >
+                Radno vrijeme i odsutnosti
+              </NavLink>
+            </nav>
+          )}
         {active?.path === "/moje" && (
           <nav aria-label="Navigacija pacijenta">
             {patientModules

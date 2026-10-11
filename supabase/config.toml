@@ -68,3 +68,7 @@ verify_jwt = false
 [functions.admin-accounts]
 # Explicit Auth getUser validation, followed by SYSTEM_ADMIN authorization RPC.
 verify_jwt = false
+
+[functions.notifications-dispatch]
+# This scheduled worker validates NOTIFICATIONS_JOB_TOKEN explicitly.
+verify_jwt = false

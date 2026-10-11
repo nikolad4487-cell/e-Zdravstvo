@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Download,
   FileCheck2,
@@ -8,6 +8,8 @@ import {
 } from "lucide-react";
 import QRCode from "qrcode";
 import { useResource } from "../../hooks/useResource";
+import { useAuth } from "../../hooks/useAuth";
+import { Pagination } from "../ui/Pagination";
 import { getDocument, listDocuments } from "../../services/documents";
 import { db } from "../../lib/supabase";
 import { unwrap } from "../../services/clinical";
@@ -143,9 +145,50 @@ export function DocumentList({
   kind?: DocumentKind;
   version?: number;
 }) {
+  const { institutions } = useAuth();
+  const [search, setSearch] = useState(""),
+    [term, setTerm] = useState(""),
+    [page, setPage] = useState(0),
+    [status, setStatus] = useState(""),
+    [from, setFrom] = useState(""),
+    [to, setTo] = useState(""),
+    [institution, setInstitution] = useState(""),
+    [selectedKind, setSelectedKind] = useState<DocumentKind | "">("");
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setTerm(search.trim());
+      setPage(0);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search]);
+  useEffect(() => {
+    setPage(0);
+  }, [patientId, kind, selectedKind, status, from, to, institution]);
   const resource = useResource(
-    () => listDocuments(patientId, kind),
-    `${patientId ?? ""}:${kind ?? ""}:${version}`,
+    async () => {
+      if (from && to && from > to)
+        throw new Error("Početni datum ne smije biti nakon završnog datuma.");
+      return listDocuments(patientId, kind ?? (selectedKind || undefined), {
+        search: term,
+        page,
+        status,
+        from,
+        to,
+        institution,
+      });
+    },
+    JSON.stringify([
+      patientId,
+      kind,
+      selectedKind,
+      version,
+      term,
+      page,
+      status,
+      from,
+      to,
+      institution,
+    ]),
   );
   const [selected, setSelected] = useState<ClinicalDocument | null>(null),
     [qr, setQr] = useState(""),
@@ -206,8 +249,87 @@ export function DocumentList({
   }
   return (
     <>
+      <div className="card form-grid spaced">
+        <Field
+          label="Pretraži dokumente"
+          name="document_search"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          maxLength={100}
+          placeholder="Broj dokumenta, pacijent ili liječnik"
+        />
+        {!kind && (
+          <Field
+            label="Vrsta dokumenta"
+            name="document_kind"
+            value={selectedKind}
+            onChange={(e) =>
+              setSelectedKind(e.target.value as DocumentKind | "")
+            }
+          >
+            <option value="">Sve vrste</option>
+            {Object.entries(kindLabels).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </Field>
+        )}
+        <Field
+          label="Status dokumenta"
+          name="document_status"
+          value={status}
+          onChange={(e) => setStatus(e.target.value)}
+        >
+          <option value="">Svi statusi</option>
+          {[
+            "ISSUED",
+            "VALID",
+            "EXPIRED",
+            "REVOKED",
+            "CANCELLED",
+            "DISPENSED",
+            "COMPLETED",
+          ].map((value) => (
+            <option key={value} value={value}>
+              {documentStatusLabels[value]}
+            </option>
+          ))}
+        </Field>
+        <Field
+          label="Izdano od"
+          name="issued_from"
+          type="date"
+          value={from}
+          onChange={(e) => setFrom(e.target.value)}
+        />
+        <Field
+          label="Izdano do"
+          name="issued_to"
+          type="date"
+          value={to}
+          onChange={(e) => setTo(e.target.value)}
+        />
+        {institutions.length > 0 && (
+          <Field
+            label="Ustanova"
+            name="document_institution"
+            value={institution}
+            onChange={(e) => setInstitution(e.target.value)}
+          >
+            <option value="">Sve dostupne ustanove</option>
+            {institutions.map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.name}
+              </option>
+            ))}
+          </Field>
+        )}
+      </div>
       <div className="section-heading">
-        <span className="muted">{resource.data?.length ?? 0} dokumenata</span>
+        <span className="muted">
+          {resource.data?.length ?? 0} dokumenata na stranici
+        </span>
         <button
           className="text-link"
           onClick={resource.refresh}
@@ -293,6 +415,12 @@ export function DocumentList({
           )}
         </div>
       )}
+      <Pagination
+        page={page}
+        size={resource.data?.length ?? 0}
+        loading={resource.loading || search.trim() !== term}
+        onChange={setPage}
+      />
       {selected && (
         <Modal
           title={selected.number}

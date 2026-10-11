@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useResource } from "../../hooks/useResource";
 import { useScheduleRefresh } from "../../hooks/useScheduleRefresh";
 import {
@@ -110,6 +110,20 @@ function Conversation({
     thread.patient_id + thread.doctor_id + before,
   );
   useScheduleRefresh(messages.refresh);
+  useEffect(() => {
+    const latest = messages.data?.at(-1);
+    if (before || !latest) return;
+    void db()
+      .rpc("mark_thread_read", {
+        patient_id: thread.patient_id,
+        doctor_id: thread.doctor_id,
+        read_through: latest.created_at,
+      })
+      .then(({ error }) => {
+        if (error)
+          setError("Potvrda čitanja nije spremljena. Osvježite razgovor.");
+      });
+  }, [messages.data, before, thread.patient_id, thread.doctor_id]);
   async function send(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);

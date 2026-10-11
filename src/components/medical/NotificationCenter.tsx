@@ -6,6 +6,7 @@ import { unwrap } from "../../services/clinical";
 import { db } from "../../lib/supabase";
 import { ErrorMessage } from "../ui/Feedback";
 import { readableError } from "../../utils/format";
+import { Pagination } from "../ui/Pagination";
 export function NotificationCenter({
   version,
   onRead,
@@ -13,7 +14,11 @@ export function NotificationCenter({
   version: number;
   onRead: () => void;
 }) {
-  const resource = useResource(getNotifications, String(version)),
+  const [page, setPage] = useState(0);
+  const resource = useResource(
+      () => getNotifications(page),
+      `${version}:${page}`,
+    ),
     [busy, setBusy] = useState(false),
     [error, setError] = useState("");
   async function read(id: string | null) {
@@ -71,7 +76,12 @@ export function NotificationCenter({
       ) : (
         <p className="empty-state">Nemate obavijesti.</p>
       )}
-      <p className="signature-note">Prikazuje se posljednjih 50 obavijesti.</p>
+      <Pagination
+        page={page}
+        size={resource.data?.length ?? 0}
+        loading={resource.loading}
+        onChange={setPage}
+      />
     </section>
   );
 }

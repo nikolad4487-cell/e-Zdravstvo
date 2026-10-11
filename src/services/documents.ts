@@ -14,12 +14,30 @@ export async function getExcuseContext(patientId: string) {
     unwrap(await db().rpc("excuse_context", { patient_id: patientId })),
   );
 }
-export async function listDocuments(patientId?: string, kind?: DocumentKind) {
+export interface DocumentFilters {
+  search?: string;
+  status?: string;
+  from?: string;
+  to?: string;
+  page?: number;
+  institution?: string;
+}
+export async function listDocuments(
+  patientId?: string,
+  kind?: DocumentKind,
+  filters: DocumentFilters = {},
+) {
   return z.array(documentSchema).parse(
     unwrap(
-      await db().rpc("list_documents", {
-        patient_id: patientId ?? null,
+      await db().rpc("search_documents", {
+        patient_filter: patientId ?? null,
         kind_filter: kind ?? null,
+        search_term: filters.search ?? "",
+        status_filter: filters.status || null,
+        date_from: filters.from || null,
+        date_to: filters.to || null,
+        page_number: filters.page ?? 0,
+        institution_filter: filters.institution || null,
       }),
     ),
   );
@@ -60,16 +78,15 @@ export async function verifyDocument(code: string) {
       ),
     );
 }
-export async function getNotifications() {
-  return z
-    .array(notificationSchema)
-    .parse(
-      unwrap(
-        await db()
-          .from("notifications")
-          .select("*")
-          .order("created_at", { ascending: false })
-          .limit(50),
-      ),
-    );
+export async function getNotifications(page = 0) {
+  return z.array(notificationSchema).parse(
+    unwrap(
+      await db()
+        .from("notifications")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .order("id", { ascending: false })
+        .range(page * 50, page * 50 + 49),
+    ),
+  );
 }

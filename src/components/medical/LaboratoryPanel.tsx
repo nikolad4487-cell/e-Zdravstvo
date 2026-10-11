@@ -2,6 +2,9 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useResource } from "../../hooks/useResource";
 import { useScheduleRefresh } from "../../hooks/useScheduleRefresh";
+import { useAuth } from "../../hooks/useAuth";
+import { CriticalAcknowledgement } from "./CriticalAcknowledgement";
+import { LaboratoryTrends } from "./LaboratoryTrends";
 import {
   getLaboratory,
   getLaboratories,
@@ -41,8 +44,7 @@ export function LaboratoryPanel({
     } | null>(null),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
-    [success, setSuccess] = useState(""),
-    [trend, setTrend] = useState("");
+    [success, setSuccess] = useState("");
   const resource = useResource(
     () => getLaboratory(mode, patientId, page),
     [mode, patientId, page].join(":"),
@@ -56,27 +58,6 @@ export function LaboratoryPanel({
           : null,
       );
   }, [resource.data]);
-  const points = (resource.data ?? [])
-    .flatMap((o) =>
-      o.results
-        .filter((r) => !r.superseded_by)
-        .flatMap((r) =>
-          r.parameters.map((p) => ({
-            ...p,
-            date: r.sampled_at,
-            order: o.number,
-          })),
-        ),
-    )
-    .sort((a, b) => a.date.localeCompare(b.date));
-  const options = [
-    ...new Map(
-      points.map((p) => [
-        p.code + "|" + p.unit,
-        { code: p.code, name: p.name, unit: p.unit },
-      ]),
-    ).entries(),
-  ];
   async function update(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!transition) return;
@@ -233,57 +214,8 @@ export function LaboratoryPanel({
           Sljedeća
         </button>
       </div>
-      {(patientId || mode === "PERSONAL") && options.length > 0 && (
-        <section className="card spaced">
-          <h2>Rezultati kroz vrijeme</h2>
-          <p className="muted">
-            Usporedba aktualnih verzija nalaza na ovoj stranici, za istu šifru i
-            jedinicu.
-          </p>
-          <label className="field">
-            <span>Parametar</span>
-            <select value={trend} onChange={(e) => setTrend(e.target.value)}>
-              <option value="">Odaberite parametar</option>
-              {options.map(([key, p]) => (
-                <option key={key} value={key}>
-                  {p.code} · {p.name} ({p.unit})
-                </option>
-              ))}
-            </select>
-          </label>
-          {trend && (
-            <div className="table-scroll">
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Uzorkovanje</th>
-                    <th>Rezultat</th>
-                    <th>Referentni interval</th>
-                    <th>Oznaka</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {points
-                    .filter((p) => p.code + "|" + p.unit === trend)
-                    .map((p) => (
-                      <tr key={p.id}>
-                        <td>{dateLabel(p.date)}</td>
-                        <td>
-                          {p.value} {p.unit}
-                        </td>
-                        <td>
-                          {p.reference_low ?? "—"} – {p.reference_high ?? "—"}
-                        </td>
-                        <td>
-                          {p.flag ? labFlagLabels[p.flag] : "Bez intervala"}
-                        </td>
-                      </tr>
-                    ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </section>
+      {(mode === "PERSONAL" || (mode === "CARE" && patientId)) && (
+        <LaboratoryTrends patientId={patientId} />
       )}
       {ordering && patientId && (
         <LabOrderEditor
@@ -325,7 +257,7 @@ export function LaboratoryPanel({
               <p>Rezultati još nisu objavljeni.</p>
             ) : (
               selected.results.map((r) => (
-                <LabResultView key={r.id} result={r} />
+                <LabResultView key={r.id} result={r} mode={mode} />
               ))
             )}
           </div>
@@ -368,7 +300,14 @@ export function LaboratoryPanel({
     </>
   );
 }
-function LabResultView({ result: r }: { result: LabResult }) {
+function LabResultView({
+  result: r,
+  mode,
+}: {
+  result: LabResult;
+  mode: LabMode;
+}) {
+  const { roles } = useAuth();
   const [downloading, setDownloading] = useState(false),
     [downloadError, setDownloadError] = useState("");
   async function download() {
@@ -385,6 +324,14 @@ function LabResultView({ result: r }: { result: LabResult }) {
   }
   return (
     <section className="lab-result">
+      {mode !== "LAB" &&
+        !r.superseded_by &&
+        r.parameters.some((p) => p.flag === "CRITICAL") && (
+          <CriticalAcknowledgement
+            resultId={r.id}
+            canAcknowledge={mode === "CARE" && roles.includes("DOCTOR")}
+          />
+        )}
       <div className="section-heading">
         <h3>Nalaz · verzija {r.version}</h3>
         <span>

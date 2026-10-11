@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useResource } from "../../hooks/useResource";
 import { useScheduleRefresh } from "../../hooks/useScheduleRefresh";
 import {
@@ -33,12 +33,26 @@ function PrescriptionDetails({ p }: { p: PharmacyPrescription }) {
             {m.name} · {m.strength}
           </strong>
           <p>
-            {m.dosage} · Količina: {m.quantity}
+            {m.dosage} · Propisano: {m.quantity} · Izdano: {m.dispensed} ·
+            Preostalo: {m.remaining}
           </p>
           <p>
             {m.route} · {m.duration}
           </p>
           {m.notes && <p>{m.notes}</p>}
+        </div>
+      ))}
+      {p.dispensing_events.map((e) => (
+        <div className="clinical-note" key={e.id}>
+          <strong>Preuzimanje · {dateLabel(e.created_at)}</strong>
+          <p>
+            {e.institution_name} · {e.pharmacist_name}
+          </p>
+          {e.items.map((i) => (
+            <p key={i.index}>
+              {p.items[i.index]?.name} · Količina: {i.quantity}
+            </p>
+          ))}
         </div>
       ))}
       {p.dispensation && (
@@ -61,25 +75,32 @@ export function PatientMedications() {
   const [active, setActive] = useState(false),
     [page, setPage] = useState(0),
     [search, setSearch] = useState("");
+  const [term, setTerm] = useState("");
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setTerm(search);
+      setPage(0);
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [search]);
   const resource = useResource(
-    () => myMedications(active, page),
-    String(active) + page,
+    () => myMedications(active, page, term),
+    String(active) + page + term,
   );
   useScheduleRefresh(resource.refresh);
-  const rows =
-    resource.data?.filter((p) =>
-      p.items.some((i) =>
-        i.name.toLocaleLowerCase("hr").includes(search.toLocaleLowerCase("hr")),
-      ),
-    ) ?? [];
+  const rows = resource.data ?? [];
   return (
     <>
       <h2>Lijekovi</h2>
       <p>Propisani lijekovi i evidentirana preuzimanja u ljekarnama sustava.</p>
       <div className="form-grid">
         <label className="field">
-          <span>Pretraži lijekove na stranici</span>
-          <input value={search} onChange={(e) => setSearch(e.target.value)} />
+          <span>Pretraži sve propisane lijekove</span>
+          <input
+            maxLength={100}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
         </label>
         <label>
           <input
@@ -136,7 +157,8 @@ export function PharmacyPanel() {
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
     [confirm, setConfirm] = useState(false),
-    [success, setSuccess] = useState("");
+    [success, setSuccess] = useState(""),
+    [requestId, setRequestId] = useState(crypto.randomUUID());
   async function lookup(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const data = values(e.currentTarget);
@@ -159,11 +181,20 @@ export function PharmacyPanel() {
     setBusy(true);
     setError("");
     try {
+      const data = values(e.currentTarget);
+      const items = prescription.items
+        .map((_, index) => ({
+          index,
+          quantity: Number(data["quantity_" + index] ?? 0),
+        }))
+        .filter((i) => i.quantity > 0);
       unwrap(
-        await db().rpc("dispense_prescription", {
+        await db().rpc("dispense_prescription_items", {
           document_id: prescription.id,
           patient_number: prescription.patient_number,
-          institution_id: values(e.currentTarget).institution,
+          institution_id: data.institution,
+          items,
+          request_id: requestId,
         }),
       );
       setConfirm(false);
@@ -224,8 +255,14 @@ export function PharmacyPanel() {
         <section className="card spaced">
           <PrescriptionDetails p={prescription} />
           {prescription.status === "ISSUED" && (
-            <button className="primary" onClick={() => setConfirm(true)}>
-              Realiziraj recept
+            <button
+              className="primary"
+              onClick={() => {
+                setRequestId(crypto.randomUUID());
+                setConfirm(true);
+              }}
+            >
+              Evidentiraj preuzimanje
             </button>
           )}
         </section>
@@ -241,10 +278,23 @@ export function PharmacyPanel() {
         >
           <form onSubmit={dispense}>
             <p className="confirm-box">
-              Potvrđujete izdavanje svih propisanih stavki u cijelosti. Recept
-              će biti označen realiziranim i neće ga biti moguće ponovno
-              realizirati.
+              Unesite stvarno izdane količine. Recept se zatvara nakon izdavanja
+              svih stavki; preostale količine mogu se preuzeti kasnije unutar
+              roka valjanosti.
             </p>
+            {prescription.items.map((m, index) => (
+              <Field
+                key={index}
+                name={"quantity_" + index}
+                label={`${m.name} · Preostalo: ${m.remaining}`}
+                type="number"
+                min={0}
+                max={m.remaining}
+                step="1"
+                defaultValue={String(m.remaining)}
+                required
+              />
+            ))}
             <Field name="institution" label="Ljekarna / ustanova" required>
               <option value="">Odaberite ustanovu</option>
               {institutions.data?.map((i) => (

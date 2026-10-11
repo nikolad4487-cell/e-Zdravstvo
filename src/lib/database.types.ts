@@ -32,6 +32,162 @@ export type Database = {
     };
     Views: Record<string, never>;
     Functions: {
+      search_attachments: {
+        Args: {
+          patient_filter: string;
+          include_archived: boolean;
+          search_term: string;
+          category_filter: string | null;
+          date_from: string | null;
+          date_to: string | null;
+          page_number: number;
+        };
+        Returns: Json;
+      };
+      application_schema_version: {
+        Args: Record<string, never>;
+        Returns: number;
+      };
+      dispense_prescription_items: {
+        Args: {
+          document_id: string;
+          patient_number: string;
+          institution_id: string;
+          items: Json;
+          request_id: string;
+        };
+        Returns: string;
+      };
+      search_my_medications: {
+        Args: {
+          active_only: boolean;
+          page_number: number;
+          search_term: string;
+        };
+        Returns: Json;
+      };
+      grant_guardian_access: {
+        Args: {
+          patient_id: string;
+          guardian_user_id: string;
+          legal_basis: string;
+          verification_reference: string;
+          expires_on: string;
+        };
+        Returns: undefined;
+      };
+      revoke_guardian_access: {
+        Args: { assignment_id: string; reason: string };
+        Returns: undefined;
+      };
+      admin_patient_guardians: { Args: { patient_id: string }; Returns: Json };
+      my_guardian_patients: { Args: { page_number: number }; Returns: Json };
+      guardian_patient_record: { Args: { patient_id: string }; Returns: Json };
+      export_patient_record: { Args: { patient_id: string }; Returns: Json };
+      laboratory_trend_catalog: {
+        Args: { patient_filter: string | null };
+        Returns: Json;
+      };
+      laboratory_trend_points: {
+        Args: {
+          patient_filter: string | null;
+          parameter_code: string;
+          parameter_unit: string;
+          date_from: string;
+          date_to: string;
+          page_number: number;
+        };
+        Returns: Json;
+      };
+      my_care_doctors: { Args: Record<string, never>; Returns: Json };
+      clinic_appointment_requests: {
+        Args: { personal: boolean; page_number: number };
+        Returns: Json;
+      };
+      request_clinic_appointment: {
+        Args: {
+          doctor_id: string;
+          preferred_date: string;
+          preferred_period: string;
+          note: string;
+          request_id: string;
+        };
+        Returns: string;
+      };
+      resolve_clinic_request: {
+        Args: {
+          request_id: string;
+          expected_version: number;
+          approve: boolean;
+          response: string;
+          appointment_data: Json | null;
+        };
+        Returns: string | null;
+      };
+      cancel_clinic_request: {
+        Args: { request_id: string; expected_version: number };
+        Returns: undefined;
+      };
+      notification_preferences: { Args: Record<string, never>; Returns: Json };
+      save_notification_preferences: {
+        Args: { email_enabled: boolean; appointment_reminders: boolean };
+        Returns: undefined;
+      };
+      mark_thread_read: {
+        Args: { patient_id: string; doctor_id: string; read_through: string };
+        Returns: undefined;
+      };
+      acknowledge_laboratory_result: {
+        Args: { result_id: string };
+        Returns: undefined;
+      };
+      laboratory_acknowledgement: {
+        Args: { result_id: string };
+        Returns: Json;
+      };
+      doctor_task_overview: { Args: Record<string, never>; Returns: Json };
+      doctor_schedule: { Args: Record<string, never>; Returns: Json };
+      set_doctor_hours: {
+        Args: {
+          doctor_id: string;
+          weekday: number;
+          starts_at: string;
+          ends_at: string;
+          enabled: boolean;
+        };
+        Returns: undefined;
+      };
+      record_doctor_absence: {
+        Args: {
+          doctor_id: string;
+          starts_at: string;
+          ends_at: string;
+          substitute_id: string | null;
+          reason: string;
+        };
+        Returns: string;
+      };
+      cancel_doctor_absence: {
+        Args: { absence_id: string };
+        Returns: undefined;
+      };
+      search_patients_page: {
+        Args: { search_term: string; page_number: number };
+        Returns: Json;
+      };
+      search_documents: {
+        Args: {
+          patient_filter: string | null;
+          kind_filter: string | null;
+          search_term: string;
+          status_filter: string | null;
+          date_from: string | null;
+          date_to: string | null;
+          page_number: number;
+          institution_filter: string | null;
+        };
+        Returns: Json;
+      };
       my_next_hospital_booking: { Args: Record<string, never>; Returns: Json };
       record_vaccination: {
         Args: {

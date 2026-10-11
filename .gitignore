@@ -7,5 +7,7 @@ dist/
 *.local
 supabase/.temp/
 artifacts/
+test-results/
+playwright-report/
 *.tsbuildinfo
 .vercel/

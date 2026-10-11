@@ -27,6 +27,8 @@ import { CommunicationPanel } from "../components/medical/CommunicationPanel";
 import { RenewalPanel } from "../components/medical/RenewalPanel";
 import { MedicalReports } from "../components/medical/MedicalReports";
 import { PharmacyPanel } from "../components/medical/PharmacyPanel";
+import { StaffSchedulePage } from "../pages/institution/StaffSchedulePage";
+import { ClinicRequests } from "../components/medical/ClinicRequests";
 function Guard({ path }: { path?: string }) {
   const auth = useAuth();
   if (auth.loading) return <Loading />;
@@ -105,6 +107,12 @@ export function AppRoutes() {
       ].map((path) => (
         <Route key={path} element={<Guard path={path} />}>
           <Route element={<PortalLayout />}>
+            {["/ordinacija", "/central", "/ustanove"].includes(path) && (
+              <Route
+                path={path + "/raspored-osoblja"}
+                element={<StaffSchedulePage />}
+              />
+            )}
             {path === "/moje" && (
               <Route path="/moje/:section" element={<PatientHome />} />
             )}
@@ -116,6 +124,10 @@ export function AppRoutes() {
             )}
             {path === "/ordinacija" && (
               <>
+                <Route
+                  path="/ordinacija/zahtjevi-za-termin"
+                  element={<ClinicRequests />}
+                />
                 <Route
                   path="/ordinacija/komunikacija"
                   element={<CommunicationPanel />}

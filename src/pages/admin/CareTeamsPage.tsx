@@ -1,3 +1,4 @@
+import { GuardianManagement } from "../../components/medical/GuardianManagement";
 import { useEffect, useState } from "react";
 import { z } from "zod";
 import { useAuth } from "../../hooks/useAuth";
@@ -50,16 +51,14 @@ export function CareTeamsPage() {
   }, [search]);
   const resource = useResource(
     async () =>
-      z
-        .array(patientSchema)
-        .parse(
-          unwrap(
-            await db().rpc("admin_patients", {
-              search_term: term,
-              page_number: page,
-            }),
-          ),
+      z.array(patientSchema).parse(
+        unwrap(
+          await db().rpc("admin_patients", {
+            search_term: term,
+            page_number: page,
+          }),
         ),
+      ),
     term + page,
   );
   return (
@@ -308,6 +307,9 @@ function CareEditor({
                 ))}
               </section>
             ))}
+            {auth.roles.includes("SYSTEM_ADMIN") && (
+              <GuardianManagement patientId={patient.id} />
+            )}
             {auth.roles.includes("SYSTEM_ADMIN") && !patient.account_linked && (
               <button
                 className="primary spaced"

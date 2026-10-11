@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { NotificationPreferences } from "../../components/medical/NotificationPreferences";
+import { FhirExport } from "../../components/medical/FhirExport";
 import { Link } from "react-router-dom";
 import { useResource } from "../../hooks/useResource";
 import { useAuth } from "../../hooks/useAuth";
@@ -181,10 +183,12 @@ export function PatientSettings() {
           <h3>Obavijesti</h3>
           <p>
             Obavijesti o dokumentima, porukama i narudžbama dostupne su u
-            portalu. Slanje e-poštom nije uključeno.
+            portalu. Postavke podsjetnika i e-pošte možete urediti ispod.
           </p>
         </section>
       </div>
+      <NotificationPreferences />
+      <FhirExport patientId={p.id} />
       <section className="card spaced">
         <div className="section-heading">
           <h3>Pregled pristupa kartonu</h3>

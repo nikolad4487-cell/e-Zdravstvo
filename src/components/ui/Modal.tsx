@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { X } from "lucide-react";
 export function Modal({
@@ -15,6 +15,26 @@ export function Modal({
   wide?: boolean;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
+  const [dirty, setDirty] = useState(false);
+  const close = () => {
+    if (
+      !busy &&
+      (!dirty ||
+        window.confirm(
+          "Imate nespremljene promjene. Zatvoriti obrazac i odbaciti ih?",
+        ))
+    )
+      onClose();
+  };
+  useEffect(() => {
+    if (!dirty) return;
+    const leave = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", leave);
+    return () => window.removeEventListener("beforeunload", leave);
+  }, [dirty]);
   useEffect(() => {
     const dialog = ref.current;
     dialog?.showModal();
@@ -25,9 +45,17 @@ export function Modal({
       ref={ref}
       className={`modal ${wide ? "modal-wide" : ""}`}
       aria-label={title}
+      onInput={(event) => {
+        if (event.target instanceof HTMLElement && event.target.closest("form"))
+          setDirty(true);
+      }}
+      onChange={(event) => {
+        if (event.target instanceof HTMLElement && event.target.closest("form"))
+          setDirty(true);
+      }}
       onCancel={(e) => {
         e.preventDefault();
-        if (!busy) onClose();
+        close();
       }}
     >
       <div className="modal-head">
@@ -37,7 +65,7 @@ export function Modal({
           className="icon-button"
           aria-label="Zatvori"
           disabled={busy}
-          onClick={onClose}
+          onClick={close}
         >
           <X size={20} />
         </button>

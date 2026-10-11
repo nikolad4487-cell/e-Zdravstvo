@@ -22,6 +22,7 @@ import { HospitalBookings } from "../../components/medical/HospitalBookings";
 import { RenewalPanel } from "../../components/medical/RenewalPanel";
 import { MedicalReports } from "../../components/medical/MedicalReports";
 import { VaccinationPanel } from "../../components/medical/VaccinationPanel";
+import { FhirExport } from "../../components/medical/FhirExport";
 import { IssueDocumentModal } from "../../components/medical/IssueDocumentModal";
 import type { DocumentKind } from "../../types/documents";
 import { age, dateLabel } from "../../utils/format";
@@ -78,6 +79,7 @@ export function PatientRecordPage() {
           </div>
         )}
       </section>
+      <FhirExport patientId={id} />
       {success && (
         <div role="status" className="success-toast">
           {success}

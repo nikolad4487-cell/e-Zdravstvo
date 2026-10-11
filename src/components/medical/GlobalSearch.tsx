@@ -45,15 +45,11 @@ function SearchDialog({ close }: { close: () => void }) {
     if (term.length < 2) return null;
     const [patients, documents] = await Promise.all([
       searchPatients(term),
-      term.toUpperCase().startsWith("EZ-")
-        ? listDocuments()
-        : Promise.resolve([]),
+      listDocuments(undefined, undefined, { search: term }),
     ]);
     return {
       patients,
-      documents: documents.filter((d) =>
-        d.number.toLowerCase().includes(term.toLowerCase()),
-      ),
+      documents,
     };
   }, term);
   return (
@@ -71,8 +67,8 @@ function SearchDialog({ close }: { close: () => void }) {
           />
         </label>
         <p className="signature-note">
-          Najmanje 2 znaka. Pretraga dokumenata obuhvaća posljednjih 100
-          dostupnih dokumenata.
+          Najmanje 2 znaka. Pretražuje se sva dostupna povijest; prikazuje se do
+          50 pacijenata i 50 dokumenata. Za dodatne rezultate suzite pretragu.
         </p>
         {result.error && <ErrorMessage>{result.error}</ErrorMessage>}
         {result.loading ? (

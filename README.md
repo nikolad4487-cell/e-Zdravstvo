@@ -137,7 +137,7 @@ supabase/
 scripts/           # testovi baze i sigurni demo provisioning
 ```
 
-Faze 2–5 imaju funkcionalni klinički tok, privatne privitke i pacijentov dashboard. Dodani su termini i čekaonica, laboratorij, administracija skrbnih timova i otvaranje računa. Dodani su bolničke narudžbe, komunikacija, obnova terapije, strukturirani specijalistički nalazi, cijepljenja i ljekarnički tok. Radni rasporedi osoblja ostaju zaseban budući modul. Brojevi prikazanih popisa ograničeni su na 50 pacijenata i 100 najnovijih dokumenata; pretražite pacijenta za njegov karton. Nisu dodane prazne stranice za neimplementirane module.
+Faze 2–5 imaju funkcionalni klinički tok, privatne privitke i pacijentov dashboard. Dodani su termini i čekaonica, laboratorij, administracija skrbnih timova i otvaranje računa. Dodani su bolničke narudžbe, komunikacija, obnova terapije, strukturirani specijalistički nalazi, cijepljenja i ljekarnički tok. Radni rasporedi osoblja uključuju tjedno radno vrijeme i odsutnosti. Pacijenti i dokumenti pretražuju se u bazi sa stranicama od 50 zapisa. Nisu dodane prazne stranice za neimplementirane module.
 
 Ovlasti skrbnog tima postavljaju se kroz Central i Ustanove. Central može povezati nepovezani karton s pacijentovim računom. Liječnik pri kreiranju pacijenta dobiva vlastitu skrbnu vezu. Ne postoji javna samostalna registracija ni preuzimanje tuđeg kartona.
 
@@ -244,13 +244,13 @@ Moje e-Zdravstvo → POSTAVKE omogućuje izmjenu kontaktnih podataka kartona (ne
 
 Pacijent može pojedinačno ograničiti pristup članovima dodijeljenog skrbnog tima. Ograničenje se provjerava u bazi za čitanje kartona, liječnička pisanja, ordinacijske termine i komunikaciju. Ponovno dopuštenje ne vraća opozvanu administrativnu skrbnu ovlast. Pristup vlastitim već izdanim nalazima autora, usko ograničena laboratorijska obrada i bolničke narudžbe koriste zasebne ovlasti; postavka ne obećava povlačenje već dostavljenih dokumenata.
 
-Pacijent vidi stranice pojedinačnih pregleda i preuzimanja koja se mogu povezati s njegovim kartonom, uz vrijeme i korisnika; nikada ne dobiva cjelokupni audit, IP adrese ili metadata. Skupni popisi s null entity_id nisu prikazani kao pojedinačni pristupi. Obavijesti se isporučuju u portal; e-mail slanje, NIAS uređaji i prekogranična razmjena nisu uključeni.
+Pacijent vidi stranice pojedinačnih pregleda i preuzimanja koja se mogu povezati s njegovim kartonom, uz vrijeme i korisnika; nikada ne dobiva cjelokupni audit, IP adrese ili metadata. Skupni popisi s null entity_id nisu prikazani kao pojedinačni pristupi. Obavijesti se isporučuju u portal; e-mail dostava pripremljena je uz zasebnu aktivaciju pružatelja i pristanak korisnika (vidi docs/nadogradnje.md). NIAS uređaji i prekogranična razmjena nisu uključeni.
 
 ## Ljekarna i preuzeti lijekovi
 
-PHARMACIST otvara /ljekarna te pretražuje točan broj recepta uz interni broj pacijenta. Dobiva samo identitet za provjeru, propisane stavke, liječnika, valjanost i realizaciju; ne karton ili dijagnoze. Realizacija cijelog recepta zaključava zapis, provjerava važeću ljekarničku ulogu u odabranoj ustanovi i aktualnu valjanost recepta. Ponovna realizacija nije dopuštena. Evidencija preuzimanja je nepromjenjiva i auditirana; djelomična izdavanja i zamjene lijekova nisu implementirani.
+PHARMACIST otvara /ljekarna te pretražuje točan broj recepta uz interni broj pacijenta. Dobiva samo identitet za provjeru, propisane stavke, liječnika, valjanost i realizaciju; ne karton ili dijagnoze. Realizacija stavki recepta zaključava zapis, provjerava važeću ljekarničku ulogu u odabranoj ustanovi i aktualnu valjanost recepta. Kumulativno izdavanje ne smije prijeći propisanu količinu. Evidencija preuzimanja je nepromjenjiva i auditirana; djelomična izdavanja podržana su, a zamjene lijekova nisu implementirane.
 
-Moje e-Zdravstvo → LIJEKOVI prikazuje propisane lijekove i, kada postoji realizacija, ljekarnu, djelatnika i vrijeme preuzimanja. Dostupni su pretraživanje prikazane stranice, filtar važećih nerealiziranih recepata i stranice od 50 recepata. Demo seed uključuje ljekarna@demo.e-zdravstvo.test, isključivo testni račun.
+Moje e-Zdravstvo → LIJEKOVI prikazuje propisane lijekove i, kada postoji realizacija, ljekarnu, djelatnika i vrijeme preuzimanja. Dostupni su pretraživanje svih propisanih lijekova u bazi, filtar važećih nerealiziranih recepata i stranice od 50 recepata. Demo seed uključuje ljekarna@demo.e-zdravstvo.test, isključivo testni račun.
 
 ## Cijepljenja
 
@@ -264,4 +264,8 @@ Pacijentov bočni izbornik i početne kartice vode na zasebne rute /moje/narudzb
 
 Liječnik sa skrbnom vezom ili specijalist narudžbe može premjestiti buduću potvrđenu narudžbu na slobodan termin iste bolničke usluge. Identitet pregleda, specijalist, prioritet i povezana uputnica ostaju isti. Obvezan razlog prikazuje se pacijentu. Pacijent sam ne premješta narudžbu.
 
-Transakcija zaključava narudžbu i termine, provjerava aktualnu verziju, raspoloživost i preklapanje bolničkih narudžbi pacijenta. Tek uspješnim spremanjem oslobađa prethodni termin. Ponovljeni identični zahtjev ne duplicira povijest ili obavijesti. Neuspjeli pokušaj zadržava izvornu rezervaciju. Povijest premještanja je nepromjenjiva, auditirana i dostupna samo pacijentu te ovlaštenim liječnicima, do 100 najnovijih promjena. Otkazane, započete i prošle narudžbe ne mogu se premještati. Zajednička provjera bolničkih i ordinacijskih rasporeda ostaje sljedeća zasebna dorada.
+Transakcija zaključava narudžbu i termine, provjerava aktualnu verziju, raspoloživost i preklapanje bolničkih narudžbi pacijenta. Tek uspješnim spremanjem oslobađa prethodni termin. Ponovljeni identični zahtjev ne duplicira povijest ili obavijesti. Neuspjeli pokušaj zadržava izvornu rezervaciju. Povijest premještanja je nepromjenjiva, auditirana i dostupna samo pacijentu te ovlaštenim liječnicima, do 100 najnovijih promjena. Otkazane, započete i prošle narudžbe ne mogu se premještati. Zajednička provjera sada uključuje bolničke i ordinacijske termine pacijenta i liječnika.
+
+## Nove nadogradnje
+
+Opis promjena, granice implementacije, postupak provjere i uvjeti aktivacije podsjetnika, skrbničkog pristupa i integracija nalaze se u [docs/nadogradnje.md](docs/nadogradnje.md). Novi frontend zahtijeva sve migracije iz te isporuke.

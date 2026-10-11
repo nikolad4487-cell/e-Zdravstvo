@@ -5,12 +5,24 @@ import { attachmentSchema, patientDashboardSchema } from "../types/attachments";
 export async function listAttachments(
   patientId: string,
   includeArchived = false,
+  filters: {
+    search?: string;
+    category?: string;
+    from?: string;
+    to?: string;
+    page?: number;
+  } = {},
 ) {
   return z.array(attachmentSchema).parse(
     unwrap(
-      await db().rpc("list_attachments", {
-        patient_id: patientId,
+      await db().rpc("search_attachments", {
+        patient_filter: patientId,
         include_archived: includeArchived,
+        search_term: filters.search ?? "",
+        category_filter: filters.category || null,
+        date_from: filters.from || null,
+        date_to: filters.to || null,
+        page_number: filters.page ?? 0,
       }),
     ),
   );

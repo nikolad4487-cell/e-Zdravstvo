@@ -30,10 +30,17 @@ export function unwrap<T>(result: {
   }
   return result.data;
 }
-export async function searchPatients(term = "") {
+export async function searchPatients(term = "", page = 0) {
   return z
     .array(patientSummarySchema)
-    .parse(unwrap(await db().rpc("search_patients", { search_term: term })));
+    .parse(
+      unwrap(
+        await db().rpc("search_patients_page", {
+          search_term: term,
+          page_number: page,
+        }),
+      ),
+    );
 }
 export async function getBaseChart(id: string) {
   return baseChartSchema.parse(

@@ -22,12 +22,24 @@ export function useBackendStatus() {
           setStatus("unavailable");
           return;
         }
+        if (error && error.code !== "42501") {
+          setStatus(
+            error.code === "PGRST205" ? "missing-schema" : "unavailable",
+          );
+          return;
+        }
+        const version = await supabase!
+          .rpc("application_schema_version", {})
+          .abortSignal(controller.signal);
+        if (controller.signal.aborted) return;
         setStatus(
-          !error || error.code === "42501"
-            ? "ready"
-            : error.code === "PGRST205"
+          version.error
+            ? version.error.code === "PGRST202"
               ? "missing-schema"
-              : "unavailable",
+              : "unavailable"
+            : typeof version.data === "number" && version.data >= 20261007
+              ? "ready"
+              : "missing-schema",
         );
       } catch {
         if (!controller.signal.aborted) setStatus("unavailable");

@@ -23,6 +23,20 @@ export const patientModules = [
     Icon: Home,
   },
   {
+    tab: "ZAHTJEVI ZA TERMIN",
+    slug: "zahtjevi-za-termin",
+    label: "Zatraži termin",
+    description: "Zahtjev za termin u ordinaciji",
+    Icon: CalendarDays,
+  },
+  {
+    tab: "SKRBNIŠTVO",
+    slug: "skrbnistvo",
+    label: "Skrbništvo",
+    description: "Karton djece pod skrbništvom",
+    Icon: ShieldCheck,
+  },
+  {
     tab: "POSJETI",
     slug: "posjeti",
     label: "Posjeti",

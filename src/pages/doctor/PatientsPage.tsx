@@ -9,6 +9,7 @@ import {
   searchPatients,
 } from "../../services/clinical";
 import { Modal } from "../../components/ui/Modal";
+import { Pagination } from "../../components/ui/Pagination";
 import { Field, values } from "../../components/ui/Fields";
 import { ErrorMessage } from "../../components/ui/Feedback";
 import { dateLabel, readableError, today } from "../../utils/format";
@@ -96,14 +97,21 @@ export function NewPatient({ onClose }: { onClose: () => void }) {
 }
 export function PatientsPage() {
   const [search, setSearch] = useState(""),
+    [page, setPage] = useState(0),
     [term, setTerm] = useState(""),
     [creating, setCreating] = useState(false);
   const auth = useAuth();
   useEffect(() => {
-    const t = setTimeout(() => setTerm(search), 300);
+    const t = setTimeout(() => {
+      setTerm(search);
+      setPage(0);
+    }, 300);
     return () => clearTimeout(t);
   }, [search]);
-  const patients = useResource(() => searchPatients(term), term);
+  const patients = useResource(
+    () => searchPatients(term, page),
+    `${term}:${page}`,
+  );
   return (
     <>
       <div className="page-heading">
@@ -129,6 +137,7 @@ export function PatientsPage() {
               placeholder="Ime, prezime, ID ili datum rođenja…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
+              maxLength={100}
             />
           </div>
           <span className="muted">{patients.data?.length ?? 0} rezultata</span>
@@ -195,6 +204,12 @@ export function PatientsPage() {
           </div>
         )}
       </section>
+      <Pagination
+        page={page}
+        size={patients.data?.length ?? 0}
+        loading={patients.loading || search !== term}
+        onChange={setPage}
+      />
       {creating && <NewPatient onClose={() => setCreating(false)} />}
     </>
   );
