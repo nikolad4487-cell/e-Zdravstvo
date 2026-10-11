@@ -11,6 +11,7 @@ import {
   orderLaboratory,
   labStatus,
   publishLabResult,
+  type LaboratoryFilters,
 } from "../../services/laboratory";
 import {
   labStatusLabels,
@@ -23,6 +24,7 @@ import type { Json } from "../../lib/database.types";
 import { Field, values } from "../ui/Fields";
 import { Modal } from "../ui/Modal";
 import { ErrorMessage } from "../ui/Feedback";
+import { Pagination } from "../ui/Pagination";
 import { dateLabel, readableError } from "../../utils/format";
 
 export function LaboratoryPanel({
@@ -35,6 +37,9 @@ export function LaboratoryPanel({
   canOrder?: boolean;
 }) {
   const [page, setPage] = useState(0),
+    [draftFilters, setDraftFilters] = useState<LaboratoryFilters>({}),
+    [filters, setFilters] = useState<LaboratoryFilters>({}),
+    [filterError, setFilterError] = useState(""),
     [ordering, setOrdering] = useState(false),
     [publish, setPublish] = useState<LabOrder | null>(null),
     [selected, setSelected] = useState<LabOrder | null>(null),
@@ -46,10 +51,33 @@ export function LaboratoryPanel({
     [error, setError] = useState(""),
     [success, setSuccess] = useState("");
   const resource = useResource(
-    () => getLaboratory(mode, patientId, page),
-    [mode, patientId, page].join(":"),
+    () => getLaboratory(mode, patientId, page, filters),
+    JSON.stringify([mode, patientId, page, filters]),
   );
   useScheduleRefresh(resource.refresh);
+  useEffect(() => setPage(0), [mode, patientId]);
+  function search(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (
+      draftFilters.from &&
+      draftFilters.to &&
+      draftFilters.from > draftFilters.to
+    ) {
+      setFilterError("Datum do mora biti jednak ili kasniji od datuma od.");
+      return;
+    }
+    setFilterError("");
+    setFilters({ ...draftFilters, search: draftFilters.search?.trim() });
+    setPage(0);
+    resource.refresh();
+  }
+  function clearFilters() {
+    setDraftFilters({});
+    setFilters({});
+    setFilterError("");
+    setPage(0);
+    resource.refresh();
+  }
   useEffect(() => {
     if (resource.data)
       setSelected((current) =>
@@ -108,6 +136,95 @@ export function LaboratoryPanel({
           </Link>
         )}
       </div>
+      <form
+        className="card spaced"
+        onSubmit={search}
+        aria-label="Pretraga laboratorijskih narudžbi"
+      >
+        <div className="form-grid">
+          <Field
+            label="Pretraži narudžbe"
+            name="lab_search"
+            type="search"
+            maxLength={200}
+            placeholder="Pacijent, broj narudžbe, pretraga ili laboratorij"
+            value={draftFilters.search ?? ""}
+            onChange={(e) =>
+              setDraftFilters({ ...draftFilters, search: e.target.value })
+            }
+          />
+          <Field
+            label="Status narudžbe"
+            name="lab_status"
+            value={draftFilters.status ?? ""}
+            onChange={(e) =>
+              setDraftFilters({
+                ...draftFilters,
+                status: e.target.value as LaboratoryFilters["status"],
+              })
+            }
+          >
+            <option value="">Svi statusi</option>
+            {Object.entries(labStatusLabels).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </Field>
+          <Field
+            label="Hitnost"
+            name="lab_priority"
+            value={draftFilters.priority ?? ""}
+            onChange={(e) =>
+              setDraftFilters({
+                ...draftFilters,
+                priority: e.target.value as LaboratoryFilters["priority"],
+              })
+            }
+          >
+            <option value="">Sve narudžbe</option>
+            <option value="REGULAR">Redovno</option>
+            <option value="URGENT">Hitno</option>
+          </Field>
+          <Field
+            label="Naručeno od"
+            name="lab_from"
+            type="date"
+            value={draftFilters.from ?? ""}
+            onChange={(e) =>
+              setDraftFilters({ ...draftFilters, from: e.target.value })
+            }
+          />
+          <Field
+            label="Naručeno do"
+            name="lab_to"
+            type="date"
+            min={draftFilters.from}
+            value={draftFilters.to ?? ""}
+            onChange={(e) =>
+              setDraftFilters({ ...draftFilters, to: e.target.value })
+            }
+          />
+        </div>
+        <div className="document-actions spaced">
+          <button className="primary" disabled={resource.loading}>
+            Pretraži
+          </button>
+          <button
+            className="secondary"
+            type="button"
+            onClick={clearFilters}
+            disabled={resource.loading}
+          >
+            Poništi filtre
+          </button>
+        </div>
+        <p className="note-text">
+          Pretražuje se cijela dostupna povijest narudžbi. Datumi se odnose na
+          dan naručivanja u hrvatskom vremenu.
+        </p>
+        {filterError && <ErrorMessage>{filterError}</ErrorMessage>}
+      </form>
       <div className="section-heading">
         <p className="muted">Stranica {page + 1} · do 50 narudžbi</p>
         <button
@@ -195,25 +312,15 @@ export function LaboratoryPanel({
         </div>
       ) : (
         <section className="card empty-state">
-          Još nema laboratorijskih narudžbi.
+          Nema narudžbi za odabrane filtre na ovoj stranici.
         </section>
       )}
-      <div className="document-actions spaced">
-        <button
-          className="secondary"
-          disabled={page === 0 || resource.loading}
-          onClick={() => setPage(page - 1)}
-        >
-          Prethodna
-        </button>
-        <button
-          className="secondary"
-          disabled={resource.loading || resource.data?.length !== 50}
-          onClick={() => setPage(page + 1)}
-        >
-          Sljedeća
-        </button>
-      </div>
+      <Pagination
+        page={page}
+        size={resource.data?.length ?? 0}
+        loading={resource.loading}
+        onChange={setPage}
+      />
       {(mode === "PERSONAL" || (mode === "CARE" && patientId)) && (
         <LaboratoryTrends patientId={patientId} />
       )}

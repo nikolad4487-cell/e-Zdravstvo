@@ -383,6 +383,19 @@ export type Database = {
         Returns: undefined;
       };
       laboratory_context: { Args: Record<string, never>; Returns: Json };
+      search_laboratory: {
+        Args: {
+          mode: string;
+          patient_filter: string | null;
+          page_number: number;
+          search_term: string;
+          status_filter: string | null;
+          priority_filter: string | null;
+          date_from: string | null;
+          date_to: string | null;
+        };
+        Returns: Json;
+      };
       list_laboratory: {
         Args: {
           mode: string;

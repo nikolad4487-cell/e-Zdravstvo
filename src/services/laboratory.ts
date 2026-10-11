@@ -1,24 +1,39 @@
 import { z } from "zod";
 import { db } from "../lib/supabase";
 import { unwrap } from "./clinical";
-import { labOrderSchema, type LabMode } from "../types/laboratory";
+import {
+  labOrderSchema,
+  type LabMode,
+  type LabOrder,
+} from "../types/laboratory";
 import type { Json } from "../lib/database.types";
+export interface LaboratoryFilters {
+  search?: string;
+  status?: LabOrder["status"] | "";
+  priority?: LabOrder["priority"] | "";
+  from?: string;
+  to?: string;
+}
 export async function getLaboratory(
   mode: LabMode,
   patientId?: string,
   page = 0,
+  filters: LaboratoryFilters = {},
 ) {
-  return z
-    .array(labOrderSchema)
-    .parse(
-      unwrap(
-        await db().rpc("list_laboratory", {
-          mode,
-          patient_filter: patientId ?? null,
-          page_number: page,
-        }),
-      ),
-    );
+  return z.array(labOrderSchema).parse(
+    unwrap(
+      await db().rpc("search_laboratory", {
+        mode,
+        patient_filter: patientId ?? null,
+        page_number: page,
+        search_term: filters.search?.trim() ?? "",
+        status_filter: filters.status || null,
+        priority_filter: filters.priority || null,
+        date_from: filters.from || null,
+        date_to: filters.to || null,
+      }),
+    ),
+  );
 }
 export async function getLaboratories() {
   return z

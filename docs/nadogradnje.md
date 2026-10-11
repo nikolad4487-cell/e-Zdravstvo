@@ -21,6 +21,7 @@ pnpm test
 pnpm run test:db
 pnpm run test:clinical
 pnpm run test:workflows
+pnpm run test:laboratory
 pnpm exec playwright install chromium
 pnpm run test:e2e
 ```
@@ -71,3 +72,13 @@ Administratorski tokeni Supabasea i Vercela te Resend ključ postavljeni su kroz
 Za buduće primjene dostupan je `scripts/apply-project-migrations.mjs`: bez argumenata dohvaća samo plan; `--apply` primjenjuje nedostajuće migracije i zapisuje povijest u istoj transakciji. Nepoznate prethodne migracije i rupe u povijesti zaustavljaju primjenu. Node u ovom cloud okruženju koristi `NODE_USE_ENV_PROXY=1`. Tri dodatne provjere `npm run test:migrations` potvrđuju očuvanje izvornog SQL-a u povijesti, rollback neuspjele migracije i obveznu transakciju.
 
 E-mail ostaje isključen do provjere domene i adrese pošiljatelja. Resend ključ sam po sebi ne aktivira dostavu. Raspored `ez-notifications-dispatch` aktivan je svakih pet minuta. Zaseban nasumični token pohranjen je u Supabase tajnama i Vaultu; nije u GitHub kodu ili frontend varijablama. E-mail ostaje isključen, a ovaj raspored generira podsjetnike u portalu.
+
+## Pretraga laboratorija — 11. listopada 2026.
+
+Pacijent, ordinacija i laboratorij mogu pretraživati cijelu dostupnu povijest laboratorijskih narudžbi po broju, traženim pretragama, imenu ili broju pacijenta, liječniku i laboratoriju. Dodani su kombinirani filtri statusa, hitnosti i datuma naručivanja. Pretraga se pokreće tipkom **Pretraži** ili Enterom; primjena i poništavanje filtara vraćaju prikaz na prvu stranicu. Rezultati dolaze u stranicama od 50 narudžbi. Pretraživanje ne uključuje tekst zaključka ni izmjerene vrijednosti nalaza.
+
+Nova migracija `202610110001_laboratory_search` dodaje `search_laboratory` i indekse povijesti. Datumi obuhvaćaju cijele dane u zoni Europe/Zagreb, uključujući promjenu sata. Jednake vremenske oznake imaju stabilan dodatni poredak po ID-u. Ovlasti, audit pregleda i nepromjenjiva povijest ispravaka ostaju obvezni. Postojeći `list_laboratory` ostaje dostupan starijim klijentima. Novi frontend zahtijeva verziju sheme najmanje `20261011`; migraciju treba primijeniti prije objave frontenda.
+
+`pnpm run test:laboratory` koristi jednokratnu PGlite bazu s izmišljenim podacima za provjeru cijele povijesti, paginacije, kombiniranih filtara, datumskih granica i ovlasti. Pregledničke provjere koriste stvarni laboratorijski prikaz s lažnim odgovorima API-ja, bez stvarnih korisnika i podataka; provjeravaju primjenu/poništavanje filtara, povratak na prvu stranicu i mobilni prikaz.
+
+Migracija je primijenjena 11. listopada na konfigurirani Supabase projekt. SHA-256 zapisa migracije odgovara izvornom SQL-u; javni API potvrđuje verziju `20261011`, a anonimni poziv pretrage odbijen je kodom `42501`. Build i 188 lokalnih provjera prolaze: 11 jedinica, 24 pravila baze, 97 kliničkih provjera, 30 tijekova rada, 12 laboratorijskih provjera i 14 pregledničkih provjera. Prijavljeni tijek na stvarnom Supabaseu nije provjeren ovom isporukom.

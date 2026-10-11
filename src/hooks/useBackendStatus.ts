@@ -37,7 +37,7 @@ export function useBackendStatus() {
             ? version.error.code === "PGRST202"
               ? "missing-schema"
               : "unavailable"
-            : typeof version.data === "number" && version.data >= 20261007
+            : typeof version.data === "number" && version.data >= 20261011
               ? "ready"
               : "missing-schema",
         );
