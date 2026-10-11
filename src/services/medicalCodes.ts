@@ -15,6 +15,7 @@ export const medicalCodeSchema = z.object({
   name: z.string(),
   description: z.string(),
   source_page: z.number().nullable().optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
 });
 export async function searchDiagnosisCodes(term = "", page = 0) {
   return z.array(diagnosisCodeSchema).parse(
@@ -47,6 +48,7 @@ export async function medicalCodeCatalogs() {
           revision: z.string(),
           expected_count: z.number(),
           imported_count: z.number(),
+          metadata: z.record(z.string(), z.unknown()).optional(),
         }),
       ),
       lists: z.array(
@@ -55,6 +57,8 @@ export async function medicalCodeCatalogs() {
           name: z.string(),
           external_only: z.boolean(),
           count: z.number(),
+          source_id: z.string().optional(),
+          metadata: z.record(z.string(), z.unknown()).optional(),
         }),
       ),
     })
@@ -81,4 +85,10 @@ export const referralCategories: Record<string, string> = {
   D1: "SPECIALIST",
   D2: "HOSPITAL",
   K: "OTHER",
+};
+
+export const referenceStatusLabels: Record<string, string> = {
+  LATEST_SUPPLIED: "Najnoviji među dostavljenim izdanjima",
+  HISTORICAL: "Povijesna referenca — aktualnost nije potvrđena",
+  UNCONFIRMED: "Datum izdanja nije potvrđen",
 };

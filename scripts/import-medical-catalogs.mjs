@@ -63,7 +63,7 @@ for (let start = 0; start < data.diagnoses.length; start += 1000) {
   );
 }
 const counts = await query(
-  `update public.medical_code_sources set imported_count=case id when 'HZJZ-MKB' then(select count(*) from public.diagnoses where catalog_source='HZJZ-MKB') else(select count(*) from public.medical_codes c join public.medical_code_lists l on l.id=c.list_id where l.source_id='CEZIH-UPLOAD')end,imported_at=now() returning id,expected_count,imported_count;`,
+  `update public.medical_code_sources set imported_count=case id when 'HZJZ-MKB' then(select count(*) from public.diagnoses where catalog_source='HZJZ-MKB') else(select count(*) from public.medical_codes c join public.medical_code_lists l on l.id=c.list_id where l.source_id='CEZIH-UPLOAD')end,imported_at=now() where id in ('HZJZ-MKB','CEZIH-UPLOAD') returning id,expected_count,imported_count;`,
 );
 if (counts.some((c) => c.expected_count !== c.imported_count))
   throw new Error("Imported counts do not match source");

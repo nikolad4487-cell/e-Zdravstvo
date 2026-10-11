@@ -5,6 +5,7 @@ import {
   medicalCodeSource,
   searchDiagnosisCodes,
   searchMedicalCodes,
+  referenceStatusLabels,
 } from "../../services/medicalCodes";
 import { ErrorMessage } from "../../components/ui/Feedback";
 export function MedicalCodesPage() {
@@ -40,21 +41,55 @@ export function MedicalCodesPage() {
     list,
   );
   const current = catalogs.data?.lists.find((l) => l.id === list);
+  const selectedSource = catalogs.data?.sources.find(
+    (s) => s.id === (list === "MKB" ? "HZJZ-MKB" : current?.source_id),
+  );
+  const sourceStatus = String(current?.metadata?.status ?? "");
+  const sourceDate = String(current?.metadata?.source_date ?? "");
+  const hzzo =
+    catalogs.data?.lists
+      .filter((l) => l.id.startsWith("HZZO:"))
+      .sort((a, b) => a.name.localeCompare(b.name, "hr")) ?? [];
+  const cezih =
+    catalogs.data?.lists.filter((l) => !l.id.startsWith("HZZO:")) ?? [];
   return (
     <>
       <div className="page-heading">
         <div>
           <div className="eyebrow">MEDICINSKI ŠIFRARNICI</div>
-          <h1>Šifre bolesti, uputnica i pregleda</h1>
-          <p>Pretraživanje šifri i naziva iz priloženih HZJZ i CEZIH izvora.</p>
+          <h1>Šifrarnici bolesti, postupaka i lijekova</h1>
+          <p>
+            Pretraživanje šifri i naziva iz priloženih HZZO, HZJZ i CEZIH
+            izvora.
+          </p>
         </div>
       </div>
-      {catalogs.data?.sources.map((s) => (
-        <p className="note-text" key={s.id}>
-          {s.file_name} · {s.imported_count.toLocaleString("hr-HR")} /{" "}
-          {s.expected_count.toLocaleString("hr-HR")} šifri · {s.revision}
-        </p>
-      ))}
+      {selectedSource &&
+        [selectedSource].map((s) => (
+          <p className="note-text" key={s.id}>
+            {s.file_name} · {s.imported_count.toLocaleString("hr-HR")} /{" "}
+            {s.expected_count.toLocaleString("hr-HR")} šifri · {s.revision}
+          </p>
+        ))}
+      {current?.metadata && sourceStatus && (
+        <section className="card spaced" aria-label="Verzija šifrarnika">
+          <strong>{referenceStatusLabels[sourceStatus] ?? sourceStatus}</strong>
+          {sourceDate && (
+            <p>
+              {current.metadata.date_kind === "EFFECTIVE"
+                ? "Primjena od"
+                : "Datum izvora"}
+              : {sourceDate.split("-").reverse().join(". ")}.
+            </p>
+          )}
+          <p className="note-text">
+            {String(current.metadata.date_basis ?? "")}
+          </p>
+          <p className="note-text">
+            Odabir prikazuje najnovije verzije među dostavljenim datotekama.
+          </p>
+        </section>
+      )}
       <div className="form-grid">
         <label className="field">
           <span>Šifrarnik</span>
@@ -68,11 +103,25 @@ export function MedicalCodesPage() {
             }}
           >
             <option value="MKB">MKB-10 — šifre bolesti</option>
-            {catalogs.data?.lists.map((l) => (
-              <option key={l.id} value={l.id}>
-                {l.id} · {l.name} ({l.count})
-              </option>
-            ))}
+            <optgroup label="Dodani HZZO šifrarnici">
+              {hzzo.map((l) => (
+                <option key={l.id} value={l.id}>
+                  {l.name} ({l.count})
+                  {l.metadata?.status === "HISTORICAL"
+                    ? " — povijesno"
+                    : l.metadata?.status === "UNCONFIRMED"
+                      ? " — datum nije potvrđen"
+                      : ""}
+                </option>
+              ))}
+            </optgroup>
+            <optgroup label="CEZIH specifikacija kodnih lista">
+              {cezih.map((l) => (
+                <option key={l.id} value={l.id}>
+                  {l.id} · {l.name} ({l.count})
+                </option>
+              ))}
+            </optgroup>
           </select>
         </label>
         <label className="field">
@@ -112,7 +161,16 @@ export function MedicalCodesPage() {
                     </td>
                     <td>{c.name}</td>
                     <td>
-                      {c.description}
+                      {c.description.length > 180 ? (
+                        <details>
+                          <summary>
+                            Prikaži podatke, uvjete i izvorne varijante
+                          </summary>
+                          <p className="catalog-source-text">{c.description}</p>
+                        </details>
+                      ) : (
+                        c.description
+                      )}
                       {c.metadata && (
                         <details>
                           <summary>Poglavlje i blok</summary>
