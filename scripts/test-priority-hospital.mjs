@@ -466,6 +466,11 @@ await test("configured email confirmation contains schedule details and cancella
   assert.deepEqual(
     Object.keys(job.confirmation).sort(),
     [
+      "eventType",
+      "patientName",
+      "kind",
+      "priority",
+      "portalPath",
       "startsAt",
       "durationMinutes",
       "hospital",
@@ -485,7 +490,12 @@ await test("configured email confirmation contains schedule details and cancella
   await db.exec("set role service_role");
   const remaining = await rpc("claim_notification_emails", [20]);
   await db.exec("reset role");
-  assert.ok(remaining.every((j) => !j.confirmation));
+  assert.ok(remaining.some((j) => j.confirmation?.eventType === "CANCELLED"));
+  assert.ok(
+    remaining.every(
+      (j) => !j.confirmation || j.confirmation.eventType === "CANCELLED",
+    ),
+  );
   assert.equal(
     (
       await db.query(

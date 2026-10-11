@@ -1,8 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
-import { deliverNotification } from "../../supabase/functions/notifications-dispatch/delivery";
+import {
+  APPOINTMENT_SENDER,
+  deliverNotification,
+  renderNotification,
+} from "../../supabase/functions/notifications-dispatch/delivery";
 const config = {
   apiKey: "test-only-key",
-  from: "Sustav <noreply@example.test>",
+  from: APPOINTMENT_SENDER,
   applicationUrl: "https://example.test",
 };
 describe("notification email delivery", () => {
@@ -57,7 +61,14 @@ describe("notification email delivery", () => {
     expect(body.to).toEqual(["fictional@example.test"]);
     expect(body.text).toContain("https://example.test/moje/obavijesti");
     expect(body.text).not.toContain("test-only-key");
-    expect(Object.keys(body).sort()).toEqual(["from", "subject", "text", "to"]);
+    expect(Object.keys(body).sort()).toEqual([
+      "from",
+      "html",
+      "subject",
+      "text",
+      "to",
+    ]);
+    expect(body.from).toBe("e-Zdravstvo <narudzbe@e-zdravstvo.tech>");
   });
   it("honors rate limiting without returning provider error details", async () => {
     const request = vi.fn<typeof fetch>().mockResolvedValue(
@@ -96,5 +107,79 @@ describe("notification email delivery", () => {
         request,
       ),
     ).rejects.toThrow("Invalid email provider response");
+  });
+});
+
+describe("Croatian appointment templates", () => {
+  const appointment = {
+    patientName: 'Ana <img src=x onerror="alert(1)"> & Ivić',
+    institution: "Testna ustanova",
+    doctor: "dr. Test",
+    kind: "Kontrolni pregled",
+    startsAt: "2026-12-12T06:00:00Z",
+    durationMinutes: 30,
+    location: "Ambulanta 1, Testna ulica 2",
+  };
+  it("includes all arrival details and escapes HTML", () => {
+    const content = renderNotification(
+      { id: "test", email: "fictional@example.test", appointment },
+      config.applicationUrl,
+    );
+    for (const value of [
+      appointment.institution,
+      appointment.doctor,
+      appointment.kind,
+      appointment.location,
+      "07:00",
+    ])
+      expect(content.text).toContain(value);
+    expect(content.html).toContain('lang="hr"');
+    expect(content.html).toContain('name="viewport"');
+    expect(content.html).toContain("&lt;img");
+    expect(content.html).not.toContain("<img");
+    expect(content.html).toContain("&amp; Ivić");
+  });
+  it.each([
+    ["RESCHEDULED", "Promjena termina", "novi podaci"],
+    ["CANCELLED", "otkazan", "novog termina"],
+  ] as const)(
+    "renders %s without booking confirmation wording",
+    (eventType, subject, wording) => {
+      const content = renderNotification(
+        {
+          id: "test",
+          email: "fictional@example.test",
+          appointment: { ...appointment, eventType },
+        },
+        config.applicationUrl,
+      );
+      expect(content.subject).toContain(subject);
+      expect(content.text).toContain(wording);
+      expect(content.text).not.toContain("uspješno zakazan");
+    },
+  );
+  it("rejects sender changes before calling Resend", async () => {
+    const request = vi.fn<typeof fetch>();
+    await expect(
+      deliverNotification(
+        { id: "test", email: "fictional@example.test" },
+        { ...config, from: "other@example.test" },
+        request,
+      ),
+    ).rejects.toThrow("sender");
+    expect(request).not.toHaveBeenCalled();
+  });
+  it("does not serialize additional clinical fields into email", () => {
+    const unsafe = {
+      ...appointment,
+      diagnosis: "SECRET DIAGNOSIS",
+      cancellationReason: "SECRET REASON",
+      referral: "SECRET REFERRAL",
+    };
+    const content = renderNotification(
+      { id: "test", email: "fictional@example.test", appointment: unsafe },
+      config.applicationUrl,
+    );
+    expect(content.html + content.text).not.toContain("SECRET");
   });
 });

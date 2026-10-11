@@ -1,5 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2.117.1";
-import { deliverNotification } from "./delivery.ts";
+import { APPOINTMENT_SENDER, deliverNotification } from "./delivery.ts";
 const json = (status: number, body: object) =>
   new Response(JSON.stringify(body), {
     status,
@@ -42,6 +42,10 @@ Deno.serve(async (request) => {
     applicationUrl = Deno.env.get("APPLICATION_URL");
   if (!apiKey || !from || !applicationUrl)
     return json(200, { remindersGenerated: true, emailAvailable: false });
+  if (from !== APPOINTMENT_SENDER)
+    return json(503, {
+      error: "Notification sender is not configured correctly",
+    });
   const { data: jobs, error } = await db.rpc("claim_notification_emails", {
     batch_size: 20,
   });

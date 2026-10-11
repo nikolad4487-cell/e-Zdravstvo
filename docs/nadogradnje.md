@@ -72,7 +72,7 @@ Administratorski tokeni Supabasea i Vercela te Resend ključ postavljeni su kroz
 
 Za buduće primjene dostupan je `scripts/apply-project-migrations.mjs`: bez argumenata dohvaća samo plan; `--apply` primjenjuje nedostajuće migracije i zapisuje povijest u istoj transakciji. Nepoznate prethodne migracije i rupe u povijesti zaustavljaju primjenu. Node u ovom cloud okruženju koristi `NODE_USE_ENV_PROXY=1`. Tri dodatne provjere `npm run test:migrations` potvrđuju očuvanje izvornog SQL-a u povijesti, rollback neuspjele migracije i obveznu transakciju.
 
-E-mail ostaje isključen do provjere domene i adrese pošiljatelja. Resend ključ sam po sebi ne aktivira dostavu. Raspored `ez-notifications-dispatch` aktivan je svakih pet minuta. Zaseban nasumični token pohranjen je u Supabase tajnama i Vaultu; nije u GitHub kodu ili frontend varijablama. E-mail ostaje isključen, a ovaj raspored generira podsjetnike u portalu.
+Pri prvoj isporuci e-mail je ostao isključen do provjere domene i adrese pošiljatelja. Resend ključ sam po sebi ne aktivira dostavu. Raspored `ez-notifications-dispatch` aktivan je svakih pet minuta. Zaseban nasumični token pohranjen je u Supabase tajnama i Vaultu; nije u GitHub kodu ili frontend varijablama. Pri toj isporuci raspored je generirao podsjetnike u portalu bez slanja e-mailova. Aktivacija je opisana u nastavku.
 
 ## Pretraga laboratorija — 11. listopada 2026.
 
@@ -94,10 +94,23 @@ Liječnik bilo koje grane može naručiti pacijenta kojem ima aktivnu ovlast lij
 
 Potrebna je uputnica za istog pacijenta i istu specijalnost, vrste specijalistički pregled, bolničko liječenje ili kontrola, koja vrijedi na dan pregleda i nije vezana uz drugu neotkazanu narudžbu. Postojeće uputnice mogu se pretraživati po broju i listati po stranicama. Nova uputnica i rezervacija spremaju se u jednoj transakciji: neuspjela rezervacija ne ostavlja uputnicu ni termin. Uputnica je vrste specijalistički pregled, s redovnom hitnošću; bolnička narudžba uvijek nosi zasebnu oznaku PRIORITETNI pregled i razlog prioriteta. Ponovljeni zahtjev s istim sadržajem ne izdaje dodatnu uputnicu ni narudžbu. Unikatni indeks i zaključavanje zajedničkog rasporeda sprječavaju dvostruko zauzimanje termina.
 
-Potvrda je odmah dostupna pacijentu u portalu. E-mail potvrda šalje se kroz postojeći red i raspored dostave ako je usluga aktivna, pacijent ima povezan račun s potvrđenom adresom i uključene e-mail obavijesti. Ekran nakon rezervacije razlikuje red slanja, poslanu potvrdu i nedostajuću konfiguraciju/pristanak/adresu; ne prikazuje neposlanu potvrdu kao poslanu. Otkazivanje ili premještanje poništava zastarjelu potvrdu koja još čeka obradu. Poslana poruka ne može se opozvati. `NOTIFICATION_FROM_EMAIL` još nije postavljen u konfiguriranom projektu, pa slanje ostaje isključeno.
+Potvrda je odmah dostupna pacijentu u portalu. E-mail potvrda šalje se kroz postojeći red i raspored dostave ako je usluga aktivna, pacijent ima povezan račun s potvrđenom adresom i uključene e-mail obavijesti. Ekran nakon rezervacije razlikuje red slanja, poslanu potvrdu i nedostajuću konfiguraciju/pristanak/adresu; ne prikazuje neposlanu potvrdu kao poslanu. Otkazivanje ili premještanje poništava zastarjelu potvrdu koja još čeka obradu. Poslana poruka ne može se opozvati. Konfiguracija pošiljatelja i aktivacija dostave dovršene su nadogradnjom opisanom u nastavku.
 
 Migracije `202610110002_priority_hospital_clinics` i `202610110003_hospital_confirmation_email` pripadaju ovoj isporuci. Novi frontend traži reviziju sheme `2026101102`; prije objave primijenite obje migracije i objavite novu verziju funkcije `notifications-dispatch`. Starije ručno objavljene bolničke usluge, termini, narudžbe i povijest ostaju sačuvani.
 
 Obje migracije primijenjene su 11. listopada na konfigurirani Supabase projekt; SHA-256 zapisa odgovara izvornom SQL-u. API potvrđuje reviziju `2026101102`, a anonimni pristup bolničkom kontekstu odbijen je kodom `42501`. Nova verzija `notifications-dispatch` objavljena je bez promjene postojećeg rasporeda i tajnog tokena.
 
 Provjere uključuju 13 novih testova baze za prioritetni postupak, test sadržaja e-mail potvrde i dva preglednička postupka s izmišljenim odgovorima API-ja (postojeća/nova uputnica, promjena bolnice i mobilni prikaz). Lokalni build i ukupno 207 provjera prolaze. PGlite i lažni odgovori preglednika ne zamjenjuju prijavljeni Supabase Auth/API/Edge postupak; stvarni e-mail nije poslan ovom provjerom.
+
+
+## Automatske e-mail potvrde, promjene i otkazivanja — 11. listopada 2026.
+
+Migracija `202610110004_appointment_email_events` dodaje potvrde za ordinacijske i sve bolničke rezervacije, promjene termina i otkazivanja. Serverska funkcija šalje hrvatski HTML i tekstualnu inačicu preko Resenda, od `e-Zdravstvo <narudzbe@e-zdravstvo.tech>`. Podaci za dolazak ne uključuju dijagnoze, sadržaj uputnice ili razloge prioriteta/otkazivanja. Postojeća prava zakazivanja i pacijentov izbor e-mail obavijesti ostaju na snazi.
+
+Migracija je primijenjena na povezani Supabase projekt, uz potvrdu podudaranja SQL-a sa zapisom migracije. Nova Edge funkcija je objavljena. `RESEND_API_KEY`, `NOTIFICATION_FROM_EMAIL` i `APPLICATION_URL` postavljeni su samo u serverskim tajnama; URL portala je `https://e-zdravstvo.vercel.app`. Dostava je uključena, a postojeći raspored svakih pet minuta i njegov token sačuvani su. Neautorizirani zahtjev funkciji i anonimni pristup redu odbijeni su statusom 401. Ključ nije pronađen u frontend buildu.
+
+Privatna evidencija čuva svaki završeni pokušaj i istek radne rezervacije, a ponavljanja koriste stabilni Resend ključ idempotencije. Nakon pet pokušaja ili 23 sata od prvog pokušaja poruka ostaje označena kao neuspješna za provjeru. Rezervacije se ne poništavaju pri neuspjeloj dostavi. Nova promjena ili otkazivanje poništava zastarjele poruke koje čekaju obradu; već poslane poruke ne mogu se opozvati.
+
+Prošlo je 17 unit testova, 11 novih provjera e-mail tijeka, 13 prioritetnih bolničkih provjera, 30 provjera postojećih tijekova i 24 provjere baze, uz produkcijski build. HTTP testovi koriste zamjenske odgovore, a SQL testovi izoliranu bazu; stvarna dostava u pacijentov sandučić nije dio tih testova.
+
+Postavljanje varijabli, pregled evidencije i postupak provjere stvarne dostave opisani su u [email-potvrde.md](email-potvrde.md).

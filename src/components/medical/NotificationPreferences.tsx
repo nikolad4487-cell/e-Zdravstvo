@@ -79,7 +79,7 @@ export function NotificationPreferences() {
             </label>
             <p>
               {resource.data.email_available
-                ? "Poruke se šalju na potvrđeni e-mail vašeg računa, bez medicinskog sadržaja."
+                ? "Potvrde, promjene i otkazivanja termina šalju se na potvrđeni e-mail vašeg računa. Poruke ne sadrže dijagnoze ni sadržaj uputnice."
                 : "Slanje e-pošte još nije aktivirano. Obavijesti možete pratiti u portalu."}
             </p>
             <button className="secondary" disabled={busy}>
