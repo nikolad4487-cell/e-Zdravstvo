@@ -15,7 +15,7 @@ U **Supabase Dashboard → odabrani projekt → Edge Functions → Secrets** pos
 
 `SUPABASE_URL` i `SUPABASE_SERVICE_ROLE_KEY` Supabase postavlja Edge funkciji automatski. Resend ključ **ne treba dodavati u Vercel frontend**, `VITE_*` varijable, repozitorij ili razgovor. Frontend zadržava postojeći javni Supabase URL i anon ključ.
 
-Za novu instalaciju primijenite migracije do `202610110004_appointment_email_events.sql`, objavite `notifications-dispatch` uz isključenu gateway JWT provjeru (`supabase functions deploy notifications-dispatch --no-verify-jwt`) i konfigurirajte POST poziv svakih pet minuta s `Authorization: Bearer <NOTIFICATIONS_JOB_TOKEN>`. Funkcija sama provjerava taj token, ignorira tijelo zahtjeva i dohvaća samo serverski red. Nema API-ja za odabir proizvoljnog primatelja ili sadržaja.
+Za novu instalaciju primijenite migracije do `202610110006_patient_contact_confirmation_email.sql`, objavite `notifications-dispatch` uz isključenu gateway JWT provjeru (`supabase functions deploy notifications-dispatch --no-verify-jwt`) i konfigurirajte POST poziv svakih pet minuta s `Authorization: Bearer <NOTIFICATIONS_JOB_TOKEN>`. Funkcija sama provjerava taj token, ignorira tijelo zahtjeva i dohvaća samo serverski red. Nema API-ja za odabir proizvoljnog primatelja ili sadržaja.
 
 Nakon postavljanja tajni i objave funkcije uključite uslugu u Supabase SQL Editoru:
 
@@ -23,7 +23,7 @@ Nakon postavljanja tajni i objave funkcije uključite uslugu u Supabase SQL Edit
 select public.configure_notification_delivery(true);
 ```
 
-SQL izvršite kao projektni administrator, nikada preko javnog klijenta. Funkciju inače smije pozvati samo serverska uloga `service_role`. Aktivacija ne uključuje obavijesti umjesto pacijenata i ne šalje stare rezervacije retroaktivno.
+SQL izvršite kao projektni administrator, nikada preko javnog klijenta. Funkciju inače smije pozvati samo serverska uloga `service_role`. Aktivacija ne mijenja postavke pacijenata s računom. Migracija `202610110006` jednom dodaje potvrde za postojeće buduće bolničke rezervacije pacijenata bez računa s valjanom adresom u kartonu; prošli i otkazani pregledi ne uključuju se.
 
 ## Stanje povezane instalacije
 
@@ -31,15 +31,17 @@ Na povezanom projektu migracija i nova funkcija objavljene su 11. listopada 2026
 
 ## Kada se šalje
 
-Pacijent mora imati povezan korisnički račun, potvrđenu adresu za prijavu te uključenu postavku **Obavijesti e-poštom** u **Moje e-Zdravstvo → Postavke**. Poštu šaljemo na potvrđenu adresu računa, ne na slobodno upisani kontaktni e-mail kartona. Postojeći izbor isključenih obavijesti poštuje se.
+Pacijentu **bez korisničkog računa** potvrde se šalju na valjanu e-mail adresu iz njegova kartona. Ovlašteni liječnik unosi adresu kroz **Uredi pacijenta**. Ako adresa nedostaje ili nije valjana, pregled ostaje zakazan, a aplikacija prikazuje da treba unijeti adresu.
+
+Pacijent **s korisničkim računom** koristi potvrđenu adresu za prijavu i uključenu postavku **Obavijesti e-poštom** u **Moje e-Zdravstvo → Postavke**. Za taj račun nema automatskog prelaska na kontaktni e-mail kartona; postojeći izbor isključenih obavijesti poštuje se.
 
 - Novo zakazivanje: potvrda pregleda, uključujući oznaku PRIORITETNI za takvu narudžbu.
 - Promjena termina: obavijest s novim datumom i vremenom.
 - Otkazivanje: zasebna obavijest o otkazivanju.
 
-HTML na hrvatskom ima prilagodljivu širinu, detalje u jednom stupcu i tekstualnu inačicu. Datum i vrijeme uvijek se prikazuju u zoni `Europe/Zagreb`, uz ljetno/zimsko računanje vremena. Uključeni su ime pacijenta, ustanova, liječnik, vrsta pregleda, datum, vrijeme i lokacija. Ako adresa ustanove nedostaje, pacijenta se upućuje na portal. Slobodni tekst vrste pregleda u ordinaciji koristi sigurnu opću oznaku ako nije jedna od standardnih vrsta; time se ne prenose eventualno upisani simptomi ili dijagnoze. Bolnica koristi naziv pregleda iz kataloga usluga. U katalogu zato koristite nazive vrsta pregleda, a ne medicinske podatke pojedinog pacijenta.
+HTML na hrvatskom ima prilagodljivu širinu, detalje u jednom stupcu i tekstualnu inačicu. Datum i vrijeme uvijek se prikazuju u zoni `Europe/Zagreb`, uz ljetno/zimsko računanje vremena. Uključeni su ime pacijenta, ustanova, liječnik, vrsta pregleda, datum, vrijeme i lokacija. Ako adresa ustanove nedostaje, pacijenta s računom upućuje se na portal, a pacijenta bez računa na liječnika. Slobodni tekst vrste pregleda u ordinaciji koristi sigurnu opću oznaku ako nije jedna od standardnih vrsta; time se ne prenose eventualno upisani simptomi ili dijagnoze. Bolnica koristi naziv pregleda iz kataloga usluga. U katalogu zato koristite nazive vrsta pregleda, a ne medicinske podatke pojedinog pacijenta.
 
-U porukama nema dijagnoze, sadržaja uputnice, nalaza, terapije, razloga prioriteta, promjene ili otkazivanja. Vrijednosti su HTML-escaped. Poveznica vodi na portal i zahtijeva prijavu.
+U porukama nema dijagnoze, sadržaja uputnice, nalaza, terapije, razloga prioriteta, promjene ili otkazivanja. Vrijednosti su HTML-escaped. Za pacijenta s računom poveznica vodi na portal i zahtijeva prijavu. Pacijent bez računa dobiva sve podatke za dolazak i uputu da se za dodatne informacije ili promjenu termina obrati liječniku, bez poveznice ili uputa za prijavu.
 
 ## Pouzdanost i evidencija
 
@@ -52,6 +54,7 @@ Privatne tablice nisu dostupne frontend ulogama:
 - `private.notification_email_outbox`: stanje PENDING/SENDING/SENT/FAILED/CANCELLED, broj pokušaja, vrijeme slanja i Resend ID.
 - `private.notification_email_attempts`: rezultat svakog završenog pokušaja i istekle radne rezervacije, bez sadržaja e-maila, adrese primatelja ili odgovora pružatelja.
 - `private.appointment_email_snapshots`: stabilni podaci potvrde za ponavljanje istog zahtjeva.
+- `private.contact_appointment_email_events`: privatni događaji, kontaktna adresa i stabilni podaci potvrde za pacijente bez računa. Promjena adrese, povezivanje računa ili arhiviranje pacijenta poništavaju čekajuće kontaktne poruke.
 
 Za pregled stanja u administratorskom SQL Editoru, bez izlaganja osobnih podataka:
 
@@ -76,9 +79,9 @@ pnpm run build
 
 Testovi provjeravaju HTML escaping, hrvatske predloške, vremensku zonu, otkazivanje, promjenu termina, odbijanje pogrešnog pošiljatelja, ograničenja pristupa, stabilan ključ ponavljanja, evidentiranje greške i očuvanje rezervacije. SQL testovi koriste izoliranu PGlite bazu s izmišljenim podacima; HTTP testovi zamjenjuju Resend odgovor.
 
-Za provjeru stvarne dostave koristite vlastiti testni pacijentski račun:
+Za provjeru stvarne dostave koristite vlastitu adresu u testnom kartonu:
 
-1. Potvrdite adresu računa i uključite **Obavijesti e-poštom**, pa spremite postavke.
+1. Za pacijenta bez računa unesite vlastitu valjanu adresu u **Uredi pacijenta → E-mail**. Za pacijenta s računom potvrdite adresu računa i uključite **Obavijesti e-poštom**, pa spremite postavke.
 2. Kao ovlašteni liječnik zakažite budući pregled tom pacijentu. Pričekajte sljedeći ciklus rasporeda, do približno pet minuta.
 3. Provjerite sandučić i neželjenu poštu te Resend → Emails. Pošiljatelj mora biti `e-Zdravstvo <narudzbe@e-zdravstvo.tech>`, a detalji odgovarati portalu. Provjerite prikaz na mobitelu.
 4. Promijenite termin, pričekajte dostavu i provjerite novu poruku s novim datumom/vremenom. Zatim otkažite pregled i provjerite obavijest o otkazivanju.
