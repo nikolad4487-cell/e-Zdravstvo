@@ -39,7 +39,7 @@ for (let i = 0; i < codes.length; i += 400) {
   if (i % 2000 === 0 || i + 400 >= codes.length)
     console.log(`Imported ${Math.min(i + 400, codes.length)}/${codes.length}`);
 }
-// Only reference catalog rows are synchronized. Clinical tables are never modified.
+// Reference rows are synchronized; issued clinical records remain unchanged.
 for (const l of lists) {
   const included = l.entries.map((e) => e.code);
   await query(
@@ -54,4 +54,9 @@ if (result.some((r) => r.expected_count !== r.imported_count))
   throw Error("HZZO imported counts do not match the source");
 console.log(
   `Verified ${result.length} sources; ${result.reduce((n, r) => n + r.imported_count, 0)} codes imported.`,
+);
+
+await query("select private.sync_hzzo_medications();");
+console.log(
+  "Prescription medicines synchronized; existing medication identities retained.",
 );

@@ -25,6 +25,7 @@ jobs:
       - run: pnpm run test:email
       - run: pnpm run test:catalogs
       - run: pnpm run test:hzzo
+      - run: pnpm run test:prescription-catalog
       - run: pnpm run test:document-email
       - run: pnpm run test:patients
       - run: pnpm run test:migrations

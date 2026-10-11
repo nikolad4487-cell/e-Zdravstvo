@@ -32,6 +32,10 @@ export type Database = {
     };
     Views: Record<string, never>;
     Functions: {
+      search_prescription_medications: {
+        Args: { search_term: string; page_number: number };
+        Returns: Json;
+      };
       search_diagnosis_codes: {
         Args: { search_term: string; page_number: number };
         Returns: Json;

@@ -92,3 +92,36 @@ export const referenceStatusLabels: Record<string, string> = {
   HISTORICAL: "Povijesna referenca — aktualnost nije potvrđena",
   UNCONFIRMED: "Datum izdanja nije potvrđen",
 };
+
+export const prescriptionMedicationSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  active_ingredient: z.string(),
+  strength: z.string(),
+  form: z.string(),
+  packaging: z.string(),
+  route: z.string(),
+  catalog_code: z.string().nullable(),
+  catalog_list: z.string().nullable(),
+  catalog_metadata: z.object({
+    family: z.string().optional(),
+    source_date: z.string().optional(),
+    fields: z.record(z.string(), z.union([z.string(), z.number()])).optional(),
+    guidance: z
+      .array(z.object({ code: z.string(), name: z.string() }))
+      .optional(),
+  }),
+});
+export type PrescriptionMedication = z.infer<
+  typeof prescriptionMedicationSchema
+>;
+export async function searchPrescriptionMedications(term = "", page = 0) {
+  return z.array(prescriptionMedicationSchema).parse(
+    unwrap(
+      await db().rpc("search_prescription_medications", {
+        search_term: term,
+        page_number: page,
+      }),
+    ),
+  );
+}

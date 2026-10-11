@@ -1,3 +1,5 @@
+import { MedicationPicker } from "./MedicationPicker";
+import type { PrescriptionMedication } from "../../services/medicalCodes";
 import { DiagnosisPicker } from "./DiagnosisPicker";
 import { ReferenceCodeField } from "./ReferenceCodeField";
 import { referralCategories } from "../../services/medicalCodes";
@@ -34,6 +36,9 @@ export function IssueDocumentModal({
   onClose: () => void;
   onSaved: () => void;
 }) {
+  const [selectedMedications, setSelectedMedications] = useState<
+    Record<number, PrescriptionMedication | undefined>
+  >({});
   const [selectedDiagnosis, setSelectedDiagnosis] = useState("");
   const context = useResource(getContext, "issue-context");
   const excuse = useResource(
@@ -77,8 +82,8 @@ export function IssueDocumentModal({
       }));
       summary.push(
         ...lines.map(
-          (l) =>
-            `${context.data?.medications.find((m) => m.id === l.medication_id)?.name}: ${l.dosage}; količina ${l.quantity}; ${l.route}; ${l.duration}`,
+          (l, index) =>
+            `${selectedMedications[items[index]]?.name} · ${selectedMedications[items[index]]?.packaging}: ${l.dosage}; količina ${l.quantity}; ${l.route}; ${l.duration}`,
         ),
       );
       setDraft({
@@ -172,7 +177,8 @@ export function IssueDocumentModal({
         {kind === "PRESCRIPTION" && (
           <>
             <p className="form-intro">
-              Razvojni šifrarnik sadrži testne pripravke, a ne stvarne lijekove.
+              Pretražite Osnovnu (OLL) i Dopunsku (DLL) listu te odaberite točno
+              pakiranje. Provjerite smjernice i ograničenja za odabrani lijek.
             </p>
             {items.map((i, index) => (
               <section className="prescription-line" key={i}>
@@ -190,14 +196,15 @@ export function IssueDocumentModal({
                   )}
                 </div>
                 <div className="form-grid">
-                  <Field name={"medication_" + i} label="Lijek" required>
-                    <option value="">Odaberite lijek</option>
-                    {context.data?.medications.map((m) => (
-                      <option key={m.id} value={m.id}>
-                        {m.name} · {m.strength} · {m.form}
-                      </option>
-                    ))}
-                  </Field>
+                  <MedicationPicker
+                    name={"medication_" + i}
+                    onSelected={(m) =>
+                      setSelectedMedications((current) => ({
+                        ...current,
+                        [i]: m,
+                      }))
+                    }
+                  />
                   <Field
                     name={"dosage_" + i}
                     label="Doziranje"
