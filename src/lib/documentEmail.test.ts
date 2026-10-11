@@ -33,13 +33,11 @@ describe("issued document email attachments", () => {
   ] as const)(
     "sends %s as a real PDF without clinical content in the email body",
     async (kind) => {
-      const request = vi
-        .fn<typeof fetch>()
-        .mockResolvedValue(
-          new Response(JSON.stringify({ id: "provider-test" }), {
-            status: 200,
-          }),
-        );
+      const request = vi.fn<typeof fetch>().mockResolvedValue(
+        new Response(JSON.stringify({ id: "provider-test" }), {
+          status: 200,
+        }),
+      );
       const document = { ...example, kind };
       const job = {
         id: "document-test",
