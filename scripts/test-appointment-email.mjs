@@ -63,6 +63,7 @@ await test("authorized booking queues one confirmation with only arrival details
   assert.equal(job.appointment.kind, "Kontrolni pregled");
   assert.match(job.appointment.location, /Testna ulica 2/);
   assert.equal(job.email, "fictional3@example.test");
+  assert.match(job.appointment.bookingReference, /^PREG-\d{4}-\d{5,}$/);
   assert.deepEqual(await claim(), []);
 });
 await test("failed delivery is logged and never rolls back a reservation", async () => {
@@ -133,6 +134,15 @@ await test("rescheduling supersedes stale pending confirmations and excludes fre
   assert.equal(jobs.length, 1);
   job = jobs[0];
   assert.equal(job.appointment.eventType, "RESCHEDULED");
+  assert.equal(
+    job.appointment.bookingReference,
+    (
+      await db.query(
+        "select payload from private.appointment_email_snapshots s join notifications n on n.id=s.notification_id where n.appointment_id=$1 order by s.sequence_id limit 1",
+        [booking],
+      )
+    ).rows[0].payload.bookingReference,
+  );
   assert.equal(job.appointment.kind, "Pregled u ordinaciji");
   assert.ok(!JSON.stringify(job).includes("SECRET"));
 });
@@ -147,6 +157,10 @@ await test("cancellation invalidates an in-flight change and queues a cancellati
   );
   const [cancel] = await claim();
   assert.equal(cancel.appointment.eventType, "CANCELLED");
+  assert.equal(
+    cancel.appointment.bookingReference,
+    job.appointment.bookingReference,
+  );
   assert.ok(!JSON.stringify(cancel).includes("SECRET"));
   assert.equal(
     (
@@ -195,6 +209,9 @@ await test("frontend roles cannot claim, finish, insert notifications or read de
           "spoof",
           60,
         ]),
+      );
+      await assert.rejects(
+        db.query("select * from private.booking_email_references"),
       );
       await assert.rejects(
         db.query("select * from private.appointment_email_snapshots"),
@@ -272,6 +289,10 @@ await test("ordinary hospital bookings send confirmation, changed time and cance
   );
   const [changed] = await claim();
   assert.equal(changed.confirmation.eventType, "RESCHEDULED");
+  assert.equal(
+    changed.confirmation.bookingReference,
+    confirmed.confirmation.bookingReference,
+  );
   assert.notEqual(
     changed.confirmation.startsAt,
     confirmed.confirmation.startsAt,
@@ -288,6 +309,10 @@ await test("ordinary hospital bookings send confirmation, changed time and cance
   );
   const [cancelled] = await claim();
   assert.equal(cancelled.confirmation.eventType, "CANCELLED");
+  assert.equal(
+    cancelled.confirmation.bookingReference,
+    confirmed.confirmation.bookingReference,
+  );
   assert.ok(!JSON.stringify(cancelled).includes("SECRET"));
   await finish(cancelled, true);
 });
@@ -368,6 +393,7 @@ await test("accountless clinic booking uses the chart address and deduplicates r
   assert.equal(jobs.length, 1);
   contactJob = jobs[0];
   assert.equal(contactJob.email, "contact@example.test");
+  assert.match(contactJob.appointment.bookingReference, /^PREG-\d{4}-\d{5,}$/);
   assert.equal(contactJob.portalAccess, false);
   assert.equal(contactJob.appointment.eventType, "BOOKED");
   assert.deepEqual(await claim(), []);

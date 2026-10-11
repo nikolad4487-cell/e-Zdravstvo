@@ -467,6 +467,7 @@ await test("configured email confirmation contains schedule details and cancella
     Object.keys(job.confirmation).sort(),
     [
       "eventType",
+      "bookingReference",
       "patientName",
       "kind",
       "priority",

@@ -112,6 +112,7 @@ describe("notification email delivery", () => {
 
 describe("Croatian appointment templates", () => {
   const appointment = {
+    bookingReference: "PREG-2026-00125",
     patientName: 'Ana <img src=x onerror="alert(1)"> & Ivić',
     institution: "Testna ustanova",
     doctor: "dr. Test",
@@ -130,6 +131,7 @@ describe("Croatian appointment templates", () => {
       appointment.doctor,
       appointment.kind,
       appointment.location,
+      appointment.bookingReference,
       "07:00",
     ])
       expect(content.text).toContain(value);
@@ -138,6 +140,9 @@ describe("Croatian appointment templates", () => {
     expect(content.html).toContain("&lt;img");
     expect(content.html).not.toContain("<img");
     expect(content.html).toContain("&amp; Ivić");
+    expect(content.text).toContain("Status rezervacije: Potvrđeno");
+    expect(content.text).toContain("Broj rezervacije: PREG-2026-00125");
+    expect(content.text).toContain("Tim e-Zdravstvo");
   });
   it.each([
     ["RESCHEDULED", "Promjena termina", "novi podaci"],

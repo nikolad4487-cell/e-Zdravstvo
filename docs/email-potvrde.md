@@ -15,7 +15,7 @@ U **Supabase Dashboard → odabrani projekt → Edge Functions → Secrets** pos
 
 `SUPABASE_URL` i `SUPABASE_SERVICE_ROLE_KEY` Supabase postavlja Edge funkciji automatski. Resend ključ **ne treba dodavati u Vercel frontend**, `VITE_*` varijable, repozitorij ili razgovor. Frontend zadržava postojeći javni Supabase URL i anon ključ.
 
-Za novu instalaciju primijenite migracije do `202610110006_patient_contact_confirmation_email.sql`, objavite `notifications-dispatch` uz isključenu gateway JWT provjeru (`supabase functions deploy notifications-dispatch --no-verify-jwt`) i konfigurirajte POST poziv svakih pet minuta s `Authorization: Bearer <NOTIFICATIONS_JOB_TOKEN>`. Funkcija sama provjerava taj token, ignorira tijelo zahtjeva i dohvaća samo serverski red. Nema API-ja za odabir proizvoljnog primatelja ili sadržaja.
+Za novu instalaciju primijenite migracije do `202610110007_booking_email_references.sql`, objavite `notifications-dispatch` uz isključenu gateway JWT provjeru (`supabase functions deploy notifications-dispatch --no-verify-jwt`) i konfigurirajte POST poziv svakih pet minuta s `Authorization: Bearer <NOTIFICATIONS_JOB_TOKEN>`. Funkcija sama provjerava taj token, ignorira tijelo zahtjeva i dohvaća samo serverski red. Nema API-ja za odabir proizvoljnog primatelja ili sadržaja.
 
 Nakon postavljanja tajni i objave funkcije uključite uslugu u Supabase SQL Editoru:
 
@@ -39,7 +39,7 @@ Pacijent **s korisničkim računom** koristi potvrđenu adresu za prijavu i uklj
 - Promjena termina: obavijest s novim datumom i vremenom.
 - Otkazivanje: zasebna obavijest o otkazivanju.
 
-HTML na hrvatskom ima prilagodljivu širinu, detalje u jednom stupcu i tekstualnu inačicu. Datum i vrijeme uvijek se prikazuju u zoni `Europe/Zagreb`, uz ljetno/zimsko računanje vremena. Uključeni su ime pacijenta, ustanova, liječnik, vrsta pregleda, datum, vrijeme i lokacija. Ako adresa ustanove nedostaje, pacijenta s računom upućuje se na portal, a pacijenta bez računa na liječnika. Slobodni tekst vrste pregleda u ordinaciji koristi sigurnu opću oznaku ako nije jedna od standardnih vrsta; time se ne prenose eventualno upisani simptomi ili dijagnoze. Bolnica koristi naziv pregleda iz kataloga usluga. U katalogu zato koristite nazive vrsta pregleda, a ne medicinske podatke pojedinog pacijenta.
+HTML na hrvatskom prati tamni predložak potvrde: kartica s oznakom e-Zdravstvo, naslovom i statusom, podacima u jednom stupcu, pozdravom i napomenom da se na poruku ne odgovara. Prilagodljiva širina i tekstualna inačica podržavaju mobitele i klijente bez HTML-a. Datum i vrijeme uvijek se prikazuju u zoni `Europe/Zagreb`, uz ljetno/zimsko računanje vremena. Uključeni su ime pacijenta, ustanova, liječnik, vrsta pregleda, datum, vrijeme, lokacija i broj rezervacije. Broj `PREG-<godina>-<redni broj>` dolazi iz privatne evidencije stvarne rezervacije i ostaje isti pri promjeni ili otkazivanju. Već pokušani stari poslovi zadržavaju svoju izvornu snimku podataka. Ako adresa ustanove nedostaje, pacijenta s računom upućuje se na portal, a pacijenta bez računa na liječnika. Slobodni tekst vrste pregleda u ordinaciji koristi sigurnu opću oznaku ako nije jedna od standardnih vrsta; time se ne prenose eventualno upisani simptomi ili dijagnoze. Bolnica koristi naziv pregleda iz kataloga usluga. U katalogu zato koristite nazive vrsta pregleda, a ne medicinske podatke pojedinog pacijenta.
 
 U porukama nema dijagnoze, sadržaja uputnice, nalaza, terapije, razloga prioriteta, promjene ili otkazivanja. Vrijednosti su HTML-escaped. Za pacijenta s računom poveznica vodi na portal i zahtijeva prijavu. Pacijent bez računa dobiva sve podatke za dolazak i uputu da se za dodatne informacije ili promjenu termina obrati liječniku, bez poveznice ili uputa za prijavu.
 
@@ -53,6 +53,7 @@ Privatne tablice nisu dostupne frontend ulogama:
 
 - `private.notification_email_outbox`: stanje PENDING/SENDING/SENT/FAILED/CANCELLED, broj pokušaja, vrijeme slanja i Resend ID.
 - `private.notification_email_attempts`: rezultat svakog završenog pokušaja i istekle radne rezervacije, bez sadržaja e-maila, adrese primatelja ili odgovora pružatelja.
+- `private.booking_email_references`: jedinstveni trajni brojevi ordinacijskih i bolničkih rezervacija.
 - `private.appointment_email_snapshots`: stabilni podaci potvrde za ponavljanje istog zahtjeva.
 - `private.contact_appointment_email_events`: privatni događaji, kontaktna adresa i stabilni podaci potvrde za pacijente bez računa. Promjena adrese, povezivanje računa ili arhiviranje pacijenta poništavaju čekajuće kontaktne poruke.
 

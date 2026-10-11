@@ -143,3 +143,10 @@ Red dostave koristi postojeći Resend dispatcher, evidenciju pokušaja, vremensk
 Pri primjeni migracije jednom se dodaju potvrde za postojeće buduće bolničke rezervacije pacijenata bez računa s valjanom adresom. Otkazani i prošli pregledi ne uključuju se. Nova revizija baze je `2026101104`. Prvo objavite `notifications-dispatch`, zatim primijenite migraciju i objavite frontend. Nove varijable okruženja nisu potrebne.
 
 Provjera: `pnpm run test:email` pokriva pacijente s računom i bez računa, prioritetno naručivanje, promjene i otkazivanje, duplikate, neuspjehe dostave, promjene adrese, povezivanje računa i zabranu proizvoljnog slanja. `pnpm test` provjerava HTML i tekst poruke. Za provjeru u aplikaciji unesite e-mail u karton pacijenta bez računa i zakažite budući pregled; slanje se obrađuje automatski svakih pet minuta.
+
+
+## Izgled potvrde prema dostavljenom primjeru (11. 10. 2026.)
+
+E-mail koristi tamnu karticu s oznakom e-Zdravstvo, statusom Potvrđeno / Promijenjeno / Otkazano, podacima pacijenta i pregleda, uputom za dolazak, pozdravom i automatskom napomenom. HTML i tekst sadrže iste podatke. Ugrađena mobilna prilagodba provjerena je na širini 390 px, bez vodoravnog preljeva.
+
+Migracija `202610110007_booking_email_references` dodaje privatne brojeve stvarnih rezervacija u obliku `PREG-2026-00125`. Isti broj prati potvrdu, promjenu i otkazivanje; ordinarni i bolnički pregledi dijele jedinstveni redni broj. Postojeće rezervacije dobivaju evidencijski broj, a snimke već pokušanih e-mailova ostaju sačuvane. Nove tajne ili promjene frontend varijabli nisu potrebne.
