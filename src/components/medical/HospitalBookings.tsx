@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { PriorityHospitalBooking } from "./PriorityHospitalBooking";
+import { hospitalEmailStatusMessage } from "../../services/priorityHospital";
 import { ReportEditor } from "./MedicalReports";
 import { listDocuments } from "../../services/documents";
 import { Link } from "react-router-dom";
@@ -66,9 +67,13 @@ export function HospitalBookings({
           reason: values(e.currentTarget).reason ?? "",
         }),
       );
+      const emailMessage =
+        change.status === "CANCELLED"
+          ? " " + (await hospitalEmailStatusMessage(change.item.id))
+          : "";
       setChange(null);
       resource.refresh();
-      setSuccess("Status narudžbe je promijenjen.");
+      setSuccess("Status narudžbe je promijenjen." + emailMessage);
     } catch (e) {
       setError(readableError(e));
     } finally {
@@ -240,10 +245,13 @@ export function HospitalBookings({
           patientId={reschedule.patient_id}
           reschedule={reschedule}
           onClose={() => setReschedule(null)}
-          onSaved={() => {
+          onSaved={async () => {
+            const emailMessage = await hospitalEmailStatusMessage(
+              reschedule.id,
+            );
             setReschedule(null);
             resource.refresh();
-            setSuccess("Termin je premješten. Pacijent je obaviješten.");
+            setSuccess("Termin je premješten. " + emailMessage);
           }}
         />
       )}

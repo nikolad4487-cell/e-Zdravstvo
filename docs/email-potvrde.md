@@ -27,7 +27,7 @@ SQL izvršite kao projektni administrator, nikada preko javnog klijenta. Funkcij
 
 ## Stanje povezane instalacije
 
-Na povezanom projektu migracija i nova funkcija objavljene su 11. listopada 2026. Gore navedene tajne su postavljene, dostava je uključena, a raspored svakih pet minuta sačuvan. `APPLICATION_URL` koristi provjereni `https://e-zdravstvo.vercel.app`; pošiljatelj koristi verificiranu domenu `e-zdravstvo.tech`. Nije potrebno ponovo unositi ključ ako ga ne mijenjate. Stvarna dostava provjerava se testnim računom prema koracima u nastavku.
+Na povezanom projektu migracija i nova funkcija objavljene su 11. listopada 2026. Gore navedene tajne su postavljene, dostava je uključena, a raspored svakih pet minuta sačuvan. `APPLICATION_URL` koristi provjereni `https://e-zdravstvo.vercel.app`. Pri provjeri postojeće potvrde 11. listopada Resend je vratio HTTP 403: domena `e-zdravstvo.tech` nije verificirana za konfigurirani ključ. Snimka nadzorne ploče s oznakom Verified ne potvrđuje da API ključ pripada istom računu/timu. Ključ treba izraditi u računu/timu koji sadrži tu domenu, s dopuštenjem za slanje, pa zamijeniti samo `RESEND_API_KEY` u Supabase tajnama. Stvarna dostava još nije potvrđena. Resend Templates nisu potrebni: aplikacija šalje vlastiti HTML i PDF kroz API.
 
 ## Kada se šalje
 
@@ -69,6 +69,8 @@ select outcome, count(*) from private.notification_email_attempts group by outco
 ```
 
 FAILED poruke usporedite s Resend evidencijom prije eventualnog ručnog postupanja; nemojte naslijepo vratiti već prihvaćene poruke u red.
+
+Edge Functions → `notifications-dispatch` → Logs prikazuje sigurne kodove pogreške, primjerice `RESEND_DOMAIN_NOT_VERIFIED`, `RESEND_AUTHENTICATION_FAILED`, `RESEND_ACCESS_DENIED` ili `DELIVERY_PREPARATION_OR_NETWORK_FAILED`. Ne zapisuje sadržaj odgovora Resenda, adrese ni tajne. Isti kodovi nalaze se u sažetku odgovora za autentificirani serverski raspored. Neuspjeli zahtjev ne mora stvoriti zapis poslanog e-maila u Resend → Emails. Pri promjeni termina aplikacija dohvaća stvarno stanje reda i ne tvrdi da je pacijent obaviješten samo zato što je termin spremljen.
 
 ## Testiranje
 

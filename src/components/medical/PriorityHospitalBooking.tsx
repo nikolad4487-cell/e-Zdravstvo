@@ -7,7 +7,7 @@ import {
   priorityContext,
   prioritySlots,
   priorityReferrals,
-  emailStatusLabels,
+  hospitalEmailStatusMessage,
   type PrioritySlot,
 } from "../../services/priorityHospital";
 import { Modal } from "../ui/Modal";
@@ -107,20 +107,9 @@ export function PriorityHospitalBooking({
             }),
           ),
         );
-      let message = "Prioritetni pregled je potvrđen i povezan s uputnicom.";
-      try {
-        const status = unwrap(
-          await db().rpc("hospital_booking_email_status", {
-            booking_id: result.booking_id,
-          }),
-        );
-        message +=
-          " " +
-          (emailStatusLabels[status ?? "UNKNOWN"] ??
-            "Status e-mail potvrde trenutačno nije dostupan.");
-      } catch {
-        message += " Status e-mail potvrde trenutačno nije dostupan.";
-      }
+      const message =
+        "Prioritetni pregled je potvrđen i povezan s uputnicom. " +
+        (await hospitalEmailStatusMessage(result.booking_id));
       onSaved(message);
     } catch (e) {
       setError(readableError(e));

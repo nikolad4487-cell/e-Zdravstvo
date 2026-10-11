@@ -88,9 +88,9 @@ export async function priorityReferrals(
     );
 }
 export const emailStatusLabels: Record<string, string> = {
-  PENDING: "Potvrda e-mailom je u redu za slanje.",
+  PENDING: "Potvrda e-mailom čeka slanje. Slanje još nije potvrđeno.",
   SENDING: "Potvrda e-mailom se šalje.",
-  SENT: "Potvrda e-mailom je poslana.",
+  SENT: "Resend je prihvatio potvrdu za dostavu. Primitak u sandučiću nije potvrđen.",
   UNAVAILABLE:
     "Potvrda e-mailom nije poslana: usluga e-maila još nije aktivirana.",
   DISABLED:
@@ -103,3 +103,18 @@ export const emailStatusLabels: Record<string, string> = {
   CANCELLED: "Slanje potvrde e-mailom je otkazano.",
   NOT_QUEUED: "Potvrda e-mailom nije u redu za slanje.",
 };
+export async function hospitalEmailStatusMessage(bookingId: string) {
+  try {
+    const status = unwrap(
+      await db().rpc("hospital_booking_email_status", {
+        booking_id: bookingId,
+      }),
+    );
+    return (
+      emailStatusLabels[status ?? "UNKNOWN"] ??
+      "Status e-mail potvrde trenutačno nije dostupan."
+    );
+  } catch {
+    return "Status e-mail potvrde trenutačno nije dostupan.";
+  }
+}

@@ -16,6 +16,20 @@ export interface EmailConfiguration {
   from: string;
   applicationUrl: string;
 }
+// Fixed diagnostic codes only; never return provider messages or patient data.
+export type DeliveryFailureCode =
+  | "RESEND_DOMAIN_NOT_VERIFIED"
+  | "RESEND_AUTHENTICATION_FAILED"
+  | "RESEND_ACCESS_DENIED"
+  | "RESEND_RATE_LIMITED"
+  | "RESEND_REJECTED";
+export interface DeliveryOutcome {
+  succeeded: boolean;
+  providerId: string | null;
+  retrySeconds: number;
+  failureCode?: DeliveryFailureCode;
+  providerStatus?: number;
+}
 const escapeHtml = (value: string) =>
   value.replace(
     /[&<>"']/g,
@@ -166,7 +180,7 @@ export async function deliverNotification(
   job: EmailJob,
   config: EmailConfiguration,
   request: typeof fetch = fetch,
-) {
+): Promise<DeliveryOutcome> {
   if (config.from !== APPOINTMENT_SENDER)
     throw new Error("Unexpected notification sender");
   const content = renderNotification(job, config.applicationUrl);
@@ -196,10 +210,31 @@ export async function deliverNotification(
     signal: AbortSignal.timeout(15000),
   });
   if (!response.ok) {
+    const error: unknown = await response.json().catch(() => null);
+    const domainUnverified =
+      response.status === 403 &&
+      error !== null &&
+      typeof error === "object" &&
+      "name" in error &&
+      error.name === "validation_error" &&
+      "message" in error &&
+      typeof error.message === "string" &&
+      error.message.startsWith("The e-zdravstvo.tech domain is not verified.");
+    const failureCode: DeliveryFailureCode = domainUnverified
+      ? "RESEND_DOMAIN_NOT_VERIFIED"
+      : response.status === 401
+        ? "RESEND_AUTHENTICATION_FAILED"
+        : response.status === 403
+          ? "RESEND_ACCESS_DENIED"
+          : response.status === 429
+            ? "RESEND_RATE_LIMITED"
+            : "RESEND_REJECTED";
     const header = Number(response.headers.get("retry-after"));
     return {
       succeeded: false,
       providerId: null,
+      failureCode,
+      providerStatus: response.status,
       retrySeconds:
         Number.isFinite(header) && header > 0
           ? Math.min(Math.ceil(header), 3600)

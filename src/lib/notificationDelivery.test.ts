@@ -83,7 +83,36 @@ describe("notification email delivery", () => {
         config,
         request,
       ),
-    ).toEqual({ succeeded: false, providerId: null, retrySeconds: 120 });
+    ).toEqual({
+      succeeded: false,
+      providerId: null,
+      retrySeconds: 120,
+      failureCode: "RESEND_RATE_LIMITED",
+      providerStatus: 429,
+    });
+  });
+  it("diagnoses an unverified sender domain without exposing provider details", async () => {
+    const request = vi.fn<typeof fetch>().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          name: "validation_error",
+          message:
+            "The e-zdravstvo.tech domain is not verified. SECRET PATIENT AND TOKEN",
+        }),
+        { status: 403 },
+      ),
+    );
+    const result = await deliverNotification(
+      { id: "job-1", email: "fictional@example.test" },
+      config,
+      request,
+    );
+    expect(result).toMatchObject({
+      succeeded: false,
+      failureCode: "RESEND_DOMAIN_NOT_VERIFIED",
+      providerStatus: 403,
+    });
+    expect(JSON.stringify(result)).not.toContain("SECRET");
   });
   it("rejects unsafe application URLs before sending", async () => {
     const request = vi.fn<typeof fetch>();

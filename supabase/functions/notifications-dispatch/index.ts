@@ -1,5 +1,9 @@
 import { createClient } from "npm:@supabase/supabase-js@2.117.1";
-import { APPOINTMENT_SENDER, deliverNotification } from "./delivery.ts";
+import {
+  APPOINTMENT_SENDER,
+  deliverNotification,
+  type DeliveryOutcome,
+} from "./delivery.ts";
 const json = (status: number, body: object) =>
   new Response(JSON.stringify(body), {
     status,
@@ -54,20 +58,36 @@ Deno.serve(async (request) => {
     return json(500, { error: "Email queue unavailable" });
   let sent = 0,
     failed = 0;
+  const failures: string[] = [];
   for (const job of jobs) {
-    let outcome = {
+    let outcome: DeliveryOutcome = {
       succeeded: false,
       providerId: null as string | null,
       retrySeconds: 300,
     };
+    let failureCode: string | undefined;
     try {
       outcome = await deliverNotification(job, {
         apiKey,
         from,
         applicationUrl,
       });
+      failureCode = outcome.failureCode;
     } catch {
       /* Do not log recipients, tokens or provider response bodies. */
+      failureCode = "DELIVERY_PREPARATION_OR_NETWORK_FAILED";
+    }
+    if (!outcome.succeeded) {
+      const code = failureCode ?? "DELIVERY_FAILED";
+      failures.push(code);
+      console.error(
+        JSON.stringify({
+          event: "notification_delivery_failed",
+          jobId: job.id,
+          code,
+          providerStatus: outcome.providerStatus,
+        }),
+      );
     }
     const { error: completionError } = await db.rpc(
       "complete_notification_email",
@@ -80,7 +100,19 @@ Deno.serve(async (request) => {
       },
     );
     if (outcome.succeeded && !completionError) sent++;
-    else failed++;
+    else {
+      failed++;
+      if (completionError) {
+        failures.push("DELIVERY_RECORD_FAILED");
+        console.error(
+          JSON.stringify({
+            event: "notification_delivery_failed",
+            jobId: job.id,
+            code: "DELIVERY_RECORD_FAILED",
+          }),
+        );
+      }
+    }
   }
-  return json(200, { processed: jobs.length, sent, failed });
+  return json(200, { processed: jobs.length, sent, failed, failures });
 });

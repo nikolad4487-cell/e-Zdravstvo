@@ -323,7 +323,7 @@ export function AppointmentPanel({
           onClose={() => setEditing(undefined)}
           onSaved={() => {
             setEditing(undefined);
-            setSuccess("Termin je spremljen i pacijent je obaviješten.");
+            setSuccess("Termin je spremljen.");
             resource.refresh();
           }}
         />
