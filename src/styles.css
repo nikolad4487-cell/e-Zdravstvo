@@ -669,11 +669,29 @@ button {
   padding: 31px 22px 20px;
   display: flex;
   flex-direction: column;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
   z-index: 20;
 }
 .sidebar .brand {
   font-size: 23px;
-  margin: 0 0 38px;
+  margin: 0 0 20px;
+  flex-shrink: 0;
+}
+.sidebar-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  padding-right: 4px;
+}
+.sidebar-footer {
+  flex-shrink: 0;
+  border-top: 1px solid #edf1f2;
+  padding-top: 12px;
 }
 .workspace-label {
   font-size: 9px;
@@ -689,7 +707,7 @@ button {
   border: 1px solid #e4ecee;
   border-radius: 8px;
   padding: 13px 10px;
-  margin-bottom: 24px;
+  margin-bottom: 16px;
 }
 .workspace-current > span {
   flex: 1;
@@ -700,14 +718,15 @@ button {
 .sidebar nav {
   display: flex;
   flex-direction: column;
-  gap: 5px;
-  margin-bottom: 25px;
+  gap: 3px;
+  margin-bottom: 14px;
 }
 .sidebar nav a {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 13px 14px;
+  padding: 10px 12px;
+  min-height: 40px;
   color: #788c95;
   font-size: 12px;
   border-radius: 7px;
@@ -718,7 +737,7 @@ button {
   font-weight: 600;
 }
 .sidebar-note {
-  margin-top: auto;
+  margin: 16px 0;
   background: #f5f9f9;
   border: 1px solid #eaf0f0;
   border-radius: 11px;
@@ -747,9 +766,11 @@ button {
   display: flex;
   align-items: center;
   gap: 10px;
-  border-top: 1px solid #edf1f2;
-  margin-top: 25px;
-  padding-top: 21px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.sidebar-user .avatar {
+  flex-shrink: 0;
 }
 .avatar {
   width: 35px;
@@ -774,6 +795,9 @@ button {
   font-size: 9px;
   color: #9aa8af;
   margin: 10px 0;
+  max-height: 3em;
+  overflow-y: auto;
+  overflow-wrap: anywhere;
 }
 .logout {
   display: flex;
@@ -783,6 +807,7 @@ button {
   background: transparent;
   font-size: 11px;
   padding: 9px 0;
+  min-height: 44px;
 }
 .portal-body {
   margin-left: 255px;
@@ -860,7 +885,7 @@ button {
 }
 .account-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 23px;
   margin: 26px 0;
 }
@@ -1175,11 +1200,13 @@ dd {
   }
   .sidebar {
     transform: translateX(-100%);
+    visibility: hidden;
     width: 260px;
     transition: transform 0.2s;
   }
   .sidebar.open {
     transform: translateX(0);
+    visibility: visible;
   }
   .mobile-menu {
     display: grid;
@@ -1432,6 +1459,7 @@ dd {
 }
 .patient-header {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 22px;
   margin: 20px 0;
@@ -1466,8 +1494,8 @@ dd {
 }
 .record-tabs {
   display: flex;
+  flex-wrap: wrap;
   gap: 7px;
-  overflow: auto;
   border-bottom: 1px solid #e0e9ec;
   margin-bottom: 23px;
 }

@@ -124,3 +124,11 @@ Nova autorizirana funkcija `update_patient_details` provjerava aktivnu liječni�
 Migracija `202610110005_patient_details_editing` primijenjena je na povezani Supabase projekt, uz potvrdu podudaranja SQL-a sa zapisom migracije. Frontend zahtijeva reviziju `2026101103`; pri novoj instalaciji primijenite migraciju prije objave frontenda. Nisu potrebne nove varijable okruženja.
 
 Validacija: 8 provjera uređivanja u izoliranoj bazi, 4 testa kartona i obrasca u pregledniku, 17 unit testova, 30 provjera postojećih tijekova i produkcijski build. Novi testovi pokrivaju spremanje i osvježavanje kartona, otkazivanje bez spremanja, prikaz pogreške pri sukobu izmjena, povlačenje ovlasti, validaciju i očuvanje identifikatora/kliničkih zapisa. Na stvarnom API-ju potvrđena je revizija sheme i odbijen anonimni poziv izmjene, bez promjene stvarnih pacijenata.
+
+## Dostupna navigacija pri normalnom zumiranju — 11. listopada 2026.
+
+Fiksna bočna traka ranije nije imala vlastito pomicanje, pa su na nižim ekranima dodatne opcije, profil i odjava izlazili iz vidljivog područja. Izbornici i informativna kartica sada su u zasebnom području za pomicanje, a profil i odjava ostaju na dnu bočne trake. Visina prati raspoloživi ekran (`100dvh`, uz `100vh` kao zamjenu), uz nešto manje razmake bez smanjivanja teksta. Izbornik je dostupan i tipkovnicom. Zatvorena mobilna navigacija skrivena je i za fokus, a gumb označava je li otvorena.
+
+Kartice kartona prelamaju se u više redova, zaglavlje pacijenta dopušta prelamanje, a stupci sadržaja mogu se suziti bez širenja stranice. Pregledavanje opcija više ne zahtijeva smanjivanje zumiranja preglednika. Nakon objave osvježite već otvorenu aplikaciju i po potrebi vratite zumiranje na 100 %.
+
+Provjera: svih 29 testova u pregledniku i produkcijski build prolaze. Devet novih provjera pokriva zaslone 1366×768, 1024×600 i 1280×400, uspravni i položeni mobilni prikaz, pristup pacijentovim modulima, odjavu nakon pomicanja stranice te prelamanje kartica bez vodoravnog prelijevanja. Nema novih migracija ili varijabli okruženja.
