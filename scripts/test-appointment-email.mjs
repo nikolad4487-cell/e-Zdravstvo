@@ -843,9 +843,10 @@ await test("priority hospital booking, moving and cancellation immediately wake 
     id(1960),
   ];
   const result = await as(1, () => rpc("book_priority_hospital", args));
-  assert.equal(await dispatchCount(), before + 1);
+  // Booking confirmation and its newly issued referral each wake delivery.
+  assert.equal(await dispatchCount(), before + 2);
   await as(1, () => rpc("book_priority_hospital", args));
-  assert.equal(await dispatchCount(), before + 1);
+  assert.equal(await dispatchCount(), before + 2);
   await as(5, () =>
     rpc("publish_hospital_slots", [
       contactService,
@@ -867,7 +868,7 @@ await test("priority hospital booking, moving and cancellation immediately wake 
       id(1961),
     ]),
   );
-  assert.equal(await dispatchCount(), before + 2);
+  assert.equal(await dispatchCount(), before + 3);
   await as(1, () =>
     rpc("change_hospital_booking", [
       result.booking_id,
@@ -876,7 +877,7 @@ await test("priority hospital booking, moving and cancellation immediately wake 
       "Testno otkazivanje",
     ]),
   );
-  assert.equal(await dispatchCount(), before + 3);
+  assert.equal(await dispatchCount(), before + 4);
 });
 await test("a rolled-back booking cannot leave an immediate dispatch request", async () => {
   const before = await dispatchCount();

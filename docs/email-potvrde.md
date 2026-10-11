@@ -1,5 +1,7 @@
 # E-mail potvrde pregleda
 
+Automatsko slanje uputnica, ispričnica i objavljenih nalaza kao PDF privitaka opisano je u [email-dokumenti.md](email-dokumenti.md).
+
 Rezervacije u ordinaciji spremaju se u `public.appointments`, a bolničke narudžbe u `public.hospital_bookings` s terminom u `public.hospital_slots`. Postojeće autorizirane RPC funkcije ostaju mjesto zakazivanja, promjene i otkazivanja. Okidači u istoj transakciji stvaraju obavijest i privatni red dostave. Resend se poziva naknadno iz Supabase Edge funkcije `notifications-dispatch`; neuspjeh dostave ne poništava rezervaciju.
 
 ## Varijable i mjesto postavljanja

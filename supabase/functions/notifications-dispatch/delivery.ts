@@ -3,6 +3,7 @@ import {
   bytesToBase64,
   type BookingPdfDetails,
 } from "./booking-pdf.ts";
+import { documentPdf, type DocumentEmailDetails } from "./document-pdf.ts";
 export const APPOINTMENT_SENDER = "e-Zdravstvo <narudzbe@e-zdravstvo.tech>";
 export interface EmailJob {
   id: string;
@@ -10,6 +11,7 @@ export interface EmailJob {
   portalAccess?: boolean;
   appointment?: BookingPdfDetails;
   confirmation?: BookingPdfDetails;
+  document?: DocumentEmailDetails;
 }
 export interface EmailConfiguration {
   apiKey: string;
@@ -43,6 +45,16 @@ export function renderNotification(job: EmailJob, applicationUrl: string) {
   if (url.protocol !== "https:" || url.username || url.password)
     throw new Error("HTTPS application URL required");
   const details = job.appointment ?? job.confirmation;
+  if (job.document) {
+    const text =
+      "Poštovani/a,\n\nu privitku ove poruke dostavljamo Vaš izdani dokument u PDF obliku. Za pitanja o dokumentu obratite se liječniku ili ustanovi koja ga je izdala.\n\nSrdačan pozdrav,\nTim e-Zdravstvo\n\nOva poruka poslana je automatski. Molimo ne odgovarajte na nju.";
+    // No patient identifiers, diagnoses, report text or document title in the body/subject.
+    const html = `<!doctype html><html lang="hr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head><body style="margin:0;background:#f5f7fa;font-family:Arial,sans-serif;color:#1f2937"><table role="presentation" width="100%"><tr><td align="center" style="padding:20px 12px"><table role="presentation" width="100%" style="max-width:640px;background:#ffffff;border:1px solid #dce2e8;border-radius:12px"><tr><td style="padding:24px;font-size:16px;line-height:1.6"><h1 style="font-size:20px;color:#087f8c">e-Zdravstvo</h1>${text
+      .split("\n\n")
+      .map((p) => `<p>${escapeHtml(p).replaceAll("\n", "<br>")}</p>`)
+      .join("")}</td></tr></table></td></tr></table></body></html>`;
+    return { subject: "Vaš dokument u PDF privitku — e-Zdravstvo", text, html };
+  }
   const event = details?.eventType ?? "BOOKED";
   const priority = details?.priority ?? Boolean(job.confirmation);
   const title = !details
@@ -185,15 +197,23 @@ export async function deliverNotification(
     throw new Error("Unexpected notification sender");
   const content = renderNotification(job, config.applicationUrl);
   const details = job.appointment ?? job.confirmation;
-  const attachments = details
+  const attachments = job.document
     ? [
         {
-          filename: `${details.eventType === "CANCELLED" ? "otkazivanje" : details.eventType === "RESCHEDULED" ? "promjena-termina" : "narudzba"}-${details.bookingReference?.replace(/[^A-Za-z0-9_-]/g, "") || "pacijenta"}.pdf`,
-          content: bytesToBase64(await bookingPdf(details)),
+          filename: `${job.document.number}.pdf`,
+          content: bytesToBase64(await documentPdf(job.document)),
           content_type: "application/pdf",
         },
       ]
-    : undefined;
+    : details
+      ? [
+          {
+            filename: `${details.eventType === "CANCELLED" ? "otkazivanje" : details.eventType === "RESCHEDULED" ? "promjena-termina" : "narudzba"}-${details.bookingReference?.replace(/[^A-Za-z0-9_-]/g, "") || "pacijenta"}.pdf`,
+            content: bytesToBase64(await bookingPdf(details)),
+            content_type: "application/pdf",
+          },
+        ]
+      : undefined;
   const response = await request("https://api.resend.com/emails", {
     method: "POST",
     headers: {

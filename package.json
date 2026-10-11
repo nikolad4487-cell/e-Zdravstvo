@@ -19,6 +19,7 @@
     "test:laboratory": "node scripts/test-laboratory-search.mjs",
     "test:patients": "node scripts/test-patient-editing.mjs",
     "test:email": "node scripts/test-appointment-email.mjs",
+    "test:document-email": "node scripts/test-document-email.mjs",
     "test:priority": "node scripts/test-priority-hospital.mjs",
     "seed:clinical": "node --env-file=.env.seed scripts/seed-clinical.mjs",
     "seed:workflow": "node --env-file=.env --env-file=.env.seed scripts/seed-workflow.mjs",

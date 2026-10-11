@@ -52,13 +52,21 @@ Deno.serve(async (request) => {
     });
   const { data: jobs, error } = await db.rpc("claim_notification_emails", {
     // Bound PDF rendering CPU per invocation; remaining jobs stay queued.
-    batch_size: 3,
+    batch_size: 2,
   });
   if (error || !Array.isArray(jobs))
     return json(500, { error: "Email queue unavailable" });
+  const { data: documentJobs, error: documentError } = await db.rpc(
+    "claim_document_emails",
+    { batch_size: 1 },
+  );
+  // Finish already claimed booking jobs even if the document queue is unavailable.
+  if (!documentError && Array.isArray(documentJobs)) jobs.push(...documentJobs);
   let sent = 0,
     failed = 0;
-  const failures: string[] = [];
+  const failures: string[] = documentError
+    ? ["DOCUMENT_QUEUE_UNAVAILABLE"]
+    : [];
   for (const job of jobs) {
     let outcome: DeliveryOutcome = {
       succeeded: false,
@@ -90,7 +98,9 @@ Deno.serve(async (request) => {
       );
     }
     const { error: completionError } = await db.rpc(
-      "complete_notification_email",
+      job.documentDelivery
+        ? "complete_document_email"
+        : "complete_notification_email",
       {
         job_id: job.id,
         lease_id: job.lease_id,
