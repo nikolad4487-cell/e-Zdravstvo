@@ -741,5 +741,200 @@ await test("frontend cannot create contact events, read addresses or invoke the 
     });
 });
 
+// No network is used: emulate pg_net's transactional request queue and Vault.
+await db.exec(`create schema net;create schema vault;
+ create table vault.decrypted_secrets(name text,decrypted_secret text);
+ insert into vault.decrypted_secrets values('fixture-job-token',repeat('x',32));
+ create table private.test_dispatch_requests(url text,body jsonb,headers jsonb,timeout_ms integer);
+ create function net.http_post(url text,body jsonb default '{}',params jsonb default '{}',headers jsonb default '{}',timeout_milliseconds integer default 1000)
+ returns bigint language plpgsql as $$begin
+ insert into private.test_dispatch_requests values(url,body,headers,timeout_milliseconds);return 1;end $$;`);
+const endpoint =
+  "https://fictional.supabase.co/functions/v1/notifications-dispatch";
+const dispatchCount = async () =>
+  (await db.query("select count(*)::int n from private.test_dispatch_requests"))
+    .rows[0].n;
+await test("only the server can configure immediate delivery and unsafe endpoints are rejected", async () => {
+  for (const n of [0, 1, 3, 5])
+    await as(n, () =>
+      assert.rejects(
+        rpc("configure_notification_dispatch", [endpoint, "fixture-job-token"]),
+      ),
+    );
+  for (const url of [
+    "http://fictional.supabase.co/functions/v1/notifications-dispatch",
+    "https://attacker.test/",
+    endpoint + "?recipient=other",
+  ])
+    await service(() =>
+      assert.rejects(
+        rpc("configure_notification_dispatch", [url, "fixture-job-token"]),
+      ),
+    );
+  await service(() =>
+    assert.rejects(
+      rpc("configure_notification_dispatch", [endpoint, "missing-token"]),
+    ),
+  );
+  await service(() =>
+    rpc("configure_notification_dispatch", [endpoint, "fixture-job-token"]),
+  );
+});
+await db.query(
+  "update patients set user_id=null,email='contact@example.test' where id=$1",
+  [patient],
+);
+const immediateDate = new Date(Date.now() + 16 * 86400000)
+  .toISOString()
+  .slice(0, 10);
+const immediateData = (time) => ({
+  ...data(time),
+  local_time: immediateDate + "T" + time,
+});
+let immediateBooking;
+await test("new booking, rescheduling and cancellation immediately wake delivery without duplicate requests", async () => {
+  immediateBooking = await as(1, () =>
+    rpc("save_appointment", [null, null, immediateData("09:00"), id(1950)]),
+  );
+  assert.equal(await dispatchCount(), 1);
+  await as(1, () =>
+    rpc("save_appointment", [null, null, immediateData("09:00"), id(1950)]),
+  );
+  assert.equal(await dispatchCount(), 1);
+  await as(1, () =>
+    rpc("save_appointment", [
+      immediateBooking,
+      1,
+      immediateData("10:00"),
+      id(1951),
+    ]),
+  );
+  assert.equal(await dispatchCount(), 2);
+  await as(1, () =>
+    rpc("set_appointment_status", [
+      immediateBooking,
+      2,
+      "CANCELLED",
+      "Testno otkazivanje",
+    ]),
+  );
+  assert.equal(await dispatchCount(), 3);
+  const rows = (await db.query("select * from private.test_dispatch_requests"))
+    .rows;
+  for (const row of rows) {
+    assert.equal(row.url, endpoint);
+    assert.deepEqual(row.body, {});
+    assert.equal(row.headers.Authorization, "Bearer " + "x".repeat(32));
+    assert.equal(row.timeout_ms, 10000);
+  }
+});
+await test("priority hospital booking, moving and cancellation immediately wake the same protected worker", async () => {
+  const before = await dispatchCount();
+  const available = await as(1, () =>
+    rpc("priority_hospital_slots", [patient, contactService, date, date]),
+  );
+  const args = [
+    patient,
+    contactService,
+    available[0].starts_at,
+    null,
+    { reason: "Testna uputnica", expires_on: date, notes: "" },
+    "Testni prioritet",
+    id(1960),
+  ];
+  const result = await as(1, () => rpc("book_priority_hospital", args));
+  assert.equal(await dispatchCount(), before + 1);
+  await as(1, () => rpc("book_priority_hospital", args));
+  assert.equal(await dispatchCount(), before + 1);
+  await as(5, () =>
+    rpc("publish_hospital_slots", [
+      contactService,
+      date + "T08:30",
+      30,
+      1,
+      true,
+    ]),
+  );
+  const slots = await as(1, () =>
+    rpc("list_hospital_slots", [contactService, date, date, false]),
+  );
+  await as(1, () =>
+    rpc("reschedule_hospital_booking", [
+      result.booking_id,
+      slots[0].id,
+      1,
+      "Testno premještanje",
+      id(1961),
+    ]),
+  );
+  assert.equal(await dispatchCount(), before + 2);
+  await as(1, () =>
+    rpc("change_hospital_booking", [
+      result.booking_id,
+      2,
+      "CANCELLED",
+      "Testno otkazivanje",
+    ]),
+  );
+  assert.equal(await dispatchCount(), before + 3);
+});
+await test("a rolled-back booking cannot leave an immediate dispatch request", async () => {
+  const before = await dispatchCount();
+  await db.exec("begin");
+  await as(1, () =>
+    rpc("save_appointment", [null, null, immediateData("11:00"), id(1952)]),
+  );
+  assert.equal(await dispatchCount(), before + 1);
+  await db.exec("rollback");
+  assert.equal(await dispatchCount(), before);
+  assert.equal(
+    (
+      await db.query(
+        "select count(*)::int n from appointments where patient_id=$1 and starts_at=$2::timestamp at time zone 'Europe/Zagreb'",
+        [patient, immediateDate + "T11:00"],
+      )
+    ).rows[0].n,
+    0,
+  );
+});
+await test("account-linked confirmations wake delivery while generic reminders do not", async () => {
+  await db.query("update patients set user_id=$1 where id=$2", [
+    id(3),
+    patient,
+  ]);
+  await as(3, () => rpc("save_notification_preferences", [true, true]));
+  const before = await dispatchCount();
+  await as(1, () =>
+    rpc("save_appointment", [null, null, immediateData("12:00"), id(1953)]),
+  );
+  assert.equal(await dispatchCount(), before + 1);
+  await db.query(
+    "insert into notifications(user_id,message) values($1,'Testni podsjetnik')",
+    [id(3)],
+  );
+  assert.equal(await dispatchCount(), before + 1);
+});
+await test("dispatch queue failure leaves the appointment and email queued for the scheduled retry", async () => {
+  await db.exec(`create or replace function net.http_post(url text,body jsonb default '{}',params jsonb default '{}',headers jsonb default '{}',timeout_milliseconds integer default 1000)
+  returns bigint language plpgsql as $$begin raise exception 'Simulated dispatch failure';end $$;`);
+  const saved = await as(1, () =>
+    rpc("save_appointment", [null, null, immediateData("13:00"), id(1954)]),
+  );
+  assert.equal(
+    (await db.query("select status from appointments where id=$1", [saved]))
+      .rows[0].status,
+    "SCHEDULED",
+  );
+  assert.equal(
+    (
+      await db.query(
+        "select o.status from private.notification_email_outbox o join notifications n on n.id=o.notification_id where n.appointment_id=$1",
+        [saved],
+      )
+    ).rows[0].status,
+    "PENDING",
+  );
+});
+
 await db.close();
 console.log(`${passed} appointment email checks passed.`);

@@ -15,7 +15,20 @@ U **Supabase Dashboard → odabrani projekt → Edge Functions → Secrets** pos
 
 `SUPABASE_URL` i `SUPABASE_SERVICE_ROLE_KEY` Supabase postavlja Edge funkciji automatski. Resend ključ **ne treba dodavati u Vercel frontend**, `VITE_*` varijable, repozitorij ili razgovor. Frontend zadržava postojeći javni Supabase URL i anon ključ.
 
-Za novu instalaciju primijenite migracije do `202610110008_booking_pdf_details.sql`, objavite `notifications-dispatch` uz isključenu gateway JWT provjeru (`supabase functions deploy notifications-dispatch --no-verify-jwt`) i konfigurirajte POST poziv svakih pet minuta s `Authorization: Bearer <NOTIFICATIONS_JOB_TOKEN>`. Funkcija sama provjerava taj token, ignorira tijelo zahtjeva i dohvaća samo serverski red. Nema API-ja za odabir proizvoljnog primatelja ili sadržaja.
+Za novu instalaciju primijenite migracije do `202610110009_immediate_booking_email.sql`, objavite `notifications-dispatch` uz isključenu gateway JWT provjeru (`supabase functions deploy notifications-dispatch --no-verify-jwt`) i konfigurirajte POST poziv svakih pet minuta s `Authorization: Bearer <NOTIFICATIONS_JOB_TOKEN>`. Funkcija sama provjerava taj token, ignorira tijelo zahtjeva i dohvaća samo serverski red. Nema API-ja za odabir proizvoljnog primatelja ili sadržaja.
+
+Migracija `202610110009` odmah pokreće obradu nove potvrde zakazivanja, promjene ili otkazivanja pomoću transakcijskog `pg_net` reda. HTTP poziv počinje nakon uspješnog završetka transakcije. Rezervacija ne čeka odgovor Resenda. Postojeći raspored svakih pet minuta ostaje za ponovne pokušaje i podsjetnike; nova potvrda više ne čeka taj ciklus.
+
+Za aktivaciju projekt mora imati `pg_net` i Vault. U Vaultu spremite isti token koji koristi `NOTIFICATIONS_JOB_TOKEN`; postojeća instalacija već koristi tajnu naziva `ez-notifications-job-token`. Kao projektni administrator konfigurirajte URL vlastitog projekta i **naziv** Vault tajne, bez upisivanja samog tokena u SQL:
+
+```sql
+select public.configure_notification_dispatch(
+  'https://PROJECT_REF.supabase.co/functions/v1/notifications-dispatch',
+  'ez-notifications-job-token'
+);
+```
+
+Frontend nema ovlasti konfigurirati ni izravno pokretati ovaj mehanizam. Automatski okidač radi samo za spremljene događaje pregleda; generičke obavijesti i podsjetnici ne stvaraju rekurzivne pozive. Ako HTTP zahtjev nije moguće staviti u red, termin i potvrda ostaju spremljeni za rezervni raspored. Isključivanje neposrednog pokretanja: `select public.configure_notification_dispatch(null,null);`.
 
 Nakon postavljanja tajni i objave funkcije uključite uslugu u Supabase SQL Editoru:
 
@@ -27,7 +40,7 @@ SQL izvršite kao projektni administrator, nikada preko javnog klijenta. Funkcij
 
 ## Stanje povezane instalacije
 
-Na povezanom projektu migracija i nova funkcija objavljene su 11. listopada 2026. Gore navedene tajne su postavljene, dostava je uključena, a raspored svakih pet minuta sačuvan. `APPLICATION_URL` koristi provjereni `https://e-zdravstvo.vercel.app`. Pri provjeri postojeće potvrde 11. listopada Resend je vratio HTTP 403: domena `e-zdravstvo.tech` nije verificirana za konfigurirani ključ. Snimka nadzorne ploče s oznakom Verified ne potvrđuje da API ključ pripada istom računu/timu. Ključ treba izraditi u računu/timu koji sadrži tu domenu, s dopuštenjem za slanje, pa zamijeniti samo `RESEND_API_KEY` u Supabase tajnama. Stvarna dostava još nije potvrđena. Resend Templates nisu potrebni: aplikacija šalje vlastiti HTML i PDF kroz API.
+Na povezanom projektu migracije i funkcija objavljene su 11. listopada 2026. Gore navedene tajne su postavljene, dostava je uključena, neposredno pokretanje aktivirano je kroz postojeći Vault token, a raspored svakih pet minuta sačuvan je za ponovne pokušaje. `APPLICATION_URL` koristi provjereni `https://e-zdravstvo.vercel.app`. Početna pogreška Resenda HTTP 403 za neverificiranu domenu razriješena je: Resend je prihvatio potvrde promjene, otkazivanja i nove narudžbe; korisnik je potvrdio primitak promjene i otkazivanja. Ako se pogreška vrati, provjerite pripada li ključ istom računu/timu u kojem je domena Verified. Resend Templates nisu potrebni: aplikacija šalje vlastiti HTML i PDF kroz API. Za ovu nadogradnju ne treba mijenjati tajne.
 
 ## Kada se šalje
 
@@ -89,7 +102,7 @@ Testovi provjeravaju HTML escaping, hrvatske predloške, vremensku zonu, otkaziv
 Za provjeru stvarne dostave koristite vlastitu adresu u testnom kartonu:
 
 1. Za pacijenta bez računa unesite vlastitu valjanu adresu u **Uredi pacijenta → E-mail**. Za pacijenta s računom potvrdite adresu računa i uključite **Obavijesti e-poštom**, pa spremite postavke.
-2. Kao ovlašteni liječnik zakažite budući pregled tom pacijentu. Pričekajte sljedeći ciklus rasporeda, do približno pet minuta.
+2. Kao ovlašteni liječnik zakažite budući pregled tom pacijentu. Obrada potvrde pokreće se odmah nakon spremanja; uobičajeno pričekajte nekoliko sekundi. Stvarni dolazak u sandučić ovisi i o pružatelju pošte. Ako pokretanje ili slanje ne uspije, postojeći raspored ponavlja pokušaj svakih pet minuta.
 3. Provjerite sandučić i neželjenu poštu te Resend → Emails. Pošiljatelj mora biti `e-Zdravstvo <narudzbe@e-zdravstvo.tech>`, a detalji odgovarati portalu. Provjerite prikaz na mobitelu i otvorite PDF privitak; broj, podaci pacijenta i termin moraju odgovarati rezervaciji.
 4. Promijenite termin, pričekajte dostavu i provjerite novu poruku s novim datumom/vremenom. Zatim otkažite pregled i provjerite obavijest o otkazivanju.
 5. Ponovite spremanje istog zahtjeva ili izvršavanje rasporeda: već poslana potvrda ne smije doći ponovno.
