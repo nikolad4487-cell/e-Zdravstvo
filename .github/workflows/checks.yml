@@ -23,6 +23,7 @@ jobs:
       - run: pnpm run test:laboratory
       - run: pnpm run test:priority
       - run: pnpm run test:email
+      - run: pnpm run test:patients
       - run: pnpm run test:migrations
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm run test:e2e

@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { useResource } from "../../hooks/useResource";
 import { getChart } from "../../services/clinical";
+import { EditPatient } from "../../components/medical/EditPatient";
 import { ErrorMessage } from "../../components/ui/Feedback";
 import { ClinicalModal } from "../../components/medical/ClinicalModal";
 import type { ClinicalAction } from "../../components/medical/ClinicalModal";
@@ -28,6 +29,7 @@ import { IssueDocumentModal } from "../../components/medical/IssueDocumentModal"
 import type { DocumentKind } from "../../types/documents";
 import { age, dateLabel } from "../../utils/format";
 export function PatientRecordPage() {
+  const [editingPatient, setEditingPatient] = useState(false);
   const [issue, setIssue] = useState<DocumentKind | null>(null),
     [priorityBooking, setPriorityBooking] = useState(false),
     [documentVersion, setDocumentVersion] = useState(0);
@@ -74,6 +76,12 @@ export function PatientRecordPage() {
         </div>
         {can_write && (
           <div className="patient-actions">
+            <button
+              className="secondary"
+              onClick={() => setEditingPatient(true)}
+            >
+              Uredi pacijenta
+            </button>
             <button className="primary" onClick={() => open("encounter")}>
               <Stethoscope size={17} />
               Novi pregled
@@ -88,6 +96,17 @@ export function PatientRecordPage() {
         )}
       </section>
       <FhirExport patientId={id} />
+      {editingPatient && (
+        <EditPatient
+          patient={p}
+          onClose={() => setEditingPatient(false)}
+          onSaved={() => {
+            setEditingPatient(false);
+            setSuccess("Podaci pacijenta su spremljeni.");
+            chart.refresh();
+          }}
+        />
+      )}
       {success && (
         <div role="status" className="success-toast">
           {success}

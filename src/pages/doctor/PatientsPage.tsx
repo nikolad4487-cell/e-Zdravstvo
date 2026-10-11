@@ -8,11 +8,12 @@ import {
   getContext,
   searchPatients,
 } from "../../services/clinical";
+import { PatientDetailsFields } from "../../components/medical/EditPatient";
 import { Modal } from "../../components/ui/Modal";
 import { Pagination } from "../../components/ui/Pagination";
 import { Field, values } from "../../components/ui/Fields";
 import { ErrorMessage } from "../../components/ui/Feedback";
-import { dateLabel, readableError, today } from "../../utils/format";
+import { dateLabel, readableError } from "../../utils/format";
 export function NewPatient({ onClose }: { onClose: () => void }) {
   const auth = useAuth(),
     navigate = useNavigate();
@@ -41,29 +42,7 @@ export function NewPatient({ onClose }: { onClose: () => void }) {
           izmišljene podatke.
         </p>
         <div className="form-grid">
-          <Field label="Ime" name="first_name" required maxLength={100} />
-          <Field label="Prezime" name="last_name" required maxLength={100} />
-          <Field
-            label="Datum rođenja"
-            name="birth_date"
-            type="date"
-            required
-            min="1900-01-01"
-            max={today()}
-          />
-          <Field label="Spol" name="sex" required>
-            <option value="UNKNOWN">Nije naveden</option>
-            <option value="F">Ženski</option>
-            <option value="M">Muški</option>
-            <option value="OTHER">Drugo</option>
-          </Field>
-          <Field label="Adresa" name="address" />
-          <Field label="Grad" name="city" />
-          <Field label="Poštanski broj" name="postal_code" />
-          <Field label="Telefon" name="phone" />
-          <Field label="E-mail" name="email" type="email" />
-          <Field label="Zdravstveno osiguranje" name="insurance" />
-          <Field label="Kontakt za hitne slučajeve" name="emergency_contact" />
+          <PatientDetailsFields />
           <Field label="Izabrani liječnik" name="doctor_id" required>
             <option value="">Odaberite ordinaciju</option>
             {context.data?.doctors

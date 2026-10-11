@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { db } from "../lib/supabase";
+import type { Patient } from "../types/clinical";
 import {
   baseChartSchema,
   chartSchema,
@@ -31,16 +32,14 @@ export function unwrap<T>(result: {
   return result.data;
 }
 export async function searchPatients(term = "", page = 0) {
-  return z
-    .array(patientSummarySchema)
-    .parse(
-      unwrap(
-        await db().rpc("search_patients_page", {
-          search_term: term,
-          page_number: page,
-        }),
-      ),
-    );
+  return z.array(patientSummarySchema).parse(
+    unwrap(
+      await db().rpc("search_patients_page", {
+        search_term: term,
+        page_number: page,
+      }),
+    ),
+  );
 }
 export async function getBaseChart(id: string) {
   return baseChartSchema.parse(
@@ -66,6 +65,33 @@ export async function createPatient(
     .parse(
       unwrap(await db().rpc("create_patient", { data, doctor_id: doctorId })),
     );
+}
+export const patientDetailFields = [
+  "first_name",
+  "last_name",
+  "birth_date",
+  "sex",
+  "address",
+  "city",
+  "postal_code",
+  "phone",
+  "email",
+  "insurance",
+  "emergency_contact",
+] as const;
+export async function updatePatientDetails(
+  patient: Patient,
+  data: Record<string, string>,
+) {
+  unwrap(
+    await db().rpc("update_patient_details", {
+      patient_id: patient.id,
+      data,
+      expected_data: Object.fromEntries(
+        patientDetailFields.map((field) => [field, patient[field]]),
+      ),
+    }),
+  );
 }
 export async function getInstitutions() {
   return institutionOverviewSchema.parse(

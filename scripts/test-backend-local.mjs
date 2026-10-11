@@ -108,7 +108,10 @@ await ok(
     .eq("id", patient),
 );
 const anon = createClient(url, key, options);
-assert.equal(await ok(await anon.rpc("application_schema_version")), 2026101102);
+assert.equal(
+  await ok(await anon.rpc("application_schema_version")),
+  2026101103,
+);
 assert.ok((await anon.rpc("get_patient_chart", { patient_id: patient })).error);
 assert.ok(
   (await clients.other.rpc("get_patient_chart", { patient_id: patient })).error,

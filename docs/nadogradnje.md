@@ -114,3 +114,13 @@ Privatna evidencija čuva svaki završeni pokušaj i istek radne rezervacije, a 
 Prošlo je 17 unit testova, 11 novih provjera e-mail tijeka, 13 prioritetnih bolničkih provjera, 30 provjera postojećih tijekova i 24 provjere baze, uz produkcijski build. HTTP testovi koriste zamjenske odgovore, a SQL testovi izoliranu bazu; stvarna dostava u pacijentov sandučić nije dio tih testova.
 
 Postavljanje varijabli, pregled evidencije i postupak provjere stvarne dostave opisani su u [email-potvrde.md](email-potvrde.md).
+
+## Uređivanje podataka pacijenta — 11. listopada 2026.
+
+Karton je ranije omogućavao samo uređivanje medicinskih upozorenja, bez obrasca i RPC funkcije za izmjenu osnovnih podataka pacijenta. U kartonu je dodan gumb **Uredi pacijenta** za liječnika s aktivnom ovlašću nad pacijentom. Obrazac učitava postojeće ime, prezime, datum rođenja, spol, adresu, grad, poštanski broj, telefon, kontaktni e-mail, osiguranje i hitni kontakt. Nakon spremanja osvježava se karton. Dodavanje i uređivanje koriste zajednička polja obrasca.
+
+Nova autorizirana funkcija `update_patient_details` provjerava aktivnu liječničku ovlast i pacijentov izbor pristupa, validira podatke, zaključava red i uspoređuje prethodne vrijednosti radi zaštite od prepisivanja tuđih izmjena. Izmjene se evidentiraju u revizijskom zapisu. ID, broj pacijenta, korisnički račun, ustanova i klinički zapisi ne mogu se promijeniti tim obrascem. Kontaktni e-mail ne mijenja e-mail računa na koji dolaze potvrde narudžbi. Izravne izmjene tablice preko preglednika i dalje su zabranjene.
+
+Migracija `202610110005_patient_details_editing` primijenjena je na povezani Supabase projekt, uz potvrdu podudaranja SQL-a sa zapisom migracije. Frontend zahtijeva reviziju `2026101103`; pri novoj instalaciji primijenite migraciju prije objave frontenda. Nisu potrebne nove varijable okruženja.
+
+Validacija: 8 provjera uređivanja u izoliranoj bazi, 4 testa kartona i obrasca u pregledniku, 17 unit testova, 30 provjera postojećih tijekova i produkcijski build. Novi testovi pokrivaju spremanje i osvježavanje kartona, otkazivanje bez spremanja, prikaz pogreške pri sukobu izmjena, povlačenje ovlasti, validaciju i očuvanje identifikatora/kliničkih zapisa. Na stvarnom API-ju potvrđena je revizija sheme i odbijen anonimni poziv izmjene, bez promjene stvarnih pacijenata.

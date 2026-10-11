@@ -621,6 +621,10 @@ export type Database = {
         Args: { patient_id: string; blood_group: string; warnings: string };
         Returns: undefined;
       };
+      update_patient_details: {
+        Args: { patient_id: string; data: Json; expected_data: Json };
+        Returns: undefined;
+      };
       add_patient_allergy: {
         Args: {
           patient_id: string;
