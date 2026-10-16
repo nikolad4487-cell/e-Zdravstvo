@@ -22,7 +22,7 @@ export const priorityContextSchema = z.object({
       shifts: z.array(
         z.object({
           weekday: z.number(),
-          shift: z.enum(["MORNING", "AFTERNOON"]),
+          shift: z.enum(["MORNING", "AFTERNOON", "FULL_DAY"]),
         }),
       ),
     }),

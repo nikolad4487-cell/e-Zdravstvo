@@ -21,3 +21,17 @@ Za test supresije laboratorij/liječnik unosi odobreni protokol. Aplikacija ne p
 ## Provjere
 
 `pnpm run test:lab-booking` provjerava raspored u Europe/Zagreb, fiksni sat, skrivene zauzete termine, uputnice, atomsko spremanje i ponavljanje zahtjeva, zaštitu od zaobilaženja, nepromjenjivost protokola i prava pristupa. `pnpm run test:prescription-catalog` uključuje terapiju i snimljeno pakiranje. Browser testovi pokrivaju laboratorijsko naručivanje na računalu/mobitelu i terapiju. Unit testovi potvrđuju PDF i odvajanje medicinskih uputa od teksta e-maila. Stari PDF renderer čuva identične privitke postojećih zahtjeva pri ponovnom slanju.
+
+## Početna satnica (prema uputi korisnika)
+
+Novi laboratoriji dobivaju pet cjelodnevnih smjena, ponedjeljak–petak 07:00–19:00, i tri pretrage s internim šiframa:
+
+| Pretraga | Uzorkovanje |
+| --- | --- |
+| Redovne laboratorijske pretrage | 07:00–09:30 |
+| Hormoni štitnjače | 07:00–19:00 |
+| Deksametazonski test supresije | 08:00–14:00 |
+
+Vrijeme narudžbe i trajanje moraju u cijelosti stati u prozor uzorkovanja. Uz interval 15 minuta posljednji redovni termin počinje u 09:15, za hormone u 18:45, a za test supresije u 13:45. Kombiniranje pretraga koristi presjek njihovih satnica. Ako se unese i točan sat, mora odgovarati prozoru svih odabranih pretraga. Subota i nedjelja nemaju početne smjene.
+
+Pravila se mogu urediti po laboratoriju i pretrazi. „Dodaj standardne pretrage i satnice” dodaje samo nedostajuće interne šifre, bez prepisivanja postojećih izmjena. Povijesna narudžba zadržava snimljeni vremenski prozor i pri promjeni termina; stari zapisi bez prozora koriste prijašnje ponašanje 07:00–19:00. Ovo su organizacijske satnice aplikacije, a ne automatski medicinski protokol ili doziranje deksametazona.

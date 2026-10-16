@@ -23,6 +23,7 @@ jobs:
       - run: pnpm run test:laboratory
       - run: pnpm run test:priority
       - run: pnpm run test:lab-booking
+      - run: pnpm run test:lab-windows
       - run: pnpm run test:email
       - run: pnpm run test:catalogs
       - run: pnpm run test:hzzo

@@ -42,9 +42,37 @@ export function LaboratoryTestSettings({
       setBusy(false);
     }
   }
+  async function applyDefaults() {
+    setBusy(true);
+    setError("");
+    try {
+      unwrap(
+        await db().rpc("apply_laboratory_sampling_defaults", {
+          service_id: service.id,
+        }),
+      );
+      onSaved();
+    } catch (e) {
+      setError(readableError(e));
+    } finally {
+      setBusy(false);
+    }
+  }
   return (
     <section className="card spaced">
       <h3>Pretrage i protokoli laboratorija</h3>
+      <p>
+        Početna pravila: redovne pretrage 07:00–09:30 · hormoni štitnjače
+        07:00–19:00 · deksametazonski test supresije 08:00–14:00.
+      </p>
+      <button
+        type="button"
+        className="secondary"
+        disabled={busy}
+        onClick={() => void applyDefaults()}
+      >
+        Dodaj standardne pretrage i satnice
+      </button>
       <p>
         Šifra postupka: <strong>{service.procedure_code}</strong>. Pretrage,
         obvezno vrijeme uzorkovanja i pisane upute održava odgovorno osoblje
@@ -94,6 +122,20 @@ export function LaboratoryTestSettings({
             defaultValue={test?.name}
           />
           <Field
+            name="sampling_from"
+            label="Uzorkovanje od"
+            type="time"
+            required
+            defaultValue={test?.sampling_from?.slice(0, 5) ?? "07:00"}
+          />
+          <Field
+            name="sampling_until"
+            label="Uzorkovanje do"
+            type="time"
+            required
+            defaultValue={test?.sampling_until?.slice(0, 5) ?? "19:00"}
+          />
+          <Field
             name="required_time"
             label="Obvezno vrijeme uzorkovanja (ako je određeno)"
             type="time"
@@ -118,9 +160,9 @@ export function LaboratoryTestSettings({
           </div>
         </div>
         <p className="note-text">
-          Bez obveznog sata nude se termini prema smjeni. Za bazalni kortizol u
-          08:00 unesite 08:00 i postavite jutarnju smjenu. Pretrage s različitim
-          obveznim satima naručuju se odvojeno.
+          Termini moraju u cijelosti stati u razdoblje uzorkovanja i smjenu. Za
+          bazalni kortizol u 08:00 unesite 08:00 i postavite jutarnju smjenu.
+          Pretrage s različitim obveznim satima naručuju se odvojeno.
         </p>
         <h4>Povezani koraci i priprema</h4>
         <p className="note-text">

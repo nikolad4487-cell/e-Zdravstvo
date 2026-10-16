@@ -27,6 +27,8 @@ export interface BookingPdfDetails {
         code: string;
         name: string;
         instructions: string;
+        sampling_from?: string;
+        sampling_until?: string;
         steps: {
           day_offset: number;
           time: string;
@@ -307,6 +309,11 @@ export async function bookingPdf(details: BookingPdfDetails) {
     paragraph("PRETRAGE I UPUTE LABORATORIJA", 11, true);
     for (const test of data.laboratory.tests) {
       paragraph(`${test.code} · ${test.name}`, 10, true);
+      if (test.sampling_from && test.sampling_until)
+        paragraph(
+          `Uzorkovanje: ${test.sampling_from.slice(0, 5)}–${test.sampling_until.slice(0, 5)}`,
+          9,
+        );
       if (test.instructions) paragraph(test.instructions, 9);
       for (const step of test.steps) {
         const parts = new Intl.DateTimeFormat("sv-SE", {

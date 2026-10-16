@@ -19,6 +19,7 @@ const days = [
   "Nedjelja",
 ];
 const shifts = {
+  FULL_DAY: "Cijeli dan · 07:00–19:00",
   MORNING: "Jutro · 07:00–13:30",
   AFTERNOON: "Poslijepodne · 13:30–19:00",
 };
@@ -392,6 +393,9 @@ export function HospitalClinicsPage() {
                   ))}
                 </Field>
                 <Field name="shift" label="Smjena">
+                  {clinic.booking_kind === "LABORATORY" && (
+                    <option value="FULL_DAY">Cijeli dan · 07:00–19:00</option>
+                  )}
                   <option value="MORNING">Jutro · 07:00–13:30</option>
                   <option value="AFTERNOON">Poslijepodne · 13:30–19:00</option>
                   <option value="">Ne radi / ukloni smjenu</option>

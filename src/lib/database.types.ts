@@ -46,6 +46,10 @@ export type Database = {
         Returns: Json;
       };
       medical_code_source: { Args: { catalog_id: string }; Returns: Json };
+      apply_laboratory_sampling_defaults: {
+        Args: { service_id: string };
+        Returns: undefined;
+      };
       configure_hospital_laboratory: {
         Args: { service_id: string; procedure_code: string };
         Returns: undefined;

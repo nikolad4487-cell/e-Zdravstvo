@@ -10,6 +10,8 @@ export const laboratoryTestSchema = z.object({
   code: z.string(),
   name: z.string(),
   required_time: z.string().nullable(),
+  sampling_from: z.string().optional(),
+  sampling_until: z.string().optional(),
   instructions: z.string(),
   steps: z.array(laboratoryStepSchema),
   active: z.boolean().optional(),
@@ -20,6 +22,8 @@ export const laboratoryDetailsSchema = z.object({
   service_name: z.string(),
   sampling_method: z.enum(["VENIPUNCTURE", "CANNULA", "OTHER"]),
   required_time: z.string().nullable(),
+  sampling_from: z.string().optional(),
+  sampling_until: z.string().optional(),
   tests: z.array(laboratoryTestSchema),
 });
 export const hospitalServiceSchema = z.object({

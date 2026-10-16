@@ -1,3 +1,4 @@
+import { laboratorySlotAllowed } from "../../utils/laboratory";
 import { useState } from "react";
 import { PriorityHospitalBooking } from "./PriorityHospitalBooking";
 import { hospitalEmailStatusMessage } from "../../services/priorityHospital";
@@ -618,12 +619,11 @@ function BookHospital({
                     ?.filter(
                       (s) =>
                         (priority || !s.priority_only) &&
-                        (!reschedule?.laboratory_details?.required_time ||
-                          zagrebTime(s.starts_at) ===
-                            reschedule.laboratory_details.required_time.slice(
-                              0,
-                              5,
-                            )),
+                        laboratorySlotAllowed(
+                          reschedule?.laboratory_details,
+                          s.starts_at,
+                          s.duration_minutes,
+                        ),
                     )
                     .map((s) => (
                       <button
@@ -644,12 +644,11 @@ function BookHospital({
                 {!slots.data?.filter(
                   (s) =>
                     (priority || !s.priority_only) &&
-                    (!reschedule?.laboratory_details?.required_time ||
-                      zagrebTime(s.starts_at) ===
-                        reschedule.laboratory_details.required_time.slice(
-                          0,
-                          5,
-                        )),
+                    laboratorySlotAllowed(
+                      reschedule?.laboratory_details,
+                      s.starts_at,
+                      s.duration_minutes,
+                    ),
                 ).length && (
                   <p className="empty-state">
                     Nema slobodnih termina. Promijenite razdoblje ili uslugu.

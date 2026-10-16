@@ -321,7 +321,9 @@ export function PriorityHospitalBooking({
                           clearTime();
                         }}
                       />{" "}
-                      {t.name}
+                      {t.name} ·{" "}
+                      {`${t.sampling_from?.slice(0, 5) ?? "07:00"}–${t.sampling_until?.slice(0, 5) ?? "19:00"}`}{" "}
+                      ·{" "}
                       {t.required_time
                         ? ` · obvezno u ${t.required_time.slice(0, 5)}`
                         : ""}
@@ -368,7 +370,9 @@ export function PriorityHospitalBooking({
                   {chosen.location} · {chosen.specialty}
                 </p>
                 <p className="note-text">
-                  Europe/Zagreb · jutro 07:00–13:30, poslijepodne 13:30–19:00.
+                  {chosen.booking_kind === "LABORATORY"
+                    ? "Europe/Zagreb · laboratorij 07:00–19:00, prema danima rada i satnici odabranih pretraga."
+                    : "Europe/Zagreb · jutro 07:00–13:30, poslijepodne 13:30–19:00."}{" "}
                   Prikazuje se sljedećih 31 dan.
                 </p>
                 {slots.loading ? (
