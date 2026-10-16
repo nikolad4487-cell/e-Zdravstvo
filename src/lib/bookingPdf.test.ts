@@ -1,3 +1,4 @@
+import { bookingPdf as previousBookingPdf } from "../../supabase/functions/notifications-dispatch/booking-pdf-v2";
 import { describe, expect, it, vi } from "vitest";
 import { bookingPdf as legacyBookingPdf } from "../../supabase/functions/notifications-dispatch/booking-pdf-v1";
 import { PDFDocument } from "pdf-lib";
@@ -104,6 +105,53 @@ describe("booking PDF attachments", () => {
       expect(body.text).not.toContain(sensitive);
     }
     expect(body.attachments).toHaveLength(1);
+  });
+  it("preserves previous laboratory snapshot bytes and renders new CEZIH specimens deterministically", async () => {
+    const old = {
+      ...details,
+      pdfDetails: {
+        ...details.pdfDetails,
+        laboratory: {
+          procedure_code: "VVK",
+          service_name: "Testna laboratorijska usluga",
+          sampling_method: "VENIPUNCTURE",
+          tests: [
+            {
+              code: "LOCAL-TEST",
+              name: "Testna pretraga",
+              instructions: "Testna uputa",
+              steps: [],
+            },
+          ],
+        },
+      },
+    };
+    expect(await bookingPdf(old)).toEqual(await previousBookingPdf(old));
+    const current = {
+      ...old,
+      pdfDetails: {
+        ...old.pdfDetails,
+        laboratory: {
+          ...old.pdfDetails.laboratory,
+          procedure_code: "",
+          specimens: [{ code: "00", name: "Kapilarna krv" }],
+          tests: [
+            {
+              code: "35510-10",
+              catalog_list: "2.2.30",
+              name: "S - TSH",
+              instructions: "Testna uputa",
+              steps: [],
+            },
+          ],
+        },
+      },
+    };
+    const bytes = await bookingPdf(current);
+    expect(await bookingPdf(current)).toEqual(bytes);
+    expect(
+      (await PDFDocument.load(bytes)).getPageCount(),
+    ).toBeGreaterThanOrEqual(1);
   });
   it.each([
     ["BOOKED", "narudzba"],

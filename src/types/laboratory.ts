@@ -3,7 +3,9 @@ export const labParameterSchema = z.object({
   id: z.string(),
   code: z.string(),
   name: z.string(),
-  value: z.number(),
+  value: z.number().nullable(),
+  text_value: z.string().nullable().optional(),
+  catalog_list: z.string().nullable().optional(),
   unit: z.string(),
   reference_low: z.number().nullable(),
   reference_high: z.number().nullable(),
@@ -30,6 +32,13 @@ export const labOrderSchema = z.object({
   doctor_name: z.string(),
   laboratory_name: z.string(),
   requested_tests: z.string(),
+  catalog_details: z
+    .object({
+      orders: z.array(z.object({ code: z.string(), name: z.string() })),
+      specimens: z.array(z.object({ code: z.string(), name: z.string() })),
+    })
+    .nullable()
+    .optional(),
   clinical_question: z.string(),
   priority: z.enum(["REGULAR", "URGENT"]),
   status: z.enum(["ORDERED", "IN_PROGRESS", "COMPLETED", "CANCELLED"]),

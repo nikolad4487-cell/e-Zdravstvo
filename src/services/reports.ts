@@ -123,7 +123,7 @@ export async function downloadLabResult(id: string) {
       },
       ...r.result.parameters.map((p) => ({
         label: p.code + " · " + p.name,
-        text: `${p.value} ${p.unit}\nReferentni interval: ${p.reference_low ?? "—"} – ${p.reference_high ?? "—"} ${p.unit}\n${p.flag ? labFlagLabels[p.flag] : "Bez oznake urednosti"}`,
+        text: `${p.value ?? p.text_value ?? ""} ${p.unit}\nReferentni interval: ${p.reference_low ?? "—"} – ${p.reference_high ?? "—"} ${p.unit}\n${p.flag ? labFlagLabels[p.flag] : "Bez oznake urednosti"}`,
       })),
       { label: "Komentar", text: r.result.summary },
       ...(r.result.correction_reason

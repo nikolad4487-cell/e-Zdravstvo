@@ -17,6 +17,7 @@ export const medicalCodeSchema = z.object({
   source_page: z.number().nullable().optional(),
   metadata: z.record(z.string(), z.unknown()).optional(),
 });
+export type MedicalCode = z.infer<typeof medicalCodeSchema>;
 export async function searchDiagnosisCodes(term = "", page = 0) {
   return z.array(diagnosisCodeSchema).parse(
     unwrap(

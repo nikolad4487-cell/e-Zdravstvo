@@ -42,6 +42,22 @@ export function LaboratoryTestSettings({
       setBusy(false);
     }
   }
+  async function importCezih() {
+    setBusy(true);
+    setError("");
+    try {
+      unwrap(
+        await db().rpc("apply_cezih_laboratory_catalog", {
+          service_id: service.id,
+        }),
+      );
+      onSaved();
+    } catch (e) {
+      setError(readableError(e));
+    } finally {
+      setBusy(false);
+    }
+  }
   async function applyDefaults() {
     setBusy(true);
     setError("");
@@ -73,11 +89,24 @@ export function LaboratoryTestSettings({
       >
         Dodaj standardne pretrage i satnice
       </button>
+      <button
+        type="button"
+        className="secondary spaced"
+        disabled={busy}
+        onClick={() => void importCezih()}
+      >
+        Uvezi CEZIH pretrage (43)
+      </button>
       <p>
-        Šifra postupka: <strong>{service.procedure_code}</strong>. Pretrage,
-        obvezno vrijeme uzorkovanja i pisane upute održava odgovorno osoblje
-        laboratorija. Šifra pretrage može biti interna; ne predstavlja
-        automatski službenu šifru HZZO-a.
+        Šifre naručivanja su iz liste 2.2.30 dostavljene specifikacije (revizija
+        2023-07-12). OGTT zahtijeva postavljanje protokola prije aktivacije.
+      </p>
+      <p>
+        Oznaka usluge (ako je unesena):{" "}
+        <strong>{service.procedure_code}</strong>. Pretrage, obvezno vrijeme
+        uzorkovanja i pisane upute održava odgovorno osoblje laboratorija. Šifra
+        pretrage može biti interna; ne predstavlja automatski službenu šifru
+        HZZO-a.
       </p>
       <Field
         name="laboratory_test_selection"
@@ -106,21 +135,38 @@ export function LaboratoryTestSettings({
         className="spaced"
       >
         <div className="form-grid">
-          <Field
-            name="code"
-            label="Šifra pretrage"
-            required
-            maxLength={40}
-            defaultValue={test?.code}
-          />
-          <Field
-            name="name"
-            label="Naziv pretrage / protokola"
-            required
-            minLength={2}
-            maxLength={200}
-            defaultValue={test?.name}
-          />
+          {test?.catalog_list === "2.2.30" ? (
+            <div className="field-full">
+              <strong>
+                {test.code} · {test.name}
+              </strong>
+              <p>
+                CEZIH 2.2.30 · naziv i šifra preuzimaju se iz izvora. Satnicu,
+                protokol i dostupnost možete urediti.
+              </p>
+              <input type="hidden" name="code" value={test.code} />
+              <input type="hidden" name="name" value={test.name} />
+            </div>
+          ) : (
+            <>
+              {" "}
+              <Field
+                name="code"
+                label="Šifra pretrage"
+                required
+                maxLength={40}
+                defaultValue={test?.code}
+              />
+              <Field
+                name="name"
+                label="Naziv pretrage / protokola"
+                required
+                minLength={2}
+                maxLength={200}
+                defaultValue={test?.name}
+              />
+            </>
+          )}
           <Field
             name="sampling_from"
             label="Uzorkovanje od"

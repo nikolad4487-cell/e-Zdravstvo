@@ -35,3 +35,17 @@ Novi laboratoriji dobivaju pet cjelodnevnih smjena, ponedjeljak–petak 07:00–
 Vrijeme narudžbe i trajanje moraju u cijelosti stati u prozor uzorkovanja. Uz interval 15 minuta posljednji redovni termin počinje u 09:15, za hormone u 18:45, a za test supresije u 13:45. Kombiniranje pretraga koristi presjek njihovih satnica. Ako se unese i točan sat, mora odgovarati prozoru svih odabranih pretraga. Subota i nedjelja nemaju početne smjene.
 
 Pravila se mogu urediti po laboratoriju i pretrazi. „Dodaj standardne pretrage i satnice” dodaje samo nedostajuće interne šifre, bez prepisivanja postojećih izmjena. Povijesna narudžba zadržava snimljeni vremenski prozor i pri promjeni termina; stari zapisi bez prozora koriste prijašnje ponašanje 07:00–19:00. Ovo su organizacijske satnice aplikacije, a ne automatski medicinski protokol ili doziranje deksametazona.
+
+## CEZIH pretrage iz dostavljenog PDF-a
+
+U operativne obrasce povezane su odvojene liste 2.2.30 (43 šifre naručivanja), 2.2.31 (113 šifara rezultata) i 2.2.18 (11 vrsta uzoraka). Izvor je dostavljena specifikacija s otisnutom revizijom RevBE 2023-07-12; ovo nije potvrda aktualnog CEZIH izdanja niti stvarna CEZIH integracija. Šifre 00–10 ostaju tekst. Ne uvodi se pretpostavljeno preslikavanje narudžbe u šifru rezultata ili epruvetu.
+
+Novi laboratoriji dobivaju 43 pretrage naručivanja. Tri stavke s vremenskim točkama (23301-10, 23301-20 i 23301-30) početno su neaktivne za rezervaciju termina dok laboratorij ne potvrdi protokol/trajanje; svih 43 dostupno je za zahtjev laboratoriju. TSH 35510-10 koristi satnicu hormona, a ostale početnu redovnu satnicu. Generički lokalni predlošci redovnih pretraga i hormona se pauziraju; ranije narudžbe čuvaju snimljeni sadržaj. Deksametazonski test ostaje lokalni protokol jer ga PDF ne šifrira. Zajednička usluga više ne koristi nepotvrđenu univerzalnu oznaku VVK/VKK.
+
+U **Bolnički odjeli, ambulante i laboratoriji → Uvezi CEZIH pretrage (43)** ovlašteni administrator/odgovorni liječnik može dodati nedostajuće pretrage. Ponovni uvoz ne prepisuje postavljene satnice ili protokole. Odabrane službene šifre i nazivi provjeravaju se na serveru; korisnik uređuje satnicu, upute i dostupnost.
+
+U naručivanju je dostupna pretraga po nazivu/šifri i odvojeni višestruki izbor vrsta uzoraka. U **Laboratorij → Nova laboratorijska narudžba** može se birati svih 43 šifre ili koristiti slobodan unos za pretrage izvan ovog izvora. Uzorci su snimljeni u narudžbi i PDF potvrdi.
+
+U obrascu nalaza tehničar pretražuje svih 113 šifara rezultata uz paginaciju; server potvrđuje naziv/jedinicu iz izvora. Podržani su brojčani i tekstualni nalazi (npr. napomene). Tekstualne vrijednosti ostaju tekst u prikazu i PDF-u i nisu uključene u brojčane trendove. Referentne vrijednosti i odluke o kritičnim nalazima unosi ovlašteni laboratorij. Raniji nalazi i već pokušani PDF privici ne mijenjaju se.
+
+Dodatno je uspoređen PDF `Specifikacija_kodnih_lista_Rev_F20110628.pdf` (otisnuti datum 2011-06-28): u pregledanim laboratorijskim tablicama ima istih 11 vrsta uzoraka, 37 šifara naručivanja i 107 šifara rezultata. Sve pronađene šifre tog starijeg izvora postoje u dostavljenom izdanju iz 2023.; stariji PDF nije zamijenio operativne podatke.

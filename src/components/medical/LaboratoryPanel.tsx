@@ -1,3 +1,5 @@
+import { MedicalCodePicker } from "./MedicalCodePicker";
+import { LaboratoryParameterFields } from "./LaboratoryParameterFields";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useResource } from "../../hooks/useResource";
@@ -263,6 +265,14 @@ export function LaboratoryPanel({
                 {dateLabel(o.birth_date)}
               </p>
               <p>{o.requested_tests}</p>
+              {o.catalog_details?.specimens?.length ? (
+                <p>
+                  Uzorci:{" "}
+                  {o.catalog_details.specimens
+                    .map((s) => s.code + " · " + s.name)
+                    .join(", ")}
+                </p>
+              ) : null}
               <p className="note-text">
                 {o.laboratory_name} · {o.doctor_name} ·{" "}
                 {dateLabel(o.created_at)}
@@ -471,7 +481,7 @@ function LabResultView({
                   {p.code} · {p.name}
                 </td>
                 <td>
-                  <strong>{p.value}</strong>
+                  <strong>{p.value ?? p.text_value}</strong>
                 </td>
                 <td>{p.unit}</td>
                 <td>
@@ -504,6 +514,8 @@ function LabOrderEditor({
   onClose: () => void;
   onSaved: () => void;
 }) {
+  const [catalogCodes, setCatalogCodes] = useState<string[]>([]),
+    [specimenCodes, setSpecimenCodes] = useState<string[]>([]);
   const labs = useResource(getLaboratories, "labs"),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
@@ -514,7 +526,15 @@ function LabOrderEditor({
     setError("");
     const data = values(e.currentTarget);
     try {
-      await orderLaboratory(patientId, data, requestId);
+      await orderLaboratory(
+        patientId,
+        {
+          ...data,
+          catalog_order_codes: catalogCodes,
+          specimen_codes: specimenCodes,
+        },
+        requestId,
+      );
       onSaved();
     } catch (e) {
       setError(readableError(e));
@@ -538,14 +558,30 @@ function LabOrderEditor({
             <option value="REGULAR">Redovno</option>
             <option value="URGENT">Hitno</option>
           </Field>
-          <Field
-            name="requested_tests"
-            label="Tražene pretrage"
-            type="textarea"
-            required
-            minLength={2}
-            maxLength={2000}
+          <MedicalCodePicker
+            list="2.2.30"
+            name="catalog_order_codes"
+            label="Pretrage za naručivanje (CEZIH)"
+            multiple
+            onSelected={(items) => setCatalogCodes(items.map((c) => c.code))}
           />
+          <MedicalCodePicker
+            list="2.2.18"
+            name="specimen_codes"
+            label="Vrste uzoraka (CEZIH)"
+            multiple
+            onSelected={(items) => setSpecimenCodes(items.map((c) => c.code))}
+          />
+          {!catalogCodes.length && (
+            <Field
+              name="requested_tests"
+              label="Tražene pretrage (slobodan unos)"
+              type="textarea"
+              required
+              minLength={2}
+              maxLength={2000}
+            />
+          )}
           <Field
             name="clinical_question"
             label="Kliničko pitanje za laboratorij"
@@ -602,6 +638,9 @@ function LabResultEditor({
         name: data["name_" + i],
         value: data["value_" + i],
         unit: data["unit_" + i],
+        catalog_list: data["catalog_list_" + i],
+        value_kind: data["value_kind_" + i],
+        text_value: data["text_value_" + i],
         reference_low: data["low_" + i],
         reference_high: data["high_" + i],
         critical: data["critical_" + i] === "true",
@@ -669,61 +708,7 @@ function LabResultEditor({
                   </button>
                 )}
               </div>
-              <div className="form-grid">
-                <Field
-                  name={"code_" + i}
-                  label="Šifra parametra"
-                  required
-                  maxLength={40}
-                  defaultValue={p?.code}
-                />
-                <Field
-                  name={"name_" + i}
-                  label="Naziv parametra"
-                  required
-                  maxLength={150}
-                  defaultValue={p?.name}
-                />
-                <Field
-                  name={"value_" + i}
-                  label="Izmjerena vrijednost"
-                  type="number"
-                  step="any"
-                  required
-                  min={-1e12}
-                  max={1e12}
-                  defaultValue={p?.value}
-                />
-                <Field
-                  name={"unit_" + i}
-                  label="Jedinica"
-                  maxLength={50}
-                  defaultValue={p?.unit}
-                />
-                <Field
-                  name={"low_" + i}
-                  label="Referentna donja granica"
-                  type="number"
-                  step="any"
-                  defaultValue={p?.reference_low ?? undefined}
-                />
-                <Field
-                  name={"high_" + i}
-                  label="Referentna gornja granica"
-                  type="number"
-                  step="any"
-                  defaultValue={p?.reference_high ?? undefined}
-                />
-                <label>
-                  <input
-                    type="checkbox"
-                    name={"critical_" + i}
-                    value="true"
-                    defaultChecked={p?.flag === "CRITICAL"}
-                  />{" "}
-                  Označi kao kritičan rezultat
-                </label>
-              </div>
+              <LaboratoryParameterFields index={i} previous={p} />
             </section>
           );
         })}

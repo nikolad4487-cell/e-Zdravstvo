@@ -154,8 +154,10 @@ export function HospitalBookings({
                 {b.laboratory_details && (
                   <details className="spaced">
                     <summary>
-                      {b.laboratory_details.procedure_code} · Odabrane pretrage
-                      i priprema
+                      {b.laboratory_details.procedure_code
+                        ? b.laboratory_details.procedure_code + " · "
+                        : ""}
+                      Odabrane pretrage i priprema
                     </summary>
                     <p>
                       {b.laboratory_details.service_name} ·{" "}

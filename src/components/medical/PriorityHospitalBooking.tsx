@@ -1,3 +1,4 @@
+import { MedicalCodePicker } from "./MedicalCodePicker";
 import { DiagnosisPicker } from "./DiagnosisPicker";
 import { ReferenceCodeField } from "./ReferenceCodeField";
 import { useState } from "react";
@@ -29,6 +30,8 @@ export function PriorityHospitalBooking({
   onClose: () => void;
   onSaved: (message: string) => void;
 }) {
+  const [specimenCodes, setSpecimenCodes] = useState<string[]>([]),
+    [testSearch, setTestSearch] = useState("");
   const [bookingKind, setBookingKind] = useState("SPECIALIST"),
     [testIds, setTestIds] = useState<string[]>([]),
     [samplingMethod, setSamplingMethod] = useState("VENIPUNCTURE");
@@ -132,7 +135,11 @@ export function PriorityHospitalBooking({
                 : "book_priority_hospital",
               {
                 ...(bookingKind === "LABORATORY"
-                  ? { test_ids: testIds, sampling_method: samplingMethod }
+                  ? {
+                      test_ids: testIds,
+                      sampling_method: samplingMethod,
+                      specimen_codes: specimenCodes,
+                    }
                   : {}),
                 patient_id: patientId,
                 service_id: chosen.id,
@@ -199,6 +206,7 @@ export function PriorityHospitalBooking({
                 setDepartment("");
                 setService("");
                 setTestIds([]);
+                setSpecimenCodes([]);
                 setSource("EXISTING");
                 clearTime();
               }}
@@ -217,6 +225,7 @@ export function PriorityHospitalBooking({
                   setDepartment("");
                   setService("");
                   setTestIds([]);
+                  setSpecimenCodes([]);
                   clearTime();
                 }}
               >
@@ -236,6 +245,7 @@ export function PriorityHospitalBooking({
                   setDepartment(e.target.value);
                   setService("");
                   setTestIds([]);
+                  setSpecimenCodes([]);
                   clearTime();
                 }}
               >
@@ -260,6 +270,7 @@ export function PriorityHospitalBooking({
                 onChange={(e) => {
                   setService(e.target.value);
                   setTestIds([]);
+                  setSpecimenCodes([]);
                   clearTime();
                 }}
               >
@@ -267,7 +278,7 @@ export function PriorityHospitalBooking({
                 {services.map((s) => (
                   <option key={s.id} value={s.id}>
                     {bookingKind === "LABORATORY"
-                      ? `${s.procedure_code} · ${s.name}`
+                      ? `${s.procedure_code ? s.procedure_code + " · " : ""}${s.name}`
                       : `${s.doctor_name} · ${s.name}`}
                   </option>
                 ))}
@@ -299,10 +310,24 @@ export function PriorityHospitalBooking({
               <section className="card spaced">
                 <h3>Pretrage i način uzimanja uzorka</h3>
                 <p>
-                  {chosen.procedure_code} · {chosen.name}
+                  {chosen.procedure_code ? chosen.procedure_code + " · " : ""}
+                  {chosen.name}
                 </p>
+                <input
+                  type="search"
+                  aria-label="Traži laboratorijsku pretragu"
+                  placeholder="Naziv ili CEZIH šifra pretrage…"
+                  value={testSearch}
+                  onChange={(e) => setTestSearch(e.target.value)}
+                />
                 {chosen.laboratory_tests
-                  .filter((t) => t.active !== false)
+                  .filter(
+                    (t) =>
+                      t.active !== false &&
+                      (t.code + " " + t.name)
+                        .toLocaleLowerCase("hr")
+                        .includes(testSearch.toLocaleLowerCase("hr")),
+                  )
                   .map((t) => (
                     <label
                       className="clinical-note"
@@ -321,6 +346,7 @@ export function PriorityHospitalBooking({
                           clearTime();
                         }}
                       />{" "}
+                      {t.catalog_list ? `(${t.code}) ` : ""}
                       {t.name} ·{" "}
                       {`${t.sampling_from?.slice(0, 5) ?? "07:00"}–${t.sampling_until?.slice(0, 5) ?? "19:00"}`}{" "}
                       ·{" "}
@@ -332,6 +358,15 @@ export function PriorityHospitalBooking({
                 {!chosen.laboratory_tests.length && (
                   <p>Laboratorij treba postaviti pretrage prije naručivanja.</p>
                 )}
+                <MedicalCodePicker
+                  list="2.2.18"
+                  name="specimen_codes"
+                  label="Vrsta uzorka (CEZIH)"
+                  multiple
+                  onSelected={(items) =>
+                    setSpecimenCodes(items.map((i) => i.code))
+                  }
+                />
                 <Field
                   name="sampling_method"
                   label="Način uzimanja uzorka"

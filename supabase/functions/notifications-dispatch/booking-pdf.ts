@@ -1,3 +1,4 @@
+import { bookingPdf as previousBookingPdf } from "./booking-pdf-v2.ts";
 import { bookingPdf as legacyBookingPdf } from "./booking-pdf-v1.ts";
 import { PDFDocument, rgb } from "pdf-lib";
 import fontkit from "@pdf-lib/fontkit";
@@ -23,8 +24,10 @@ export interface BookingPdfDetails {
       procedure_code: string;
       service_name: string;
       sampling_method: string;
+      specimens?: { code: string; name: string }[];
       tests: {
         code: string;
+        catalog_list?: string | null;
         name: string;
         instructions: string;
         sampling_from?: string;
@@ -59,6 +62,11 @@ const fontBytes = Uint8Array.from(atob(BOOKING_FONT_BASE64), (c) =>
 /** Only immutable database snapshots reach this renderer; no clinical free text. */
 export async function bookingPdf(details: BookingPdfDetails) {
   if (!details.pdfDetails?.laboratory) return legacyBookingPdf(details);
+  if (
+    !("specimens" in details.pdfDetails.laboratory) &&
+    !details.pdfDetails.laboratory.tests.some((t) => "catalog_list" in t)
+  )
+    return previousBookingPdf(details);
   const pdf = await PDFDocument.create();
   pdf.registerFontkit(fontkit);
   const font = await pdf.embedFont(fontBytes);
@@ -286,7 +294,8 @@ export async function bookingPdf(details: BookingPdfDetails) {
     "Zdravstvena usluga:",
     data.laboratory?.service_name || details.kind || "Pregled",
   );
-  if (data.laboratory) field("Šifra postupka:", data.laboratory.procedure_code);
+  if (data.laboratory?.procedure_code)
+    field("Oznaka usluge:", data.laboratory.procedure_code);
   else field("Šifra postupka:");
   field("Datum narudžbe:", data.bookedAt ? date(data.bookedAt) : null);
   field(
@@ -306,6 +315,14 @@ export async function bookingPdf(details: BookingPdfDetails) {
           ? "Venska krv – venepunkcija"
           : "Prema protokolu laboratorija",
     );
+    if (data.laboratory.specimens?.length)
+      paragraph(
+        "Vrste uzoraka: " +
+          data.laboratory.specimens
+            .map((s) => s.code + " · " + s.name)
+            .join(", "),
+        9,
+      );
     paragraph("PRETRAGE I UPUTE LABORATORIJA", 11, true);
     for (const test of data.laboratory.tests) {
       paragraph(`${test.code} · ${test.name}`, 10, true);

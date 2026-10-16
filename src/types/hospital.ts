@@ -8,6 +8,7 @@ export const laboratoryStepSchema = z.object({
 export const laboratoryTestSchema = z.object({
   id: z.string(),
   code: z.string(),
+  catalog_list: z.string().nullable().optional(),
   name: z.string(),
   required_time: z.string().nullable(),
   sampling_from: z.string().optional(),
@@ -25,6 +26,9 @@ export const laboratoryDetailsSchema = z.object({
   sampling_from: z.string().optional(),
   sampling_until: z.string().optional(),
   tests: z.array(laboratoryTestSchema),
+  specimens: z
+    .array(z.object({ code: z.string(), name: z.string() }))
+    .optional(),
 });
 export const hospitalServiceSchema = z.object({
   id: z.string(),

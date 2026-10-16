@@ -46,6 +46,10 @@ export type Database = {
         Returns: Json;
       };
       medical_code_source: { Args: { catalog_id: string }; Returns: Json };
+      apply_cezih_laboratory_catalog: {
+        Args: { service_id: string };
+        Returns: number;
+      };
       apply_laboratory_sampling_defaults: {
         Args: { service_id: string };
         Returns: undefined;
@@ -90,6 +94,7 @@ export type Database = {
           priority_reason: string;
           request_id: string;
           test_ids: string[];
+          specimen_codes?: string[];
           sampling_method: string;
         };
         Returns: Json;

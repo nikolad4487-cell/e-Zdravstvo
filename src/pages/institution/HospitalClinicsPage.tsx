@@ -74,7 +74,7 @@ export function HospitalClinicsPage() {
           data.booking_kind === "LABORATORY"
             ? await db().rpc("create_hospital_laboratory", {
                 ...serviceData,
-                procedure_code: data.procedure_code,
+                procedure_code: data.procedure_code || "",
               })
             : await db().rpc("create_priority_hospital_service", serviceData),
         );
@@ -233,9 +233,9 @@ export function HospitalClinicsPage() {
                 </Field>
                 <Field
                   name="procedure_code"
-                  label="Šifra laboratorijskog postupka (npr. VVK)"
+                  label="Oznaka laboratorijske usluge (opcionalno)"
                   maxLength={40}
-                  defaultValue="VVK"
+                  defaultValue=""
                 />
                 <Field name="doctor_id" label="Specijalist bolnice" required>
                   <option value="">Odaberite specijalista</option>
