@@ -1,10 +1,35 @@
 import { z } from "zod";
+export const laboratoryStepSchema = z.object({
+  day_offset: z.number(),
+  time: z.string(),
+  label: z.string(),
+  instructions: z.string().optional(),
+});
+export const laboratoryTestSchema = z.object({
+  id: z.string(),
+  code: z.string(),
+  name: z.string(),
+  required_time: z.string().nullable(),
+  instructions: z.string(),
+  steps: z.array(laboratoryStepSchema),
+  active: z.boolean().optional(),
+});
+export const laboratoryDetailsSchema = z.object({
+  service_id: z.string(),
+  procedure_code: z.string(),
+  service_name: z.string(),
+  sampling_method: z.enum(["VENIPUNCTURE", "CANNULA", "OTHER"]),
+  required_time: z.string().nullable(),
+  tests: z.array(laboratoryTestSchema),
+});
 export const hospitalServiceSchema = z.object({
   id: z.string(),
   institution_id: z.string(),
   doctor_id: z.string(),
   name: z.string(),
   specialty: z.string(),
+  booking_kind: z.enum(["SPECIALIST", "LABORATORY"]).default("SPECIALIST"),
+  procedure_code: z.string().default(""),
   location: z.string(),
   instructions: z.string(),
   active: z.boolean(),
@@ -38,6 +63,7 @@ export const hospitalBookingSchema = z.object({
   referral_id: z.string().nullable(),
   priority: z.boolean(),
   priority_reason: z.string(),
+  laboratory_details: laboratoryDetailsSchema.nullable().optional(),
   status: z.enum(["BOOKED", "ARRIVED", "COMPLETED", "CANCELLED", "NO_SHOW"]),
   version: z.number(),
   cancellation_reason: z.string().nullable(),

@@ -11,7 +11,7 @@ export function MedicationPicker({
   onSelected,
 }: {
   name: string;
-  onSelected: (medication: PrescriptionMedication | undefined) => void;
+  onSelected?: (medication: PrescriptionMedication | undefined) => void;
 }) {
   const id = useId();
   const [search, setSearch] = useState("");
@@ -53,7 +53,7 @@ export function MedicationPicker({
         onChange={(e) => {
           const m = options.find((m) => m.id === e.target.value);
           setSelected(m);
-          onSelected(m);
+          onSelected?.(m);
         }}
       >
         <option value="">Odaberite lijek i točno pakiranje</option>

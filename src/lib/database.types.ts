@@ -46,6 +46,50 @@ export type Database = {
         Returns: Json;
       };
       medical_code_source: { Args: { catalog_id: string }; Returns: Json };
+      configure_hospital_laboratory: {
+        Args: { service_id: string; procedure_code: string };
+        Returns: undefined;
+      };
+      save_hospital_laboratory_test: {
+        Args: { service_id: string; test_id: string | null; data: Json };
+        Returns: string;
+      };
+      create_hospital_laboratory: {
+        Args: {
+          department_id: string;
+          doctor_id: string;
+          name: string;
+          specialty: string;
+          location: string;
+          instructions: string;
+          procedure_code: string;
+        };
+        Returns: string;
+      };
+      priority_laboratory_slots: {
+        Args: {
+          patient_id: string;
+          service_id: string;
+          test_ids: string[];
+          date_from: string;
+          date_to: string;
+        };
+        Returns: Json;
+      };
+      book_priority_laboratory: {
+        Args: {
+          patient_id: string;
+          service_id: string;
+          starts_at: string;
+          referral_id: string | null;
+          new_referral: Json | null;
+          priority_reason: string;
+          request_id: string;
+          test_ids: string[];
+          sampling_method: string;
+        };
+        Returns: Json;
+      };
       priority_hospital_context: { Args: { manage: boolean }; Returns: Json };
       create_priority_hospital_service: {
         Args: {

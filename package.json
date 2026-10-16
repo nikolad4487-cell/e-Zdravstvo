@@ -31,7 +31,8 @@
     "import:catalogs": "node scripts/import-medical-catalogs.mjs",
     "import:hzzo": "node scripts/import-hzzo-catalogs.mjs",
     "test:hzzo": "node scripts/test-hzzo-catalogs.mjs",
-    "test:prescription-catalog": "node scripts/test-prescription-catalog.mjs"
+    "test:prescription-catalog": "node scripts/test-prescription-catalog.mjs",
+    "test:lab-booking": "node scripts/test-laboratory-booking.mjs"
   },
   "dependencies": {
     "@pdf-lib/fontkit": "^1.1.1",

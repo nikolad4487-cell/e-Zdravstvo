@@ -280,7 +280,7 @@ export function PatientRecordPage() {
                 .map((t) => (
                   <div className="clinical-note" key={t.id}>
                     <strong>
-                      {t.name} · {t.strength}
+                      {t.name} · {t.packaging || t.strength}
                     </strong>
                     <p className="note-text">
                       {t.dosage} · {t.frequency}

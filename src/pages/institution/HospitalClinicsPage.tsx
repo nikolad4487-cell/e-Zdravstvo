@@ -1,3 +1,4 @@
+import { LaboratoryTestSettings } from "../../components/medical/LaboratoryTestSettings";
 import { useState } from "react";
 import { useAuth } from "../../hooks/useAuth";
 import { useResource } from "../../hooks/useResource";
@@ -59,17 +60,24 @@ export function HospitalClinicsPage() {
             active: data.active !== "false",
           }),
         );
-      if (kind === "service" && dept)
+      if (kind === "service" && dept) {
+        const serviceData = {
+          department_id: dept.id,
+          doctor_id: data.doctor_id,
+          name: data.name,
+          specialty: data.specialty,
+          location: data.location,
+          instructions: data.instructions,
+        };
         unwrap(
-          await db().rpc("create_priority_hospital_service", {
-            department_id: dept.id,
-            doctor_id: data.doctor_id,
-            name: data.name,
-            specialty: data.specialty,
-            location: data.location,
-            instructions: data.instructions,
-          }),
+          data.booking_kind === "LABORATORY"
+            ? await db().rpc("create_hospital_laboratory", {
+                ...serviceData,
+                procedure_code: data.procedure_code,
+              })
+            : await db().rpc("create_priority_hospital_service", serviceData),
         );
+      }
       if (kind === "assign")
         unwrap(
           await db().rpc("assign_hospital_department", {
@@ -100,7 +108,7 @@ export function HospitalClinicsPage() {
     <>
       <div className="page-heading">
         <div>
-          <h1>Bolnički odjeli i ambulante</h1>
+          <h1>Bolnički odjeli, ambulante i laboratoriji</h1>
           <p>
             Trajanje pregleda određuje odjel, a specijalist postavlja smjene
             svoje ambulante.
@@ -218,6 +226,16 @@ export function HospitalClinicsPage() {
               onSubmit={(e) => void save(e, "service")}
             >
               <div className="form-grid">
+                <Field name="booking_kind" label="Vrsta nove usluge">
+                  <option value="SPECIALIST">Specijalistički pregled</option>
+                  <option value="LABORATORY">Laboratorijska usluga</option>
+                </Field>
+                <Field
+                  name="procedure_code"
+                  label="Šifra laboratorijskog postupka (npr. VVK)"
+                  maxLength={40}
+                  defaultValue="VVK"
+                />
                 <Field name="doctor_id" label="Specijalist bolnice" required>
                   <option value="">Odaberite specijalista</option>
                   {base.data?.doctors
@@ -230,7 +248,7 @@ export function HospitalClinicsPage() {
                 </Field>
                 <Field
                   name="name"
-                  label="Naziv pregleda"
+                  label="Naziv pregleda / laboratorijske usluge"
                   required
                   minLength={2}
                   maxLength={150}
@@ -258,7 +276,7 @@ export function HospitalClinicsPage() {
                 />
               </div>
               <button className="primary spaced" disabled={busy}>
-                Dodaj ambulantu specijalista
+                Dodaj ambulantu / laboratorij
               </button>
             </form>
           )}
@@ -293,7 +311,7 @@ export function HospitalClinicsPage() {
         </section>
       )}
       <section className="card spaced">
-        <h2>Smjene specijalista</h2>
+        <h2>Smjene ambulante ili laboratorija</h2>
         {context.loading ? (
           <p role="status">Učitavanje ambulanti…</p>
         ) : !clinic ? (
@@ -303,9 +321,21 @@ export function HospitalClinicsPage() {
           </p>
         ) : (
           <>
+            {clinic.booking_kind === "LABORATORY" && (
+              <LaboratoryTestSettings
+                key={clinic.id}
+                service={clinic}
+                onSaved={() => {
+                  context.refresh();
+                  setSuccess(
+                    "Pretraga je spremljena. Postojeće narudžbe zadržavaju izvorne podatke.",
+                  );
+                }}
+              />
+            )}
             <Field
               name="clinic_service"
-              label="Ambulanta specijalista"
+              label="Ambulanta / laboratorijska usluga"
               value={clinic.id}
               onChange={(e) => {
                 setSelected(e.target.value);

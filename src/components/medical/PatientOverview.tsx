@@ -171,7 +171,7 @@ export function PatientOverview({
             data.active_therapy.map((t) => (
               <article className="clinical-note" key={t.id}>
                 <strong>
-                  {t.name} · {t.strength}
+                  {t.name} · {t.packaging || t.strength}
                 </strong>
                 <p className="note-text">
                   {t.dosage} · {t.frequency}

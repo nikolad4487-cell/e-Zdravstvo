@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { bookingPdf as legacyBookingPdf } from "../../supabase/functions/notifications-dispatch/booking-pdf-v1";
 import { PDFDocument } from "pdf-lib";
 import { bookingPdf } from "../../supabase/functions/notifications-dispatch/booking-pdf";
 import {
@@ -42,6 +43,67 @@ describe("booking PDF attachments", () => {
       new Date(details.pdfDetails.bookedAt).toISOString(),
     );
     expect(pdf.getTitle()).toBe("Potvrda o narudžbi pacijenta");
+  });
+  it("preserves retry bytes for existing non-laboratory snapshots", async () => {
+    expect(await bookingPdf(details)).toEqual(await legacyBookingPdf(details));
+  });
+  it("attaches the laboratory protocol without leaking tests or preparation into the email body", async () => {
+    const laboratory = {
+      procedure_code: "VVK",
+      service_name: "Laboratorij - Uzimanje venske krvi",
+      sampling_method: "CANNULA",
+      tests: [
+        {
+          code: "LOCAL-CORT",
+          name: "Testna pretraga",
+          instructions: "Privatna testna uputa",
+          steps: [
+            {
+              day_offset: -1,
+              time: "20:00",
+              label: "Testni povezani korak",
+              instructions: "Posebna testna priprema",
+            },
+          ],
+        },
+      ],
+    };
+    const confirmation = {
+      ...details,
+      kind: "Laboratorijska usluga",
+      pdfDetails: { ...details.pdfDetails, laboratory },
+    };
+    const first = await bookingPdf(confirmation);
+    expect(await bookingPdf(confirmation)).toEqual(first);
+    expect(
+      (await PDFDocument.load(first)).getPageCount(),
+    ).toBeGreaterThanOrEqual(1);
+    const request = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(
+        new Response(JSON.stringify({ id: "test-provider" }), { status: 200 }),
+      );
+    await deliverNotification(
+      {
+        id: "lab-test",
+        email: "test@example.test",
+        portalAccess: false,
+        confirmation,
+      },
+      config,
+      request,
+    );
+    const body = JSON.parse(request.mock.calls[0][1]?.body as string);
+    for (const sensitive of [
+      "Privatna testna uputa",
+      "Testna pretraga",
+      "Posebna testna priprema",
+      "LOCAL-CORT",
+    ]) {
+      expect(body.html).not.toContain(sensitive);
+      expect(body.text).not.toContain(sensitive);
+    }
+    expect(body.attachments).toHaveLength(1);
   });
   it.each([
     ["BOOKED", "narudzba"],

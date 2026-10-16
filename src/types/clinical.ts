@@ -126,6 +126,8 @@ export const therapySchema = z.object({
   medication_id: id,
   name: z.string(),
   strength: z.string(),
+  packaging: z.string().optional(),
+  catalog_code: z.string().nullable().optional(),
   dosage: z.string(),
   frequency: z.string(),
   start_date: z.string(),

@@ -51,6 +51,7 @@ export const patientDashboardSchema = z.object({
       id: z.string(),
       name: z.string(),
       strength: z.string(),
+      packaging: z.string().optional(),
       dosage: z.string(),
       frequency: z.string(),
     }),

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { db } from "../lib/supabase";
 import { unwrap } from "./clinical";
-import { hospitalServiceSchema } from "../types/hospital";
+import { hospitalServiceSchema, laboratoryTestSchema } from "../types/hospital";
 export const priorityContextSchema = z.object({
   departments: z.array(
     z.object({
@@ -15,6 +15,7 @@ export const priorityContextSchema = z.object({
   ),
   services: z.array(
     hospitalServiceSchema.extend({
+      laboratory_tests: z.array(laboratoryTestSchema).default([]),
       department_id: z.string(),
       department_name: z.string(),
       duration_minutes: z.number(),

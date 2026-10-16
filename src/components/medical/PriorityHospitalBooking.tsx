@@ -29,6 +29,9 @@ export function PriorityHospitalBooking({
   onClose: () => void;
   onSaved: (message: string) => void;
 }) {
+  const [bookingKind, setBookingKind] = useState("SPECIALIST"),
+    [testIds, setTestIds] = useState<string[]>([]),
+    [samplingMethod, setSamplingMethod] = useState("VENIPUNCTURE");
   const context = useResource(() => priorityContext(), "priority-context");
   const [hospital, setHospital] = useState(""),
     [department, setDepartment] = useState(""),
@@ -44,8 +47,30 @@ export function PriorityHospitalBooking({
     [error, setError] = useState(""),
     [requestId] = useState(crypto.randomUUID());
   const slots = useResource(
-    () => prioritySlots(patientId, service, from, shiftDate(from, 30)),
-    JSON.stringify([patientId, service, from]),
+    async () =>
+      bookingKind === "LABORATORY"
+        ? !service || !testIds.length
+          ? []
+          : z
+              .array(
+                z.object({
+                  starts_at: z.string(),
+                  duration_minutes: z.number(),
+                }),
+              )
+              .parse(
+                unwrap(
+                  await db().rpc("priority_laboratory_slots", {
+                    patient_id: patientId,
+                    service_id: service,
+                    test_ids: testIds,
+                    date_from: from,
+                    date_to: shiftDate(from, 30),
+                  }),
+                ),
+              )
+        : prioritySlots(patientId, service, from, shiftDate(from, 30)),
+    JSON.stringify([patientId, service, from, testIds, bookingKind]),
   );
   const referrals = useResource(
     () =>
@@ -58,7 +83,14 @@ export function PriorityHospitalBooking({
       ),
     JSON.stringify([patientId, service, selected?.starts_at, term, page]),
   );
-  const departments = context.data?.departments.filter((d) => d.active) ?? [];
+  const departments =
+    context.data?.departments.filter(
+      (d) =>
+        d.active &&
+        context.data?.services.some(
+          (s) => s.department_id === d.id && s.booking_kind === bookingKind,
+        ),
+    ) ?? [];
   const hospitals = [
     ...new Map(
       departments.map((d) => [d.institution_id, d.institution_name]),
@@ -66,7 +98,10 @@ export function PriorityHospitalBooking({
   ];
   const services =
     context.data?.services.filter(
-      (s) => s.department_id === department && s.institution_id === hospital,
+      (s) =>
+        s.department_id === department &&
+        s.institution_id === hospital &&
+        s.booking_kind === bookingKind,
     ) ?? [];
   const chosen = services.find((s) => s.id === service);
   const days = [
@@ -91,30 +126,40 @@ export function PriorityHospitalBooking({
         .object({ booking_id: z.string(), referral_id: z.string() })
         .parse(
           unwrap(
-            await db().rpc("book_priority_hospital", {
-              patient_id: patientId,
-              service_id: chosen.id,
-              starts_at: selected.starts_at,
-              referral_id: source === "EXISTING" ? referral : null,
-              new_referral:
-                source === "NEW"
-                  ? {
-                      reason: data.referral_reason,
-                      referral_code: data.referral_code,
-                      examination_code: data.examination_code,
-                      visit_code: data.visit_code,
-                      diagnosis_id: data.diagnosis_id,
-                      expires_on: data.expires_on,
-                      notes: data.referral_notes,
-                    }
-                  : null,
-              priority_reason: data.priority_reason,
-              request_id: requestId,
-            }),
+            await db().rpc(
+              bookingKind === "LABORATORY"
+                ? "book_priority_laboratory"
+                : "book_priority_hospital",
+              {
+                ...(bookingKind === "LABORATORY"
+                  ? { test_ids: testIds, sampling_method: samplingMethod }
+                  : {}),
+                patient_id: patientId,
+                service_id: chosen.id,
+                starts_at: selected.starts_at,
+                referral_id: source === "EXISTING" ? referral : null,
+                new_referral:
+                  source === "NEW"
+                    ? {
+                        reason: data.referral_reason,
+                        referral_code: data.referral_code,
+                        examination_code: data.examination_code,
+                        visit_code: data.visit_code,
+                        diagnosis_id: data.diagnosis_id,
+                        expires_on: data.expires_on,
+                        notes: data.referral_notes,
+                      }
+                    : null,
+                priority_reason: data.priority_reason,
+                request_id: requestId,
+              },
+            ),
           ),
         );
       const message =
-        "Prioritetni pregled je potvrđen i povezan s uputnicom. " +
+        (bookingKind === "LABORATORY"
+          ? "Prioritetna laboratorijska narudžba je potvrđena i povezana s uputnicom. "
+          : "Prioritetni pregled je potvrđen i povezan s uputnicom. ") +
         (await hospitalEmailStatusMessage(result.booking_id));
       onSaved(message);
     } catch (e) {
@@ -124,7 +169,11 @@ export function PriorityHospitalBooking({
     }
   }
   return (
-    <Modal title="Prioritetni pregled u bolnici" busy={busy} onClose={onClose}>
+    <Modal
+      title="Prioritetno naručivanje u bolnici"
+      busy={busy}
+      onClose={onClose}
+    >
       <form onSubmit={book}>
         <p className="confirm-box">
           Pacijent:{" "}
@@ -140,6 +189,23 @@ export function PriorityHospitalBooking({
           <p role="status">Učitavanje bolnica i odjela…</p>
         ) : (
           <>
+            <Field
+              name="booking_kind"
+              label="Vrsta naručivanja"
+              value={bookingKind}
+              onChange={(e) => {
+                setBookingKind(e.target.value);
+                setHospital("");
+                setDepartment("");
+                setService("");
+                setTestIds([]);
+                setSource("EXISTING");
+                clearTime();
+              }}
+            >
+              <option value="SPECIALIST">Specijalistički pregled</option>
+              <option value="LABORATORY">Laboratorij / uzimanje uzorka</option>
+            </Field>
             <div className="form-grid">
               <Field
                 name="priority_hospital"
@@ -150,6 +216,7 @@ export function PriorityHospitalBooking({
                   setHospital(e.target.value);
                   setDepartment("");
                   setService("");
+                  setTestIds([]);
                   clearTime();
                 }}
               >
@@ -168,6 +235,7 @@ export function PriorityHospitalBooking({
                 onChange={(e) => {
                   setDepartment(e.target.value);
                   setService("");
+                  setTestIds([]);
                   clearTime();
                 }}
               >
@@ -182,18 +250,25 @@ export function PriorityHospitalBooking({
               </Field>
               <Field
                 name="priority_specialist"
-                label="Specijalist"
+                label={
+                  bookingKind === "LABORATORY"
+                    ? "Laboratorijska usluga"
+                    : "Specijalist"
+                }
                 required
                 value={service}
                 onChange={(e) => {
                   setService(e.target.value);
+                  setTestIds([]);
                   clearTime();
                 }}
               >
                 <option value="">Odaberite specijalista</option>
                 {services.map((s) => (
                   <option key={s.id} value={s.id}>
-                    {s.doctor_name} · {s.name}
+                    {bookingKind === "LABORATORY"
+                      ? `${s.procedure_code} · ${s.name}`
+                      : `${s.doctor_name} · ${s.name}`}
                   </option>
                 ))}
               </Field>
@@ -213,12 +288,78 @@ export function PriorityHospitalBooking({
             </div>
             {!departments.length && (
               <p>
-                Nema aktivnih bolničkih odjela. Administrator bolnice treba
-                postaviti odjel i dodijeliti specijaliste.
+                Nema aktivnih odjela za odabranu vrstu naručivanja.
+                Administrator treba postaviti odjel, uslugu i raspored.
               </p>
             )}
             {department && !services.length && (
-              <p>Nema aktivnih specijalista za odabrani odjel.</p>
+              <p>Nema aktivnih usluga za odabrani odjel.</p>
+            )}
+            {chosen?.booking_kind === "LABORATORY" && (
+              <section className="card spaced">
+                <h3>Pretrage i način uzimanja uzorka</h3>
+                <p>
+                  {chosen.procedure_code} · {chosen.name}
+                </p>
+                {chosen.laboratory_tests
+                  .filter((t) => t.active !== false)
+                  .map((t) => (
+                    <label
+                      className="clinical-note"
+                      key={t.id}
+                      style={{ display: "block" }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={testIds.includes(t.id)}
+                        onChange={(e) => {
+                          setTestIds(
+                            e.target.checked
+                              ? [...testIds, t.id]
+                              : testIds.filter((id) => id !== t.id),
+                          );
+                          clearTime();
+                        }}
+                      />{" "}
+                      {t.name}
+                      {t.required_time
+                        ? ` · obvezno u ${t.required_time.slice(0, 5)}`
+                        : ""}
+                    </label>
+                  ))}
+                {!chosen.laboratory_tests.length && (
+                  <p>Laboratorij treba postaviti pretrage prije naručivanja.</p>
+                )}
+                <Field
+                  name="sampling_method"
+                  label="Način uzimanja uzorka"
+                  value={samplingMethod}
+                  onChange={(e) => setSamplingMethod(e.target.value)}
+                >
+                  <option value="VENIPUNCTURE">
+                    Uzimanje venske krvi – venepunkcija
+                  </option>
+                  <option value="CANNULA">
+                    Uzimanje krvi putem venske kanile (branile)
+                  </option>
+                  <option value="OTHER">
+                    Drugi način – prema protokolu laboratorija
+                  </option>
+                </Field>
+                {chosen.laboratory_tests
+                  .filter((t) => testIds.includes(t.id))
+                  .map((t) => (
+                    <div key={t.id}>
+                      <strong>{t.name}</strong>
+                      <p>{t.instructions}</p>
+                    </div>
+                  ))}
+                {!testIds.length && (
+                  <p>
+                    Odaberite barem jednu pretragu za prikaz slobodnih termina.
+                  </p>
+                )}
+              </section>
             )}
             {chosen && (
               <section className="card spaced">
@@ -313,6 +454,34 @@ export function PriorityHospitalBooking({
                   · {selected.duration_minutes} min · {chosen.institution_name}{" "}
                   · {chosen.department_name} · {chosen.doctor_name}
                 </p>
+                {chosen.booking_kind === "LABORATORY" && (
+                  <section className="confirm-box">
+                    <h3>Odabrane pretrage i povezani koraci</h3>
+                    {chosen.laboratory_tests
+                      .filter((t) => testIds.includes(t.id))
+                      .map((t) => (
+                        <div key={t.id}>
+                          <strong>{t.name}</strong>
+                          <p>{t.instructions}</p>
+                          {t.steps.map((step, index) => (
+                            <p key={index}>
+                              {dateLabel(
+                                shiftDate(
+                                  zagrebDate(new Date(selected.starts_at)),
+                                  step.day_offset,
+                                ),
+                              )}{" "}
+                              u {step.time} · {step.label} · {step.instructions}
+                            </p>
+                          ))}
+                        </div>
+                      ))}
+                    <small>
+                      Prikazani koraci su plan pripreme; zasebna uzorkovanja
+                      naručuju se odvojeno.
+                    </small>
+                  </section>
+                )}
                 <Field
                   name="referral_source"
                   label="Uputnica za pregled"
@@ -375,12 +544,17 @@ export function PriorityHospitalBooking({
                 ) : (
                   <div className="form-grid spaced">
                     <ReferenceCodeField
+                      key={bookingKind}
                       list="2.2.5"
                       name="referral_code"
                       label="Vrsta uputnice"
                       required
-                      defaultValue="A1"
-                      allowed={["A1", "A2", "A4", "C1"]}
+                      defaultValue={bookingKind === "LABORATORY" ? "A3" : "A1"}
+                      allowed={
+                        bookingKind === "LABORATORY"
+                          ? ["A3", "A6"]
+                          : ["A1", "A2", "A4", "C1"]
+                      }
                     />
                     <ReferenceCodeField
                       list="2.2.42"
@@ -451,7 +625,11 @@ export function PriorityHospitalBooking({
                   (source === "EXISTING" && (!referral || referrals.loading))
                 }
               >
-                {busy ? "Rezervacija…" : "Potvrdi prioritetni pregled"}
+                {busy
+                  ? "Rezervacija…"
+                  : bookingKind === "LABORATORY"
+                    ? "Potvrdi prioritetnu laboratorijsku narudžbu"
+                    : "Potvrdi prioritetni pregled"}
               </button>
             </div>
           </>

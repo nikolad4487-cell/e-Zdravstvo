@@ -1,3 +1,4 @@
+import { bookingPdf as legacyBookingPdf } from "./booking-pdf-v1.ts";
 import { PDFDocument, rgb } from "pdf-lib";
 import fontkit from "@pdf-lib/fontkit";
 import QRCode from "qrcode";
@@ -18,6 +19,22 @@ export interface BookingPdfDetails {
   priority?: boolean;
   location: string;
   pdfDetails?: {
+    laboratory?: {
+      procedure_code: string;
+      service_name: string;
+      sampling_method: string;
+      tests: {
+        code: string;
+        name: string;
+        instructions: string;
+        steps: {
+          day_offset: number;
+          time: string;
+          label: string;
+          instructions?: string;
+        }[];
+      }[];
+    } | null;
     patientBirthDate?: string | null;
     patientAddress?: string | null;
     patientPhone?: string | null;
@@ -39,6 +56,7 @@ const fontBytes = Uint8Array.from(atob(BOOKING_FONT_BASE64), (c) =>
 
 /** Only immutable database snapshots reach this renderer; no clinical free text. */
 export async function bookingPdf(details: BookingPdfDetails) {
+  if (!details.pdfDetails?.laboratory) return legacyBookingPdf(details);
   const pdf = await PDFDocument.create();
   pdf.registerFontkit(fontkit);
   const font = await pdf.embedFont(fontBytes);
@@ -110,6 +128,7 @@ export async function bookingPdf(details: BookingPdfDetails) {
     const wrapped = lines(value, size, available);
     if (y - wrapped.length * (size + 4) < 48) next();
     for (const line of wrapped) {
+      if (y < 48) next();
       draw(
         line,
         center
@@ -226,11 +245,21 @@ export async function bookingPdf(details: BookingPdfDetails) {
     true,
     true,
   );
-  if (details.priority) paragraph("PRIORITETNI PREGLED", 10, true, true);
+  if (details.priority)
+    paragraph(
+      data.laboratory
+        ? "PRIORITETNA LABORATORIJSKA NARUDŽBA"
+        : "PRIORITETNI PREGLED",
+      10,
+      true,
+      true,
+    );
   y -= 10;
-  const category = details.hospital
-    ? "Specijalistički i subspecijalistički pregled"
-    : "Pregled u ordinaciji";
+  const category = data.laboratory
+    ? "Laboratorijska pretraga / uzimanje uzorka"
+    : details.hospital
+      ? "Specijalistički i subspecijalistički pregled"
+      : "Pregled u ordinaciji";
   page.drawRectangle({
     x: margin,
     y: y - 1,
@@ -251,8 +280,12 @@ export async function bookingPdf(details: BookingPdfDetails) {
   field("Matični broj osiguranika (MBO):");
   field("Adresa pacijenta:", data.patientAddress);
   field("Telefon ili mobitel pacijenta:", data.patientPhone);
-  field("Zdravstvena usluga:", details.kind || "Pregled");
-  field("Šifra postupka:");
+  field(
+    "Zdravstvena usluga:",
+    data.laboratory?.service_name || details.kind || "Pregled",
+  );
+  if (data.laboratory) field("Šifra postupka:", data.laboratory.procedure_code);
+  else field("Šifra postupka:");
   field("Datum narudžbe:", data.bookedAt ? date(data.bookedAt) : null);
   field(
     "Datum i sat zakazanog pregleda:",
@@ -262,6 +295,45 @@ export async function bookingPdf(details: BookingPdfDetails) {
   field("Ambulanta / lokacija:", details.location);
   field("Liječnik:", details.doctor || details.specialist);
   field("Narudžbu evidentirao/la:", data.bookedBy);
+  if (data.laboratory) {
+    field(
+      "Uzimanje uzorka:",
+      data.laboratory.sampling_method === "CANNULA"
+        ? "Putem venske kanile (branile)"
+        : data.laboratory.sampling_method === "VENIPUNCTURE"
+          ? "Venska krv – venepunkcija"
+          : "Prema protokolu laboratorija",
+    );
+    paragraph("PRETRAGE I UPUTE LABORATORIJA", 11, true);
+    for (const test of data.laboratory.tests) {
+      paragraph(`${test.code} · ${test.name}`, 10, true);
+      if (test.instructions) paragraph(test.instructions, 9);
+      for (const step of test.steps) {
+        const parts = new Intl.DateTimeFormat("sv-SE", {
+          timeZone: "Europe/Zagreb",
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+        }).format(new Date(details.startsAt));
+        const day = new Date(parts + "T12:00:00Z");
+        day.setUTCDate(day.getUTCDate() + step.day_offset);
+        const label = new Intl.DateTimeFormat("hr-HR", {
+          timeZone: "UTC",
+          day: "numeric",
+          month: "numeric",
+          year: "numeric",
+        }).format(day);
+        paragraph(
+          `${label} u ${step.time} · ${step.label}${step.instructions ? " · " + step.instructions : ""}`,
+          9,
+        );
+      }
+    }
+    paragraph(
+      "Povezani koraci su plan pripreme; dodatna uzorkovanja zahtijevaju zasebnu narudžbu.",
+      9,
+    );
+  }
   y -= 8;
   paragraph(
     event === "CANCELLED"

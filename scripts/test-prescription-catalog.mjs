@@ -143,6 +143,60 @@ await assert.rejects(
   ),
   /Forbidden/,
 );
+const therapy = await as(1, () =>
+  rpc("add_patient_therapy", [
+    patient,
+    {
+      medication_id: roj.id,
+      dosage: "Testno doziranje",
+      frequency: "Testna učestalost",
+      start_date: new Date().toISOString().slice(0, 10),
+    },
+  ]),
+);
+const beforeTherapy = (
+  await as(1, () => rpc("get_patient_chart", [patient]))
+).therapy.find((t) => t.id === therapy);
+assert.equal(beforeTherapy.packaging, roj.packaging);
+assert.equal(beforeTherapy.catalog_code, roj.catalog_code);
+await assert.rejects(
+  as(4, () =>
+    rpc("add_patient_therapy", [
+      patient,
+      {
+        medication_id: roj.id,
+        dosage: "Test",
+        frequency: "Test",
+        start_date: new Date().toISOString().slice(0, 10),
+      },
+    ]),
+  ),
+  /Forbidden/,
+);
+await db.query("update medications set name='Promijenjen naziv' where id=$1", [
+  roj.id,
+]);
+assert.equal(
+  (await as(1, () => rpc("get_patient_chart", [patient]))).therapy.find(
+    (t) => t.id === therapy,
+  ).name,
+  beforeTherapy.name,
+);
+assert.equal(
+  (await as(3, () => rpc("patient_dashboard"))).active_therapy.find(
+    (t) => t.id === therapy,
+  ).name,
+  beforeTherapy.name,
+);
+await as(1, () =>
+  rpc("set_clinical_status", ["therapy", therapy, "COMPLETED"]),
+);
+assert.equal(
+  (await as(1, () => rpc("get_patient_chart", [patient]))).therapy.find(
+    (t) => t.id === therapy,
+  ).status,
+  "COMPLETED",
+);
 await db.query("update medications set active=false where id=$1", [roj.id]);
 await assert.rejects(
   as(1, () =>

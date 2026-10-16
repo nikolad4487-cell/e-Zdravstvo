@@ -1,3 +1,4 @@
+import { MedicationPicker } from "./MedicationPicker";
 import { DiagnosisPicker } from "./DiagnosisPicker";
 import { useState } from "react";
 import { db } from "../../lib/supabase";
@@ -266,14 +267,7 @@ export function ClinicalModal({
           )}
           {action === "therapy" && (
             <>
-              <Field name="medication_id" label="Lijek" required>
-                <option value="">Odaberite lijek</option>
-                {context.data?.medications.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.name} · {m.strength}
-                  </option>
-                ))}
-              </Field>
+              <MedicationPicker name="medication_id" />
               <Field name="dosage" label="Doziranje" required maxLength={500} />
               <Field
                 name="frequency"

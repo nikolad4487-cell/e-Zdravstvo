@@ -179,7 +179,7 @@ export function ClinicalHistory({
               <div className="item-head">
                 <div>
                   <h3>
-                    {t.name} · {t.strength}
+                    {t.name} · {t.packaging || t.strength}
                   </h3>
                   <p>
                     {dateLabel(t.start_date)} – {dateLabel(t.end_date)} ·{" "}

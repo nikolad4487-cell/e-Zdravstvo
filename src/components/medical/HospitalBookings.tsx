@@ -150,6 +150,46 @@ export function HospitalBookings({
                 <p>
                   {b.specialty} · {b.specialist_name}
                 </p>
+                {b.laboratory_details && (
+                  <details className="spaced">
+                    <summary>
+                      {b.laboratory_details.procedure_code} · Odabrane pretrage
+                      i priprema
+                    </summary>
+                    <p>
+                      {b.laboratory_details.service_name} ·{" "}
+                      {b.laboratory_details.sampling_method === "CANNULA"
+                        ? "Putem venske kanile (branile)"
+                        : b.laboratory_details.sampling_method ===
+                            "VENIPUNCTURE"
+                          ? "Venepunkcija"
+                          : "Prema protokolu laboratorija"}
+                    </p>
+                    {b.laboratory_details.tests.map((t) => (
+                      <div className="clinical-note" key={t.id}>
+                        <strong>
+                          {t.code} · {t.name}
+                        </strong>
+                        <p>{t.instructions}</p>
+                        {t.steps.map((step, index) => (
+                          <p key={index}>
+                            {dateLabel(
+                              shiftDate(
+                                zagrebDate(new Date(b.starts_at)),
+                                step.day_offset,
+                              ),
+                            )}{" "}
+                            u {step.time} · {step.label} · {step.instructions}
+                          </p>
+                        ))}
+                      </div>
+                    ))}
+                    <p className="note-text">
+                      Povezani koraci su plan pripreme; dodatna uzorkovanja
+                      naručuju se odvojeno.
+                    </p>
+                  </details>
+                )}
                 {mode !== "PERSONAL" && (
                   <p>
                     {b.patient_name} · {b.patient_number}
@@ -575,7 +615,16 @@ function BookHospital({
                 </p>
                 <div className="slot-grid">
                   {slots.data
-                    ?.filter((s) => priority || !s.priority_only)
+                    ?.filter(
+                      (s) =>
+                        (priority || !s.priority_only) &&
+                        (!reschedule?.laboratory_details?.required_time ||
+                          zagrebTime(s.starts_at) ===
+                            reschedule.laboratory_details.required_time.slice(
+                              0,
+                              5,
+                            )),
+                    )
                     .map((s) => (
                       <button
                         className="slot-choice"
@@ -592,8 +641,16 @@ function BookHospital({
                       </button>
                     ))}
                 </div>
-                {!slots.data?.filter((s) => priority || !s.priority_only)
-                  .length && (
+                {!slots.data?.filter(
+                  (s) =>
+                    (priority || !s.priority_only) &&
+                    (!reschedule?.laboratory_details?.required_time ||
+                      zagrebTime(s.starts_at) ===
+                        reschedule.laboratory_details.required_time.slice(
+                          0,
+                          5,
+                        )),
+                ).length && (
                   <p className="empty-state">
                     Nema slobodnih termina. Promijenite razdoblje ili uslugu.
                   </p>
