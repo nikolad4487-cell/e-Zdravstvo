@@ -80,7 +80,16 @@ for (const mobile of [false, true])
                   description: "Dijagnostička pretraga",
                 },
               ]
-            : [];
+            : args.catalog_id === "2.2.18"
+              ? [
+                  {
+                    list_id: "2.2.18",
+                    code: "00",
+                    name: "Kapilarna krv",
+                    description: "Kapilarna krv",
+                  },
+                ]
+              : [];
       else if (name === "search_diagnosis_codes") data = [];
       else if (name === "book_priority_laboratory")
         data = { booking_id: "booking-lab", referral_id: "ref-lab" };
@@ -104,11 +113,53 @@ for (const mobile of [false, true])
     expect(calls.some((c) => c.name === "priority_laboratory_slots")).toBe(
       false,
     );
-    await page.getByRole("checkbox", { name: /Bazalni kortizol/ }).check();
+    await page
+      .getByRole("combobox", { name: "Dodaj laboratorijsku pretragu" })
+      .selectOption("test-cort");
+    await expect(
+      page.getByRole("list", { name: "Odabrane pretrage" }),
+    ).toContainText("Bazalni kortizol");
+    await expect(
+      page.getByRole("combobox", { name: "Vrijeme uzorkovanja" }),
+    ).toBeHidden();
+    await page
+      .getByRole("combobox", { name: "Vrsta uzorka (CEZIH)" })
+      .selectOption("00");
+    await expect(
+      page.getByRole("list", { name: "Odabrani uzorci" }),
+    ).toContainText("00 · Kapilarna krv");
+    await page
+      .getByRole("button", { name: "Ukloni uzorak: Kapilarna krv" })
+      .click();
+    await expect(
+      page.getByRole("list", { name: "Odabrani uzorci" }),
+    ).not.toContainText("Kapilarna krv");
+    await page
+      .getByRole("combobox", { name: "Vrsta uzorka (CEZIH)" })
+      .selectOption("00");
+    await page.screenshot({
+      path: `/tmp/laboratory-booking-${mobile ? "mobile" : "desktop"}.png`,
+      fullPage: true,
+    });
     await page
       .getByRole("combobox", { name: "Način uzimanja uzorka" })
       .selectOption("CANNULA");
-    await page.getByRole("button", { name: "08:00", exact: true }).click();
+    await page.getByRole("button", { name: "Nastavi na termine" }).click();
+    await expect(
+      page.getByRole("combobox", { name: "Dodaj laboratorijsku pretragu" }),
+    ).toBeHidden();
+    await page
+      .getByRole("combobox", { name: "Vrijeme uzorkovanja" })
+      .selectOption("2026-11-04T07:00:00Z");
+    await page.getByRole("button", { name: "Natrag", exact: true }).click();
+    await expect(
+      page.getByRole("combobox", { name: "Način uzimanja uzorka" }),
+    ).toHaveValue("CANNULA");
+    await page.getByRole("button", { name: "Nastavi na termine" }).click();
+    await expect(
+      page.getByRole("combobox", { name: "Vrijeme uzorkovanja" }),
+    ).toHaveValue("2026-11-04T07:00:00Z");
+    await page.getByRole("button", { name: "Nastavi na uputnicu" }).click();
     await expect(
       page.getByRole("button", { name: "08:15", exact: true }),
     ).toHaveCount(0);
@@ -133,5 +184,6 @@ for (const mobile of [false, true])
     const booking = calls.find((c) => c.name === "book_priority_laboratory");
     expect(booking?.args.test_ids).toEqual(["test-cort"]);
     expect(booking?.args.sampling_method).toBe("CANNULA");
+    expect(booking?.args.specimen_codes).toEqual(["00"]);
     expect(booking?.args.new_referral).toMatchObject({ referral_code: "A3" });
   });

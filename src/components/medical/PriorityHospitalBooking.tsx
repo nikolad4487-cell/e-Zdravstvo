@@ -1,7 +1,7 @@
 import { MedicalCodePicker } from "./MedicalCodePicker";
 import { DiagnosisPicker } from "./DiagnosisPicker";
 import { ReferenceCodeField } from "./ReferenceCodeField";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { z } from "zod";
 import { useResource } from "../../hooks/useResource";
 import { db } from "../../lib/supabase";
@@ -31,10 +31,18 @@ export function PriorityHospitalBooking({
   onSaved: (message: string) => void;
 }) {
   const [specimenCodes, setSpecimenCodes] = useState<string[]>([]),
-    [testSearch, setTestSearch] = useState("");
+    [labStep, setLabStep] = useState(1);
   const [bookingKind, setBookingKind] = useState("SPECIALIST"),
     [testIds, setTestIds] = useState<string[]>([]),
     [samplingMethod, setSamplingMethod] = useState("VENIPUNCTURE");
+  const isLab = bookingKind === "LABORATORY";
+  const formRef = useRef<HTMLFormElement>(null);
+  const stepsRef = useRef<HTMLOListElement>(null);
+  useEffect(() => {
+    if (!isLab) return;
+    formRef.current?.closest("dialog")?.scrollTo({ top: 0 });
+    stepsRef.current?.focus({ preventScroll: true });
+  }, [isLab, labStep]);
   const context = useResource(() => priorityContext(), "priority-context");
   const [hospital, setHospital] = useState(""),
     [department, setDepartment] = useState(""),
@@ -120,7 +128,7 @@ export function PriorityHospitalBooking({
   }
   async function book(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (!selected || !chosen) return;
+    if ((isLab && labStep !== 3) || !selected || !chosen) return;
     const data = values(e.currentTarget);
     setBusy(true);
     setError("");
@@ -177,11 +185,20 @@ export function PriorityHospitalBooking({
   }
   return (
     <Modal
-      title="Prioritetno naručivanje u bolnici"
+      title={
+        isLab
+          ? "Naručivanje u laboratorij"
+          : "Prioritetno naručivanje u bolnici"
+      }
+      wide={isLab}
       busy={busy}
       onClose={onClose}
     >
-      <form onSubmit={book}>
+      <form
+        ref={formRef}
+        onSubmit={book}
+        className={isLab ? "lab-booking" : undefined}
+      >
         <p className="confirm-box">
           Pacijent:{" "}
           <strong>{patientName ?? "Pacijent iz otvorenog kartona"}</strong>.
@@ -202,6 +219,7 @@ export function PriorityHospitalBooking({
               value={bookingKind}
               onChange={(e) => {
                 setBookingKind(e.target.value);
+                setLabStep(1);
                 setHospital("");
                 setDepartment("");
                 setService("");
@@ -214,462 +232,602 @@ export function PriorityHospitalBooking({
               <option value="SPECIALIST">Specijalistički pregled</option>
               <option value="LABORATORY">Laboratorij / uzimanje uzorka</option>
             </Field>
-            <div className="form-grid">
-              <Field
-                name="priority_hospital"
-                label="Bolnica"
-                required
-                value={hospital}
-                onChange={(e) => {
-                  setHospital(e.target.value);
-                  setDepartment("");
-                  setService("");
-                  setTestIds([]);
-                  setSpecimenCodes([]);
-                  clearTime();
-                }}
+            {isLab && (
+              <ol
+                ref={stepsRef}
+                tabIndex={-1}
+                className="lab-booking-steps"
+                aria-label="Koraci naručivanja"
               >
-                <option value="">Odaberite bolnicu</option>
-                {hospitals.map(([id, name]) => (
-                  <option key={id} value={id}>
-                    {name}
-                  </option>
+                {[
+                  "Pretrage i uzorci",
+                  "Slobodni termin",
+                  "Uputnica i potvrda",
+                ].map((label, i) => (
+                  <li
+                    key={label}
+                    aria-current={labStep === i + 1 ? "step" : undefined}
+                  >
+                    <span>{i + 1}</span>
+                    {label}
+                  </li>
                 ))}
-              </Field>
-              <Field
-                name="priority_department"
-                label="Odjel"
-                required
-                value={department}
-                onChange={(e) => {
-                  setDepartment(e.target.value);
-                  setService("");
-                  setTestIds([]);
-                  setSpecimenCodes([]);
-                  clearTime();
-                }}
-              >
-                <option value="">Odaberite odjel</option>
-                {departments
-                  .filter((d) => d.institution_id === hospital)
-                  .map((d) => (
-                    <option key={d.id} value={d.id}>
-                      {d.name} · {d.duration_minutes} min
-                    </option>
-                  ))}
-              </Field>
-              <Field
-                name="priority_specialist"
-                label={
-                  bookingKind === "LABORATORY"
-                    ? "Laboratorijska usluga"
-                    : "Specijalist"
-                }
-                required
-                value={service}
-                onChange={(e) => {
-                  setService(e.target.value);
-                  setTestIds([]);
-                  setSpecimenCodes([]);
-                  clearTime();
-                }}
-              >
-                <option value="">Odaberite specijalista</option>
-                {services.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {bookingKind === "LABORATORY"
-                      ? `${s.procedure_code ? s.procedure_code + " · " : ""}${s.name}`
-                      : `${s.doctor_name} · ${s.name}`}
-                  </option>
-                ))}
-              </Field>
-              <Field
-                name="priority_from"
-                label="Traži termine od"
-                type="date"
-                required
-                min={zagrebDate()}
-                max={shiftDate(zagrebDate(), 334)}
-                value={from}
-                onChange={(e) => {
-                  setFrom(e.target.value || zagrebDate());
-                  clearTime();
-                }}
-              />
-            </div>
-            {!departments.length && (
-              <p>
-                Nema aktivnih odjela za odabranu vrstu naručivanja.
-                Administrator treba postaviti odjel, uslugu i raspored.
-              </p>
+              </ol>
             )}
-            {department && !services.length && (
-              <p>Nema aktivnih usluga za odabrani odjel.</p>
-            )}
-            {chosen?.booking_kind === "LABORATORY" && (
-              <section className="card spaced">
-                <h3>Pretrage i način uzimanja uzorka</h3>
-                <p>
-                  {chosen.procedure_code ? chosen.procedure_code + " · " : ""}
-                  {chosen.name}
-                </p>
-                <input
-                  type="search"
-                  aria-label="Traži laboratorijsku pretragu"
-                  placeholder="Naziv ili CEZIH šifra pretrage…"
-                  value={testSearch}
-                  onChange={(e) => setTestSearch(e.target.value)}
-                />
-                {chosen.laboratory_tests
-                  .filter(
-                    (t) =>
-                      t.active !== false &&
-                      (t.code + " " + t.name)
-                        .toLocaleLowerCase("hr")
-                        .includes(testSearch.toLocaleLowerCase("hr")),
-                  )
-                  .map((t) => (
-                    <label
-                      className="clinical-note"
-                      key={t.id}
-                      style={{ display: "block" }}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={testIds.includes(t.id)}
-                        onChange={(e) => {
-                          setTestIds(
-                            e.target.checked
-                              ? [...testIds, t.id]
-                              : testIds.filter((id) => id !== t.id),
-                          );
-                          clearTime();
-                        }}
-                      />{" "}
-                      {t.catalog_list ? `(${t.code}) ` : ""}
-                      {t.name} ·{" "}
-                      {`${t.sampling_from?.slice(0, 5) ?? "07:00"}–${t.sampling_until?.slice(0, 5) ?? "19:00"}`}{" "}
-                      ·{" "}
-                      {t.required_time
-                        ? ` · obvezno u ${t.required_time.slice(0, 5)}`
-                        : ""}
-                    </label>
-                  ))}
-                {!chosen.laboratory_tests.length && (
-                  <p>Laboratorij treba postaviti pretrage prije naručivanja.</p>
-                )}
-                <MedicalCodePicker
-                  list="2.2.18"
-                  name="specimen_codes"
-                  label="Vrsta uzorka (CEZIH)"
-                  multiple
-                  onSelected={(items) =>
-                    setSpecimenCodes(items.map((i) => i.code))
-                  }
-                />
+            <div hidden={isLab && labStep !== 1}>
+              <div className="form-grid">
                 <Field
-                  name="sampling_method"
-                  label="Način uzimanja uzorka"
-                  value={samplingMethod}
-                  onChange={(e) => setSamplingMethod(e.target.value)}
-                >
-                  <option value="VENIPUNCTURE">
-                    Uzimanje venske krvi – venepunkcija
-                  </option>
-                  <option value="CANNULA">
-                    Uzimanje krvi putem venske kanile (branile)
-                  </option>
-                  <option value="OTHER">
-                    Drugi način – prema protokolu laboratorija
-                  </option>
-                </Field>
-                {chosen.laboratory_tests
-                  .filter((t) => testIds.includes(t.id))
-                  .map((t) => (
-                    <div key={t.id}>
-                      <strong>{t.name}</strong>
-                      <p>{t.instructions}</p>
-                    </div>
-                  ))}
-                {!testIds.length && (
-                  <p>
-                    Odaberite barem jednu pretragu za prikaz slobodnih termina.
-                  </p>
-                )}
-              </section>
-            )}
-            {chosen && (
-              <section className="card spaced">
-                <h3>Slobodni termini · {chosen.duration_minutes} min</h3>
-                <p>
-                  {chosen.location} · {chosen.specialty}
-                </p>
-                <p className="note-text">
-                  {chosen.booking_kind === "LABORATORY"
-                    ? "Europe/Zagreb · laboratorij 07:00–19:00, prema danima rada i satnici odabranih pretraga."
-                    : "Europe/Zagreb · jutro 07:00–13:30, poslijepodne 13:30–19:00."}{" "}
-                  Prikazuje se sljedećih 31 dan.
-                </p>
-                {slots.loading ? (
-                  <p role="status">Učitavanje slobodnih termina…</p>
-                ) : days.length ? (
-                  <>
-                    <Field
-                      name="priority_day"
-                      label="Dan pregleda"
-                      value={effectiveDay}
-                      onChange={(e) => {
-                        setDay(e.target.value);
-                        setSelected(null);
-                        setReferral("");
-                        setPage(0);
-                      }}
-                    >
-                      {days.map((d) => (
-                        <option key={d} value={d}>
-                          {dateLabel(d)}
-                        </option>
-                      ))}
-                    </Field>
-                    <div
-                      className="document-actions spaced"
-                      role="group"
-                      aria-label="Slobodna vremena pregleda"
-                    >
-                      {slots.data
-                        ?.filter(
-                          (s) =>
-                            zagrebDate(new Date(s.starts_at)) === effectiveDay,
-                        )
-                        .map((s) => (
-                          <button
-                            key={s.starts_at}
-                            className={
-                              selected?.starts_at === s.starts_at
-                                ? "primary"
-                                : "secondary"
-                            }
-                            type="button"
-                            aria-pressed={selected?.starts_at === s.starts_at}
-                            disabled={busy}
-                            onClick={() => {
-                              setSelected(s);
-                              setReferral("");
-                              setPage(0);
-                            }}
-                          >
-                            {zagrebTime(s.starts_at)}
-                          </button>
-                        ))}
-                    </div>
-                  </>
-                ) : (
-                  <p>
-                    Nema slobodnih termina u ovom razdoblju. Odaberite drugi
-                    početni datum ili specijalista.
-                  </p>
-                )}
-                <button
-                  className="text-link spaced"
-                  type="button"
-                  disabled={busy || slots.loading}
-                  onClick={() => {
+                  name="priority_hospital"
+                  label="Bolnica"
+                  required
+                  value={hospital}
+                  onChange={(e) => {
+                    setHospital(e.target.value);
+                    setDepartment("");
+                    setService("");
+                    setTestIds([]);
+                    setSpecimenCodes([]);
                     clearTime();
-                    slots.refresh();
                   }}
                 >
-                  Osvježi slobodne termine
-                </button>
-              </section>
-            )}
-            {selected && chosen && (
-              <>
-                <p className="confirm-box">
-                  Odabrano:{" "}
-                  <strong>
-                    {dateLabel(zagrebDate(new Date(selected.starts_at)))} u{" "}
-                    {zagrebTime(selected.starts_at)}
-                  </strong>{" "}
-                  · {selected.duration_minutes} min · {chosen.institution_name}{" "}
-                  · {chosen.department_name} · {chosen.doctor_name}
+                  <option value="">Odaberite bolnicu</option>
+                  {hospitals.map(([id, name]) => (
+                    <option key={id} value={id}>
+                      {name}
+                    </option>
+                  ))}
+                </Field>
+                <Field
+                  name="priority_department"
+                  label="Odjel"
+                  required
+                  value={department}
+                  onChange={(e) => {
+                    setDepartment(e.target.value);
+                    setService("");
+                    setTestIds([]);
+                    setSpecimenCodes([]);
+                    clearTime();
+                  }}
+                >
+                  <option value="">Odaberite odjel</option>
+                  {departments
+                    .filter((d) => d.institution_id === hospital)
+                    .map((d) => (
+                      <option key={d.id} value={d.id}>
+                        {d.name} · {d.duration_minutes} min
+                      </option>
+                    ))}
+                </Field>
+                <Field
+                  name="priority_specialist"
+                  label={
+                    bookingKind === "LABORATORY"
+                      ? "Laboratorijska usluga"
+                      : "Specijalist"
+                  }
+                  required
+                  value={service}
+                  onChange={(e) => {
+                    setService(e.target.value);
+                    setTestIds([]);
+                    setSpecimenCodes([]);
+                    clearTime();
+                  }}
+                >
+                  <option value="">
+                    {isLab
+                      ? "Odaberite laboratorijsku uslugu"
+                      : "Odaberite specijalista"}
+                  </option>
+                  {services.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {bookingKind === "LABORATORY"
+                        ? `${s.procedure_code ? s.procedure_code + " · " : ""}${s.name}`
+                        : `${s.doctor_name} · ${s.name}`}
+                    </option>
+                  ))}
+                </Field>
+                {!isLab && (
+                  <Field
+                    name="priority_from"
+                    label="Traži termine od"
+                    type="date"
+                    required
+                    min={zagrebDate()}
+                    max={shiftDate(zagrebDate(), 334)}
+                    value={from}
+                    onChange={(e) => {
+                      setFrom(e.target.value || zagrebDate());
+                      clearTime();
+                    }}
+                  />
+                )}
+              </div>
+              {!departments.length && (
+                <p>
+                  Nema aktivnih odjela za odabranu vrstu naručivanja.
+                  Administrator treba postaviti odjel, uslugu i raspored.
                 </p>
-                {chosen.booking_kind === "LABORATORY" && (
-                  <section className="confirm-box">
-                    <h3>Odabrane pretrage i povezani koraci</h3>
+              )}
+              {department && !services.length && (
+                <p>Nema aktivnih usluga za odabrani odjel.</p>
+              )}
+              {chosen?.booking_kind === "LABORATORY" && (
+                <section className="card spaced">
+                  <h3>Pretrage i način uzimanja uzorka</h3>
+                  <p>
+                    {chosen.procedure_code ? chosen.procedure_code + " · " : ""}
+                    {chosen.name}
+                  </p>
+                  <Field
+                    name="laboratory_test"
+                    label="Dodaj laboratorijsku pretragu"
+                    value=""
+                    onChange={(e) => {
+                      if (!e.target.value) return;
+                      setTestIds([...testIds, e.target.value]);
+                      clearTime();
+                    }}
+                  >
+                    <option value="">Odaberite pretragu…</option>
+                    {chosen.laboratory_tests
+                      .filter(
+                        (t) => t.active !== false && !testIds.includes(t.id),
+                      )
+                      .map((t) => (
+                        <option key={t.id} value={t.id}>
+                          {t.name}
+                          {t.catalog_list ? ` · ${t.code}` : ""}
+                        </option>
+                      ))}
+                  </Field>
+                  <ul
+                    className="lab-selected-tests"
+                    aria-label="Odabrane pretrage"
+                  >
                     {chosen.laboratory_tests
                       .filter((t) => testIds.includes(t.id))
                       .map((t) => (
-                        <div key={t.id}>
-                          <strong>{t.name}</strong>
-                          <p>{t.instructions}</p>
-                          {t.steps.map((step, index) => (
-                            <p key={index}>
-                              {dateLabel(
-                                shiftDate(
-                                  zagrebDate(new Date(selected.starts_at)),
-                                  step.day_offset,
-                                ),
-                              )}{" "}
-                              u {step.time} · {step.label} · {step.instructions}
-                            </p>
-                          ))}
-                        </div>
+                        <li key={t.id}>
+                          <div>
+                            <strong>{t.name}</strong>
+                            <small>
+                              {t.catalog_list ? `${t.code} · ` : ""}
+                              {t.sampling_from?.slice(0, 5) ?? "07:00"}–
+                              {t.sampling_until?.slice(0, 5) ?? "19:00"}
+                              {t.required_time
+                                ? ` · obvezno u ${t.required_time.slice(0, 5)}`
+                                : ""}
+                            </small>
+                          </div>
+                          <button
+                            type="button"
+                            className="text-link"
+                            aria-label={`Ukloni pretragu: ${t.name}`}
+                            onClick={() => {
+                              setTestIds(testIds.filter((id) => id !== t.id));
+                              clearTime();
+                            }}
+                          >
+                            Ukloni
+                          </button>
+                        </li>
                       ))}
-                    <small>
-                      Prikazani koraci su plan pripreme; zasebna uzorkovanja
-                      naručuju se odvojeno.
-                    </small>
-                  </section>
-                )}
-                <Field
-                  name="referral_source"
-                  label="Uputnica za pregled"
-                  value={source}
-                  onChange={(e) => {
-                    setSource(e.target.value);
-                    setReferral("");
-                  }}
-                >
-                  <option value="EXISTING">Odaberi postojeću uputnicu</option>
-                  <option value="NEW">Izradi novu uputnicu</option>
-                </Field>
-                {source === "EXISTING" ? (
-                  <section className="spaced">
-                    <Field
-                      name="referral_search"
-                      label="Traži uputnicu po broju"
-                      value={term}
-                      maxLength={100}
-                      onChange={(e) => {
-                        setTerm(e.target.value);
-                        setPage(0);
-                        setReferral("");
-                      }}
-                    />
-                    {referrals.loading ? (
-                      <p role="status">Učitavanje uputnica…</p>
-                    ) : (
+                  </ul>
+                  {!chosen.laboratory_tests.length && (
+                    <p>
+                      Laboratorij treba postaviti pretrage prije naručivanja.
+                    </p>
+                  )}
+                  <MedicalCodePicker
+                    list="2.2.18"
+                    compact
+                    key={service}
+                    name="specimen_codes"
+                    label="Vrsta uzorka (CEZIH)"
+                    multiple
+                    onSelected={(items) =>
+                      setSpecimenCodes(items.map((i) => i.code))
+                    }
+                  />
+                  <Field
+                    name="sampling_method"
+                    label="Način uzimanja uzorka"
+                    value={samplingMethod}
+                    onChange={(e) => setSamplingMethod(e.target.value)}
+                  >
+                    <option value="VENIPUNCTURE">
+                      Uzimanje venske krvi – venepunkcija
+                    </option>
+                    <option value="CANNULA">
+                      Uzimanje krvi putem venske kanile (branile)
+                    </option>
+                    <option value="OTHER">
+                      Drugi način – prema protokolu laboratorija
+                    </option>
+                  </Field>
+                  {!testIds.length && (
+                    <p>
+                      Odaberite barem jednu pretragu za prikaz slobodnih
+                      termina.
+                    </p>
+                  )}
+                </section>
+              )}
+            </div>
+            <div hidden={isLab && labStep !== 2}>
+              {chosen && (
+                <section className="card spaced">
+                  {isLab && (
+                    <>
+                      <h3>Odaberite datum i vrijeme</h3>
+                      <p className="note-text">
+                        Odabrane pretrage:{" "}
+                        {chosen.laboratory_tests
+                          .filter((t) => testIds.includes(t.id))
+                          .map((t) => t.name)
+                          .join(", ")}
+                        . Prikazuju se termini koji odgovaraju svim odabranim
+                        pretragama.
+                      </p>
                       <Field
-                        name="priority_referral"
-                        label="Važeća uputnica"
+                        name="priority_from"
+                        label="Traži termine od"
+                        type="date"
                         required
-                        value={referral}
-                        onChange={(e) => setReferral(e.target.value)}
+                        min={zagrebDate()}
+                        max={shiftDate(zagrebDate(), 334)}
+                        value={from}
+                        onChange={(e) => {
+                          setFrom(e.target.value || zagrebDate());
+                          clearTime();
+                        }}
+                      />
+                    </>
+                  )}
+                  <h3>Slobodni termini · {chosen.duration_minutes} min</h3>
+                  <p>
+                    {chosen.location} · {chosen.specialty}
+                  </p>
+                  <p className="note-text">
+                    {chosen.booking_kind === "LABORATORY"
+                      ? "Europe/Zagreb · laboratorij 07:00–19:00, prema danima rada i satnici odabranih pretraga."
+                      : "Europe/Zagreb · jutro 07:00–13:30, poslijepodne 13:30–19:00."}{" "}
+                    Prikazuje se sljedećih 31 dan.
+                  </p>
+                  {slots.loading ? (
+                    <p role="status">Učitavanje slobodnih termina…</p>
+                  ) : days.length ? (
+                    <>
+                      <Field
+                        name="priority_day"
+                        label={isLab ? "Datum uzorkovanja" : "Dan pregleda"}
+                        value={effectiveDay}
+                        onChange={(e) => {
+                          setDay(e.target.value);
+                          setSelected(null);
+                          setReferral("");
+                          setPage(0);
+                        }}
                       >
-                        <option value="">Odaberite uputnicu</option>
-                        {referrals.data?.map((r) => (
-                          <option key={r.id} value={r.id}>
-                            {r.number} · vrijedi do {dateLabel(r.expires_on)}
+                        {days.map((d) => (
+                          <option key={d} value={d}>
+                            {dateLabel(d)}
                           </option>
                         ))}
                       </Field>
-                    )}
-                    {!referrals.loading && !referrals.data?.length && (
-                      <p>
-                        Nema slobodne uputnice za ovu specijalnost koja vrijedi
-                        na dan pregleda. Možete izraditi novu.
-                      </p>
-                    )}
-                    <Pagination
-                      page={page}
-                      size={referrals.data?.length ?? 0}
-                      loading={referrals.loading}
-                      onChange={(p) => {
-                        setPage(p);
-                        setReferral("");
-                      }}
-                    />
-                  </section>
-                ) : (
-                  <div className="form-grid spaced">
-                    <ReferenceCodeField
-                      key={bookingKind}
-                      list="2.2.5"
-                      name="referral_code"
-                      label="Vrsta uputnice"
-                      required
-                      defaultValue={bookingKind === "LABORATORY" ? "A3" : "A1"}
-                      allowed={
-                        bookingKind === "LABORATORY"
-                          ? ["A3", "A6"]
-                          : ["A1", "A2", "A4", "C1"]
-                      }
-                    />
-                    <ReferenceCodeField
-                      list="2.2.42"
-                      name="examination_code"
-                      label="Vrsta pregleda (SKZZ)"
-                    />
-                    <ReferenceCodeField
-                      list="2.2.39"
-                      name="visit_code"
-                      label="Pregled (PZZ)"
-                    />
-                    <DiagnosisPicker name="diagnosis_id" label="Dijagnoza" />
-                    <Field
-                      name="referral_reason"
-                      label="Razlog upućivanja"
-                      type="textarea"
-                      required
-                      minLength={5}
-                      maxLength={4000}
-                    />
-                    <Field
-                      name="expires_on"
-                      label="Uputnica vrijedi do"
-                      type="date"
-                      required
-                      min={zagrebDate(new Date(selected.starts_at))}
-                      max={shiftDate(zagrebDate(), 730)}
-                      defaultValue={shiftDate(
-                        zagrebDate(new Date(selected.starts_at)),
-                        30,
+                      {isLab ? (
+                        <Field
+                          name="laboratory_time"
+                          label="Vrijeme uzorkovanja"
+                          value={selected?.starts_at ?? ""}
+                          onChange={(e) => {
+                            setSelected(
+                              slots.data?.find(
+                                (s) => s.starts_at === e.target.value,
+                              ) ?? null,
+                            );
+                            setReferral("");
+                            setPage(0);
+                          }}
+                        >
+                          <option value="">Odaberite slobodno vrijeme</option>
+                          {slots.data
+                            ?.filter(
+                              (s) =>
+                                zagrebDate(new Date(s.starts_at)) ===
+                                effectiveDay,
+                            )
+                            .map((s) => (
+                              <option key={s.starts_at} value={s.starts_at}>
+                                {zagrebTime(s.starts_at)} · {s.duration_minutes}{" "}
+                                min
+                              </option>
+                            ))}
+                        </Field>
+                      ) : (
+                        <div
+                          className="document-actions spaced"
+                          role="group"
+                          aria-label="Slobodna vremena pregleda"
+                        >
+                          {slots.data
+                            ?.filter(
+                              (s) =>
+                                zagrebDate(new Date(s.starts_at)) ===
+                                effectiveDay,
+                            )
+                            .map((s) => (
+                              <button
+                                key={s.starts_at}
+                                className={
+                                  selected?.starts_at === s.starts_at
+                                    ? "primary"
+                                    : "secondary"
+                                }
+                                type="button"
+                                aria-pressed={
+                                  selected?.starts_at === s.starts_at
+                                }
+                                disabled={busy}
+                                onClick={() => {
+                                  setSelected(s);
+                                  setReferral("");
+                                  setPage(0);
+                                }}
+                              >
+                                {zagrebTime(s.starts_at)}
+                              </button>
+                            ))}
+                        </div>
                       )}
-                    />
-                    <Field
-                      name="referral_notes"
-                      label="Napomena na uputnici"
-                      type="textarea"
-                      maxLength={2000}
-                    />
-                  </div>
-                )}
-                <Field
-                  name="priority_reason"
-                  label="Razlog prioritetnog pregleda"
-                  type="textarea"
-                  required
-                  minLength={5}
-                  maxLength={1000}
-                />
-                <p className="note-text">
-                  Nova uputnica izdaje se zajedno s narudžbom. Potvrda e-mailom
-                  šalje se na potvrđenu adresu pacijenta ako su e-mail usluga i
-                  pacijentove obavijesti uključene. Narudžba je dostupna i u
-                  portalu.
-                </p>
-                {chosen.instructions && (
-                  <p>Upute za dolazak: {chosen.instructions}</p>
-                )}
-              </>
-            )}
-            <div className="modal-actions">
-              <button
-                className="primary"
-                disabled={
-                  busy ||
-                  !selected ||
-                  !chosen ||
-                  slots.loading ||
-                  (source === "EXISTING" && (!referral || referrals.loading))
-                }
-              >
-                {busy
-                  ? "Rezervacija…"
-                  : bookingKind === "LABORATORY"
-                    ? "Potvrdi prioritetnu laboratorijsku narudžbu"
-                    : "Potvrdi prioritetni pregled"}
-              </button>
+                    </>
+                  ) : (
+                    <p>
+                      Nema slobodnih termina u ovom razdoblju. Odaberite drugi
+                      početni datum ili specijalista.
+                    </p>
+                  )}
+                  <button
+                    className="text-link spaced"
+                    type="button"
+                    disabled={busy || slots.loading}
+                    onClick={() => {
+                      clearTime();
+                      slots.refresh();
+                    }}
+                  >
+                    Osvježi slobodne termine
+                  </button>
+                </section>
+              )}
+            </div>
+            <div hidden={isLab && labStep !== 3}>
+              {selected && chosen && (
+                <>
+                  <p className="confirm-box">
+                    Odabrano:{" "}
+                    <strong>
+                      {dateLabel(zagrebDate(new Date(selected.starts_at)))} u{" "}
+                      {zagrebTime(selected.starts_at)}
+                    </strong>{" "}
+                    · {selected.duration_minutes} min ·{" "}
+                    {chosen.institution_name} · {chosen.department_name} ·{" "}
+                    {chosen.doctor_name}
+                  </p>
+                  {chosen.booking_kind === "LABORATORY" && (
+                    <section className="confirm-box">
+                      <h3>Odabrane pretrage i povezani koraci</h3>
+                      {chosen.laboratory_tests
+                        .filter((t) => testIds.includes(t.id))
+                        .map((t) => (
+                          <div key={t.id}>
+                            <strong>{t.name}</strong>
+                            <p>{t.instructions}</p>
+                            {t.steps.map((step, index) => (
+                              <p key={index}>
+                                {dateLabel(
+                                  shiftDate(
+                                    zagrebDate(new Date(selected.starts_at)),
+                                    step.day_offset,
+                                  ),
+                                )}{" "}
+                                u {step.time} · {step.label} ·{" "}
+                                {step.instructions}
+                              </p>
+                            ))}
+                          </div>
+                        ))}
+                      <small>
+                        Prikazani koraci su plan pripreme; zasebna uzorkovanja
+                        naručuju se odvojeno.
+                      </small>
+                    </section>
+                  )}
+                  <Field
+                    name="referral_source"
+                    label="Uputnica za pregled"
+                    value={source}
+                    onChange={(e) => {
+                      setSource(e.target.value);
+                      setReferral("");
+                    }}
+                  >
+                    <option value="EXISTING">Odaberi postojeću uputnicu</option>
+                    <option value="NEW">Izradi novu uputnicu</option>
+                  </Field>
+                  {source === "EXISTING" ? (
+                    <section className="spaced">
+                      <Field
+                        name="referral_search"
+                        label="Traži uputnicu po broju"
+                        value={term}
+                        maxLength={100}
+                        onChange={(e) => {
+                          setTerm(e.target.value);
+                          setPage(0);
+                          setReferral("");
+                        }}
+                      />
+                      {referrals.loading ? (
+                        <p role="status">Učitavanje uputnica…</p>
+                      ) : (
+                        <Field
+                          name="priority_referral"
+                          label="Važeća uputnica"
+                          required
+                          value={referral}
+                          onChange={(e) => setReferral(e.target.value)}
+                        >
+                          <option value="">Odaberite uputnicu</option>
+                          {referrals.data?.map((r) => (
+                            <option key={r.id} value={r.id}>
+                              {r.number} · vrijedi do {dateLabel(r.expires_on)}
+                            </option>
+                          ))}
+                        </Field>
+                      )}
+                      {!referrals.loading && !referrals.data?.length && (
+                        <p>
+                          Nema slobodne uputnice za ovu specijalnost koja
+                          vrijedi na dan pregleda. Možete izraditi novu.
+                        </p>
+                      )}
+                      <Pagination
+                        page={page}
+                        size={referrals.data?.length ?? 0}
+                        loading={referrals.loading}
+                        onChange={(p) => {
+                          setPage(p);
+                          setReferral("");
+                        }}
+                      />
+                    </section>
+                  ) : (
+                    <div className="form-grid spaced">
+                      <ReferenceCodeField
+                        key={bookingKind}
+                        list="2.2.5"
+                        name="referral_code"
+                        label="Vrsta uputnice"
+                        required
+                        defaultValue={
+                          bookingKind === "LABORATORY" ? "A3" : "A1"
+                        }
+                        allowed={
+                          bookingKind === "LABORATORY"
+                            ? ["A3", "A6"]
+                            : ["A1", "A2", "A4", "C1"]
+                        }
+                      />
+                      <ReferenceCodeField
+                        list="2.2.42"
+                        name="examination_code"
+                        label="Vrsta pregleda (SKZZ)"
+                      />
+                      <ReferenceCodeField
+                        list="2.2.39"
+                        name="visit_code"
+                        label="Pregled (PZZ)"
+                      />
+                      <DiagnosisPicker name="diagnosis_id" label="Dijagnoza" />
+                      <Field
+                        name="referral_reason"
+                        label="Razlog upućivanja"
+                        type="textarea"
+                        required
+                        minLength={5}
+                        maxLength={4000}
+                      />
+                      <Field
+                        name="expires_on"
+                        label="Uputnica vrijedi do"
+                        type="date"
+                        required
+                        min={zagrebDate(new Date(selected.starts_at))}
+                        max={shiftDate(zagrebDate(), 730)}
+                        defaultValue={shiftDate(
+                          zagrebDate(new Date(selected.starts_at)),
+                          30,
+                        )}
+                      />
+                      <Field
+                        name="referral_notes"
+                        label="Napomena na uputnici"
+                        type="textarea"
+                        maxLength={2000}
+                      />
+                    </div>
+                  )}
+                  <Field
+                    name="priority_reason"
+                    label="Razlog prioritetnog pregleda"
+                    type="textarea"
+                    required
+                    minLength={5}
+                    maxLength={1000}
+                  />
+                  <p className="note-text">
+                    Nova uputnica izdaje se zajedno s narudžbom. Potvrda
+                    e-mailom šalje se na potvrđenu adresu pacijenta ako su
+                    e-mail usluga i pacijentove obavijesti uključene. Narudžba
+                    je dostupna i u portalu.
+                  </p>
+                  {chosen.instructions && (
+                    <p>Upute za dolazak: {chosen.instructions}</p>
+                  )}
+                </>
+              )}
+            </div>
+            <div
+              className={
+                isLab ? "modal-actions lab-booking-actions" : "modal-actions"
+              }
+            >
+              {isLab && labStep > 1 && (
+                <button
+                  type="button"
+                  className="secondary"
+                  disabled={busy}
+                  onClick={() => setLabStep(labStep - 1)}
+                >
+                  Natrag
+                </button>
+              )}
+              {isLab && labStep < 3 && (
+                <button
+                  type="button"
+                  className="primary"
+                  disabled={
+                    busy ||
+                    !chosen ||
+                    !testIds.length ||
+                    (labStep === 2 && (!selected || slots.loading))
+                  }
+                  onClick={() => setLabStep(labStep + 1)}
+                >
+                  {labStep === 1 ? "Nastavi na termine" : "Nastavi na uputnicu"}
+                </button>
+              )}
+              {(!isLab || labStep === 3) && (
+                <button
+                  className="primary"
+                  disabled={
+                    busy ||
+                    !selected ||
+                    !chosen ||
+                    slots.loading ||
+                    (source === "EXISTING" && (!referral || referrals.loading))
+                  }
+                >
+                  {busy
+                    ? "Rezervacija…"
+                    : bookingKind === "LABORATORY"
+                      ? "Potvrdi prioritetnu laboratorijsku narudžbu"
+                      : "Potvrdi prioritetni pregled"}
+                </button>
+              )}
             </div>
           </>
         )}

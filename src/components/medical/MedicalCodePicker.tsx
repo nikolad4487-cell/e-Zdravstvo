@@ -10,6 +10,7 @@ export function MedicalCodePicker({
   name,
   label,
   multiple = false,
+  compact = false,
   required = false,
   initial = [],
   onSelected,
@@ -18,6 +19,7 @@ export function MedicalCodePicker({
   name: string;
   label: string;
   multiple?: boolean;
+  compact?: boolean;
   required?: boolean;
   initial?: MedicalCode[];
   onSelected?: (items: MedicalCode[]) => void;
@@ -50,62 +52,110 @@ export function MedicalCodePicker({
         {label}
         {required ? " *" : ""}
       </label>
-      <input
-        type="search"
-        aria-label={"Traži: " + label}
-        placeholder="Traži šifru ili naziv…"
-        maxLength={200}
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-      />
+      {!compact && (
+        <input
+          type="search"
+          aria-label={"Traži: " + label}
+          placeholder="Traži šifru ili naziv…"
+          maxLength={200}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+      )}
       <select
         id={id}
         name={name}
-        multiple={multiple}
+        multiple={multiple && !compact}
         required={required}
         value={
-          multiple ? selected.map((s) => s.code) : (selected[0]?.code ?? "")
+          compact
+            ? ""
+            : multiple
+              ? selected.map((s) => s.code)
+              : (selected[0]?.code ?? "")
         }
         onChange={(e) => {
           const ids = [...e.target.selectedOptions].map((o) => o.value);
-          const items = options.filter((o) => ids.includes(o.code));
+          const items =
+            compact && multiple
+              ? [
+                  ...selected,
+                  ...options.filter(
+                    (o) =>
+                      ids.includes(o.code) &&
+                      !selected.some((s) => s.code === o.code),
+                  ),
+                ]
+              : options.filter((o) => ids.includes(o.code));
           setSelected(items);
           onSelected?.(items);
         }}
       >
-        {!multiple && <option value="">Odaberite šifru</option>}
-        {options.map((c) => (
-          <option key={c.code} value={c.code}>
-            {c.code} · {c.name}
+        {(!multiple || compact) && (
+          <option value="">
+            {compact ? "Dodajte vrstu uzorka (neobavezno)" : "Odaberite šifru"}
           </option>
-        ))}
+        )}
+        {options
+          .filter((c) => !compact || !selected.some((s) => s.code === c.code))
+          .map((c) => (
+            <option key={c.code} value={c.code}>
+              {c.code} · {c.name}
+            </option>
+          ))}
       </select>
       {resource.loading && (
         <small role="status">Pretraživanje šifrarnika…</small>
       )}
       {resource.error && <ErrorMessage>{resource.error}</ErrorMessage>}
-      <div className="catalog-page-controls">
-        <button
-          type="button"
-          className="secondary"
-          disabled={!page || resource.loading}
-          onClick={() => setPage(page - 1)}
-        >
-          Prethodne šifre
-        </button>
-        <button
-          type="button"
-          className="secondary"
-          disabled={(resource.data?.length ?? 0) < 50 || resource.loading}
-          onClick={() => setPage(page + 1)}
-        >
-          Sljedeće šifre
-        </button>
-      </div>
-      {selected.map((c) => (
-        <small key={c.code}>{c.description}</small>
-      ))}
-      {multiple && <small>Za više odabira držite Ctrl / Cmd.</small>}
+      {(!compact || page > 0 || (resource.data?.length ?? 0) >= 50) && (
+        <div className="catalog-page-controls">
+          <button
+            type="button"
+            className="secondary"
+            disabled={!page || resource.loading}
+            onClick={() => setPage(page - 1)}
+          >
+            Prethodne šifre
+          </button>
+          <button
+            type="button"
+            className="secondary"
+            disabled={(resource.data?.length ?? 0) < 50 || resource.loading}
+            onClick={() => setPage(page + 1)}
+          >
+            Sljedeće šifre
+          </button>
+        </div>
+      )}
+      {compact && (
+        <ul className="lab-selected-tests" aria-label="Odabrani uzorci">
+          {selected.map((c) => (
+            <li key={c.code}>
+              <span>
+                {c.code} · {c.name}
+              </span>
+              <button
+                type="button"
+                className="text-link"
+                aria-label={`Ukloni uzorak: ${c.name}`}
+                onClick={() => {
+                  const items = selected.filter((s) => s.code !== c.code);
+                  setSelected(items);
+                  onSelected?.(items);
+                }}
+              >
+                Ukloni
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      {!compact &&
+        selected.map((c) => <small key={c.code}>{c.description}</small>)}
+      {multiple && !compact && (
+        <small>Za više odabira držite Ctrl / Cmd.</small>
+      )}
     </div>
   );
 }
