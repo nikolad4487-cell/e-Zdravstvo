@@ -32,6 +32,9 @@ export const labOrderSchema = z.object({
   doctor_name: z.string(),
   laboratory_name: z.string(),
   requested_tests: z.string(),
+  hospital_booking_id: z.string().nullable().optional(),
+  sample_collected_at: z.string().nullable().optional(),
+  sample_status: z.string().optional(),
   catalog_details: z
     .object({
       orders: z.array(z.object({ code: z.string(), name: z.string() })),

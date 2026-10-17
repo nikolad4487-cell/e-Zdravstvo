@@ -2633,3 +2633,132 @@ dd {
     flex-wrap: wrap;
   }
 }
+
+.lab-work-tabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+.lab-work-tabs button {
+  background: #edf4f5;
+  color: #355b66;
+  border-radius: 10px;
+  padding: 12px 18px;
+}
+.lab-work-tabs button[aria-pressed="true"] {
+  background: #087f8c;
+  color: white;
+}
+.lab-work-counts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 20px 0;
+}
+.lab-work-counts .card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 18px;
+}
+.lab-work-counts strong {
+  font-size: 26px;
+  color: #087f8c;
+}
+.lab-work-counts span {
+  font-size: 12px;
+}
+.lab-work-list {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+.lab-work-row {
+  display: grid;
+  grid-template-columns: 90px minmax(0, 1fr) 165px 170px;
+  gap: 20px;
+  align-items: start;
+}
+.lab-work-time,
+.lab-work-stage,
+.lab-work-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.lab-work-time > strong {
+  font-size: 20px;
+  color: #174754;
+}
+.lab-work-row p {
+  margin: 8px 0;
+  overflow-wrap: anywhere;
+}
+.lab-work-stage small {
+  overflow-wrap: anywhere;
+}
+.sample-stage {
+  display: inline-block;
+  width: fit-content;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  background: #edf2f5;
+  color: #3f5661;
+}
+.sample-stage-arrived,
+.sample-stage-collected {
+  background: #e5f4f5;
+  color: #086c78;
+}
+.sample-stage-processing {
+  background: #e9eeff;
+  color: #374b96;
+}
+.sample-stage-recollect {
+  background: #fff2dc;
+  color: #80500d;
+}
+.sample-stage-completed {
+  background: #e5f6ee;
+  color: #226744;
+}
+.lab-sample-history {
+  padding-left: 22px;
+}
+.lab-sample-history li {
+  border-bottom: 1px solid #e7eff1;
+  padding: 14px 0;
+}
+@media (max-width: 1100px) {
+  .lab-work-row {
+    grid-template-columns: 80px minmax(0, 1fr);
+  }
+  .lab-work-stage {
+    grid-column: 2;
+  }
+  .lab-work-actions {
+    grid-column: 2;
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+}
+@media (max-width: 600px) {
+  .lab-work-counts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .lab-work-row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+  .lab-work-stage,
+  .lab-work-actions {
+    grid-column: 1;
+  }
+  .lab-work-time {
+    flex-direction: row;
+    align-items: center;
+  }
+}

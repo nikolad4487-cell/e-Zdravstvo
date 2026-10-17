@@ -32,6 +32,26 @@ export type Database = {
     };
     Views: Record<string, never>;
     Functions: {
+      laboratory_worklist: {
+        Args: {
+          work_day: string;
+          institution_filter: string | null;
+          search_term: string;
+          stage_filter: string | null;
+          page_number: number;
+        };
+        Returns: Json;
+      };
+      advance_laboratory_workflow: {
+        Args: {
+          source_kind: string;
+          source_id: string;
+          expected_version: number;
+          new_stage: string;
+          reason: string;
+        };
+        Returns: string;
+      };
       search_prescription_medications: {
         Args: { search_term: string; page_number: number };
         Returns: Json;

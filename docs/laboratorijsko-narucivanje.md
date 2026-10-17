@@ -49,3 +49,31 @@ U naručivanju je dostupna pretraga po nazivu/šifri i odvojeni višestruki izbo
 U obrascu nalaza tehničar pretražuje svih 113 šifara rezultata uz paginaciju; server potvrđuje naziv/jedinicu iz izvora. Podržani su brojčani i tekstualni nalazi (npr. napomene). Tekstualne vrijednosti ostaju tekst u prikazu i PDF-u i nisu uključene u brojčane trendove. Referentne vrijednosti i odluke o kritičnim nalazima unosi ovlašteni laboratorij. Raniji nalazi i već pokušani PDF privici ne mijenjaju se.
 
 Dodatno je uspoređen PDF `Specifikacija_kodnih_lista_Rev_F20110628.pdf` (otisnuti datum 2011-06-28): u pregledanim laboratorijskim tablicama ima istih 11 vrsta uzoraka, 37 šifara naručivanja i 107 šifara rezultata. Sve pronađene šifre tog starijeg izvora postoje u dostavljenom izdanju iz 2023.; stariji PDF nije zamijenio operativne podatke.
+
+## Dnevni raspored i praćenje uzoraka
+
+Laboratorijski portal (`/laboratorij`) počinje karticom **Dnevni raspored i uzorci**.
+Filtriranje po datumu odnosi se na termin u Europe/Zagreb. Zahtjevi bez termina
+prikazuju se prema danu izrade; prethodni zahtjevi ostaju u kartici **Sve narudžbe i nalazi**.
+Filtri pacijenta/pretrage, ustanove i statusa primjenjuju se na poslužitelju prije
+straničenja (50 stavki), a brojači obuhvaćaju sve rezultate pretrage za taj dan.
+
+Radni tijek: očekuje dolazak → pacijent zaprimljen → uzorak uzet → u obradi → nalaz izdan.
+Prvi dolazak iz termina atomarno stvara jedan laboratorijski zahtjev povezan s
+narudžbom, s izvornim pretragama, uzorcima i liječnikom koji je uputio pacijenta.
+Dolazak prije dana termina nije dopušten. Uzorkovanje bilježi vrijeme i broj pokušaja;
+obrada se otvara nakon uzimanja uzorka. Ponovno uzorkovanje zahtijeva razlog i novi
+zapis uzorkovanja prije nastavka obrade. Objavljivanje nalaza koristi postojeću
+provjeru i izdavanje PDF-a te postavlja radni status na **Nalaz izdan**.
+Nema automatskog zaključivanja koji parametri nalaza pripadaju kojoj pretrazi.
+
+Pristup je ograničen na aktivne laboratorijske djelatnike njihove ustanove.
+Poslužitelj provjerava svaku promjenu, zaključava zahtjev/termin i provjerava verziju.
+Povijest uzoraka čuva vrijeme, djelatnika, status, pokušaj i razlog; nema izravnih
+prava upisa niti izmjene povijesti za klijente. Postojeći zahtjevi i izdani nalazi
+ne prepisuju se. Stari neobrađeni tijek ostaje kompatibilan; nakon zaprimanja u
+novom rasporedu nije moguće preskočiti uzimanje uzorka.
+
+Provjere: `pnpm run test:lab-worklist` provjerava stvarne SQL migracije s izmišljenim
+podacima. `e2e/laboratory-worklist.spec.ts` pokriva prijam, uzorkovanje, ponavljanje,
+povijest i otvaranje obrasca nalaza na računalu i mobitelu.

@@ -1,3 +1,4 @@
+import { LaboratoryWorkspace } from "../components/medical/LaboratoryWorklist";
 import { MedicalCodesPage } from "../pages/shared/MedicalCodesPage";
 import { Navigate, Outlet, Route, Routes, Link } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
@@ -176,7 +177,7 @@ export function AppRoutes() {
                 ) : path === "/central" ? (
                   <CentralHome />
                 ) : path === "/laboratorij" ? (
-                  <LaboratoryPanel mode="LAB" />
+                  <LaboratoryWorkspace />
                 ) : path === "/ljekarna" ? (
                   <PharmacyPanel />
                 ) : path === "/skola" ? (

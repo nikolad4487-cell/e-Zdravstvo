@@ -285,17 +285,19 @@ export function LaboratoryPanel({
                 <button className="secondary" onClick={() => setSelected(o)}>
                   Otvori narudžbu i rezultate
                 </button>
-                {o.can_publish && o.status === "ORDERED" && (
-                  <button
-                    className="primary"
-                    onClick={() => {
-                      setError("");
-                      setTransition({ order: o, status: "IN_PROGRESS" });
-                    }}
-                  >
-                    Preuzmi u obradu
-                  </button>
-                )}
+                {o.can_publish &&
+                  o.status === "ORDERED" &&
+                  (!o.sample_status || o.sample_status === "EXPECTED") && (
+                    <button
+                      className="primary"
+                      onClick={() => {
+                        setError("");
+                        setTransition({ order: o, status: "IN_PROGRESS" });
+                      }}
+                    >
+                      Preuzmi u obradu
+                    </button>
+                  )}
                 {o.can_publish &&
                   ["IN_PROGRESS", "COMPLETED"].includes(o.status) && (
                     <button className="primary" onClick={() => setPublish(o)}>
@@ -417,7 +419,7 @@ export function LaboratoryPanel({
     </>
   );
 }
-function LabResultView({
+export function LabResultView({
   result: r,
   mode,
 }: {
@@ -611,7 +613,7 @@ function LabOrderEditor({
     </Modal>
   );
 }
-function LabResultEditor({
+export function LabResultEditor({
   order,
   onClose,
   onSaved,
@@ -630,6 +632,7 @@ function LabResultEditor({
     e.preventDefault();
     const data = values(e.currentTarget);
     setDraft({
+      expected_order_version: order.version,
       sampled_at: new Date(data.sampled_at).toISOString(),
       summary: data.summary,
       correction_reason: data.correction_reason ?? "",
@@ -660,16 +663,14 @@ function LabResultEditor({
       setBusy(false);
     }
   }
-  const localSample = previous
-    ? new Date(
-        new Date(previous.sampled_at).getTime() -
-          new Date(previous.sampled_at).getTimezoneOffset() * 60000,
-      )
-        .toISOString()
-        .slice(0, 16)
-    : new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
-        .toISOString()
-        .slice(0, 16);
+  const sampleTime = new Date(
+    previous?.sampled_at ?? order.sample_collected_at ?? Date.now(),
+  );
+  const localSample = new Date(
+    sampleTime.getTime() - sampleTime.getTimezoneOffset() * 60000,
+  )
+    .toISOString()
+    .slice(0, 16);
   return (
     <Modal
       title={

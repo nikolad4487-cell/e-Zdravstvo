@@ -33,6 +33,7 @@
     "test:hzzo": "node scripts/test-hzzo-catalogs.mjs",
     "test:prescription-catalog": "node scripts/test-prescription-catalog.mjs",
     "test:lab-booking": "node scripts/test-laboratory-booking.mjs",
+    "test:lab-worklist": "node scripts/test-laboratory-worklist.mjs",
     "test:lab-windows": "node scripts/test-laboratory-windows.mjs",
     "test:cezih-lab": "node scripts/test-cezih-laboratory.mjs"
   },
