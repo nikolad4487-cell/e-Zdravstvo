@@ -1,3 +1,7 @@
+import {
+  MfaChallengePage,
+  AccountSecurityPage,
+} from "../pages/auth/AccountSecurityPage";
 import { CarePathways } from "../components/medical/CarePathways";
 import { LaboratoryWorkspace } from "../components/medical/LaboratoryWorklist";
 import { MedicalCodesPage } from "../pages/shared/MedicalCodesPage";
@@ -37,6 +41,7 @@ function Guard({ path }: { path?: string }) {
   const auth = useAuth();
   if (auth.loading) return <Loading />;
   if (!auth.session) return <Navigate to="/prijava" replace />;
+  if (auth.mfaRequired) return <Navigate to="/potvrda-prijave" replace />;
   if (auth.recovery || auth.profile?.must_change_password)
     return <Navigate to="/nova-lozinka" replace />;
   if (auth.error)
@@ -57,7 +62,16 @@ function Home() {
   const auth = useAuth();
   if (auth.loading) return <Loading />;
   return (
-    <Navigate to={auth.session ? homeFor(auth.roles) : "/prijava"} replace />
+    <Navigate
+      to={
+        auth.session
+          ? auth.mfaRequired
+            ? "/potvrda-prijave"
+            : homeFor(auth.roles)
+          : "/prijava"
+      }
+      replace
+    />
   );
 }
 function NoAccess() {
@@ -92,6 +106,7 @@ export function AppRoutes() {
       <Route path="/" element={<Home />} />
       <Route path="/verify/:token" element={<VerificationPage />} />
       <Route path="/prijava" element={<LoginPage />} />
+      <Route path="/potvrda-prijave" element={<MfaChallengePage />} />
       <Route path="/zaboravljena-lozinka" element={<PasswordPage />} />
       <Route path="/nova-lozinka" element={<PasswordPage reset />} />
       <Route path="/postavljanje" element={<InformationPage kind="setup" />} />
@@ -99,6 +114,7 @@ export function AppRoutes() {
       <Route path="/o-sustavu" element={<InformationPage kind="about" />} />
       <Route element={<Guard />}>
         <Route path="/bez-pristupa" element={<NoAccess />} />
+        <Route path="/sigurnost" element={<AccountSecurityPage />} />
       </Route>
       {[
         "/ordinacija",

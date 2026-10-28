@@ -9,7 +9,7 @@ spremnosti cijelog sustava za stvarnu medicinsku dokumentaciju.
 |---|---|---|
 | 1 | Povezani tijek pacijenta, usklađeni statusi nalaza i termina, liječnički pregled nalaza i kontrolne obveze | Implementirano i provjereno za uputnice, bolničke termine i laboratorijske nalaze; ostatak plana ostaje otvoren |
 | 2 | Oznake i barkodovi uzoraka, više uzoraka po zahtjevu, odobreni protokoli i verifikacija | Dnevni raspored, zasebni uzorci, QR oznake, prijam i povijest zamjene implementirani; protokoli čekaju odobreni izvor |
-| 3 | MFA, zaštita sesija i osjetljivih radnji | Slijedi |
+| 3 | MFA, zaštita sesija i osjetljivih radnji | TOTP aktivacija, potvrda prijave i serverska zaštita implementirani; obvezan organizacijski rollout, oporavak i zaštita neaktivnih sesija ostaju otvoreni |
 | 4 | Test povrata baze i privatnih privitaka, nadzor, upozorenja, integracijski testovi | Potrebni provjerljivi rezultati oporavka i konfiguracija infrastrukture |
 | 5 | Strukturirano propisivanje i provjerene kliničke provjere | Interakcije i doze zahtijevaju odabranu validiranu bazu |
 | 6 | Specijalistički obrasci | Potrebni odobreni obrasci i klinički zahtjevi odjela |
@@ -63,3 +63,33 @@ na stvaran uzorak zahtijevaju provjeru identiteta laboratorijskog djelatnika.
 Provjere: `test:lab-samples`, PDF test i preglednički testovi na računalu/mobitelu.
 Ove dvije isporuke ne završavaju preostalu sigurnost, bolnički smještaj, terapijske
 naloge, obračun ili službene integracije iz tablice plana.
+
+## TOTP prijava i stanje operativne spremnosti
+
+TOTP koristi Supabase Auth. Korisnik aktivira svoj autentifikator u **Sigurnost
+računa**; aplikacija ne može povezati njegov fizički uređaj umjesto njega. Nakon
+aktivacije AAL1 sesija čeka potvrdu koda prije učitavanja računa. API pre-request
+provjera i restriktivne RLS politike odbijaju AAL1 zahtjeve računa s verificiranim
+faktorom, uključujući izravne tablične upite / Realtime. Verifikacija, QR podaci i
+uklanjanje faktora idu kroz Auth servis. Tajni ključ nije pohranjen u aplikacijsku
+bazu, logove ili lokalnu pohranu. QR se prikazuje samo tijekom aktivacije.
+
+Ovo nije politika obvezne aktivacije za sve djelatnike: računi bez aktiviranog
+faktora ostaju kompatibilni. Prije obveznog organizacijskog uvođenja potrebni su
+postupak provjere identiteta pri gubitku uređaja, ovlašteni Auth administrator i
+uvođenje za sve djelatnike. Oporavak nije zaobilaženje drugim e-mailom; administrator
+koristi službeni Auth postupak resetiranja faktora nakon provjere identiteta.
+
+Provjera pružatelja 28.10.2026.: TOTP enrollment/verify uključen, PITR isključen,
+API nije prikazao dostupne backup zapise, session timebox i inactivity timeout su 0.
+To nije dokaz da je povrat podataka moguć. **Test oporavka nije izveden.** Za njega
+su potrebni stvarna kopija i odvojeni potrošni testni projekt. Potrebno je obuhvatiti
+i privatne datoteke Storagea; sama kopija baze ne sadrži njihove bajtove.
+
+`NODE_USE_ENV_PROXY=1 node scripts/audit-production-readiness.mjs` ponavlja pregled
+bez upisa i ispisuje samo agregate i postavke, bez medicinskih podataka ili tajni.
+Za test oporavka nikad ne koristiti aktivnu produkciju kao odredište; prvo se
+određuju odredište, dopušteni podaci, siguran prijenos i kriteriji prihvata.
+Provjera mora usporediti migracije, prava pristupa, osnovne tokove te dostupnost i
+integritet privatnih privitaka. Uspješan export ili postojanje backupa nisu dokaz
+uspješnog oporavka.

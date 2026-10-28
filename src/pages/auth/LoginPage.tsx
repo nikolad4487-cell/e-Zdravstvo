@@ -37,7 +37,13 @@ export function LoginPage() {
   if (auth.session && !busy)
     return (
       <Navigate
-        to={auth.recovery ? "/nova-lozinka" : homeFor(auth.roles)}
+        to={
+          auth.mfaRequired
+            ? "/potvrda-prijave"
+            : auth.recovery
+              ? "/nova-lozinka"
+              : homeFor(auth.roles)
+        }
         replace
       />
     );

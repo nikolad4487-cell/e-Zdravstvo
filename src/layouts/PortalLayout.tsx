@@ -74,6 +74,9 @@ export function PortalLayout() {
             <ChevronDown size={15} />
           </div>
           <nav>
+            <NavLink to="/sigurnost" onClick={() => setOpen(false)}>
+              Sigurnost računa
+            </NavLink>
             <NavLink
               to={active?.path ?? "/"}
               end

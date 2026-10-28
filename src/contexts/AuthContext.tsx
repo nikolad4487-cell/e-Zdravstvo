@@ -12,6 +12,7 @@ interface AuthState {
   loading: boolean;
   error: string;
   recovery: boolean;
+  mfaRequired: boolean;
   signIn: (email: string, password: string, remember: boolean) => Promise<void>;
   signOut: () => Promise<void>;
   refresh: () => void;
@@ -25,6 +26,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(Boolean(supabase));
   const [error, setError] = useState("");
   const [recovery, setRecovery] = useState(false);
+  const [mfaRequired, setMfaRequired] = useState(false);
   const generation = useRef(0);
   const applySession = useCallback(async (next: Session | null) => {
     const version = ++generation.current;
@@ -33,9 +35,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setRoles([]);
     setInstitutions([]);
     setError("");
+    setMfaRequired(false);
     setLoading(Boolean(next));
     if (!next) return;
     try {
+      const assurance = await db().auth.mfa.getAuthenticatorAssuranceLevel();
+      if (assurance.error)
+        throw new Error(
+          "Sigurnost prijave nije moguće provjeriti. Pokušajte ponovno.",
+        );
+      if (version !== generation.current) return;
+      if (
+        assurance.data.nextLevel === "aal2" &&
+        assurance.data.currentLevel !== "aal2"
+      ) {
+        setMfaRequired(true);
+        return;
+      }
       const account = await loadAccount(next.user.id);
       if (version !== generation.current) return;
       setProfile(account.profile);
@@ -76,7 +92,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         "Prijava nije uspjela. Provjerite e-mail i lozinku ili pokušajte ponovno.",
       );
     try {
-      await sessionEvent("LOGIN_SUCCESS");
+      const assurance = await db().auth.mfa.getAuthenticatorAssuranceLevel();
+      if (assurance.error)
+        throw new Error("Sigurnost prijave nije moguće provjeriti.");
+      if (
+        assurance.data.nextLevel !== "aal2" ||
+        assurance.data.currentLevel === "aal2"
+      )
+        await sessionEvent("LOGIN_SUCCESS");
     } catch (e) {
       await db().auth.signOut({ scope: "local" });
       throw e;
@@ -103,6 +126,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loading,
         error,
         recovery,
+        mfaRequired,
         signIn,
         signOut,
         refresh: () => {

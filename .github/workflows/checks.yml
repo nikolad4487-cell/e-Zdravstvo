@@ -24,6 +24,7 @@ jobs:
       - run: pnpm run test:priority
       - run: pnpm run test:lab-booking
       - run: pnpm run test:lab-windows
+      - run: pnpm run test:mfa
       - run: pnpm run test:lab-samples
       - run: pnpm run test:care-pathways
       - run: pnpm run test:lab-worklist

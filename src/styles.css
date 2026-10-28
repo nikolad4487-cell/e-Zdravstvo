@@ -2762,3 +2762,18 @@ dd {
     align-items: center;
   }
 }
+
+.security-page {
+  max-width: 680px;
+}
+.mfa-qr {
+  display: block;
+  width: min(100%, 240px);
+  height: auto;
+  margin: 20px auto;
+}
+.mfa-secret {
+  display: block;
+  overflow-wrap: anywhere;
+  margin-top: 12px;
+}

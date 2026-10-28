@@ -1,11 +1,11 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import { Brand } from "../../components/ui/Brand";
 import { ErrorMessage } from "../../components/ui/Feedback";
 import { configured, db } from "../../lib/supabase";
 import { useAuth } from "../../hooks/useAuth";
 export function PasswordPage({ reset = false }: { reset?: boolean }) {
-  const { session, signOut, profile } = useAuth();
+  const { session, signOut, profile, mfaRequired } = useAuth();
   const [value, setValue] = useState("");
   const [confirm, setConfirm] = useState("");
   const [busy, setBusy] = useState(false);
@@ -37,6 +37,7 @@ export function PasswordPage({ reset = false }: { reset?: boolean }) {
       setBusy(false);
     }
   }
+  if (reset && mfaRequired) return <Navigate to="/potvrda-prijave" replace />;
   return (
     <main className="standalone">
       <Brand />
