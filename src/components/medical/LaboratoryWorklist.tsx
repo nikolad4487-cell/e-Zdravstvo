@@ -1,3 +1,4 @@
+import { LaboratorySamples } from "./LaboratorySamples";
 import { useState } from "react";
 import { useResource } from "../../hooks/useResource";
 import { useScheduleRefresh } from "../../hooks/useScheduleRefresh";
@@ -60,6 +61,7 @@ export function LaboratoryWorkspace() {
   );
 }
 export function LaboratoryWorklist() {
+  const [sampleOrder, setSampleOrder] = useState<string | null>(null);
   const [filters, setFilters] = useState<WorklistFilters>({
       day: zagrebDate(),
       institution: "",
@@ -311,6 +313,16 @@ export function LaboratoryWorklist() {
                   {item.sample_note && <small>{item.sample_note}</small>}
                 </div>
                 <div className="lab-work-actions">
+                  {item.order_id && (
+                    <button
+                      type="button"
+                      className="secondary"
+                      disabled={busy}
+                      onClick={() => setSampleOrder(item.order_id)}
+                    >
+                      Uzorci i oznake
+                    </button>
+                  )}
                   {next && (
                     <button
                       type="button"
@@ -386,6 +398,13 @@ export function LaboratoryWorklist() {
           Sljedeća stranica
         </button>
       </div>
+      {sampleOrder && (
+        <LaboratorySamples
+          orderId={sampleOrder}
+          onClose={() => setSampleOrder(null)}
+          onChanged={resource.refresh}
+        />
+      )}
       {change && (
         <Modal
           title={sampleStageLabels[change.stage]}

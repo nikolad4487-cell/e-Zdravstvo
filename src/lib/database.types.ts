@@ -32,6 +32,29 @@ export type Database = {
     };
     Views: Record<string, never>;
     Functions: {
+      laboratory_sample_label: { Args: { sample_id: string }; Returns: Json };
+      list_laboratory_samples: {
+        Args: { order_id: string; sample_code: string };
+        Returns: Json;
+      };
+      create_laboratory_sample: {
+        Args: {
+          order_id: string;
+          specimen_code: string;
+          request_id: string;
+          replaces_sample_id: string | null;
+        };
+        Returns: string;
+      };
+      change_laboratory_sample: {
+        Args: {
+          sample_id: string;
+          expected_version: number;
+          new_status: string;
+          reason: string;
+        };
+        Returns: undefined;
+      };
       care_pathways: {
         Args: {
           patient_filter: string | null;
