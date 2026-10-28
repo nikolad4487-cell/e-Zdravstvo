@@ -32,6 +32,40 @@ export type Database = {
     };
     Views: Record<string, never>;
     Functions: {
+      care_pathways: {
+        Args: {
+          patient_filter: string | null;
+          search_term: string;
+          stage_filter: string | null;
+          include_closed: boolean;
+          page_number: number;
+        };
+        Returns: Json;
+      };
+      review_care_result: {
+        Args: { result_kind: string; result_id: string };
+        Returns: string;
+      };
+      create_care_followup: {
+        Args: {
+          patient_id: string;
+          due_on: string;
+          title: string;
+          request_id: string;
+          source_kind: string | null;
+          source_id: string | null;
+        };
+        Returns: string;
+      };
+      resolve_care_followup: {
+        Args: {
+          followup_id: string;
+          expected_version: number;
+          new_status: string;
+          resolution: string;
+        };
+        Returns: undefined;
+      };
       laboratory_worklist: {
         Args: {
           work_day: string;

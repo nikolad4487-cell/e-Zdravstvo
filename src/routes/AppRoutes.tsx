@@ -1,3 +1,4 @@
+import { CarePathways } from "../components/medical/CarePathways";
 import { LaboratoryWorkspace } from "../components/medical/LaboratoryWorklist";
 import { MedicalCodesPage } from "../pages/shared/MedicalCodesPage";
 import { Navigate, Outlet, Route, Routes, Link } from "react-router-dom";
@@ -228,6 +229,10 @@ export function AppRoutes() {
             )}
             {path === "/ordinacija" && (
               <>
+                <Route
+                  path="/ordinacija/tijek-skrbi"
+                  element={<CarePathways />}
+                />
                 <Route
                   path="/ordinacija/laboratorij"
                   element={<LaboratoryPanel mode="CARE" />}

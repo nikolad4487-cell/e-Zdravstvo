@@ -320,7 +320,7 @@ try {
       assert.equal(item.history[0].status, "COMPLETED");
       await assert.rejects(
         advance("RECOLLECT", "Novi testni uzorak"),
-        /Order is closed/,
+        /Booking is closed/,
       );
       const patientOrders = await as(3, () =>
         rpc("search_laboratory", [

@@ -23,6 +23,9 @@ export function DoctorTasks() {
     <section className="card">
       <div className="section-heading">
         <h2>Zadaci za obradu</h2>
+        <Link className="text-link" to="/ordinacija/tijek-skrbi">
+          Tijek skrbi i kontrolne obveze
+        </Link>
         <button
           className="text-link"
           disabled={resource.loading}

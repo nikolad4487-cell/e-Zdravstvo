@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { CarePathways } from "../../components/medical/CarePathways";
+import { useEffect, useState } from "react";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 import {
   ArrowLeft,
   ShieldAlert,
@@ -35,10 +36,26 @@ export function PatientRecordPage() {
     [documentVersion, setDocumentVersion] = useState(0);
   const { id = "" } = useParams();
   const chart = useResource(() => getChart(id), id);
-  const [tab, setTab] = useState("PREGLED"),
+  const [params] = useSearchParams();
+  const [tab, setTab] = useState(
+      params.get("tab") &&
+        ["UPUTNICE", "LABORATORIJ", "NARUDŽBE", "NALAZI"].includes(
+          params.get("tab")!,
+        )
+        ? params.get("tab")!
+        : "PREGLED",
+    ),
     [action, setAction] = useState<ClinicalAction | null>(null),
     [amendment, setAmendment] = useState<MedicalEncounter>(),
     [success, setSuccess] = useState("");
+  useEffect(() => {
+    const section = params.get("tab");
+    if (
+      section &&
+      ["UPUTNICE", "LABORATORIJ", "NARUDŽBE", "NALAZI"].includes(section)
+    )
+      setTab(section);
+  }, [params, id]);
   if (chart.error) return <ErrorMessage>{chart.error}</ErrorMessage>;
   if (!chart.data) return <p role="status">Učitavanje kartona…</p>;
   const {
@@ -96,6 +113,7 @@ export function PatientRecordPage() {
         )}
       </section>
       <FhirExport patientId={id} />
+      {tab === "TIJEK SKRBI" && can_write && <CarePathways patientId={id} />}
       {editingPatient && (
         <EditPatient
           patient={p}
@@ -127,6 +145,7 @@ export function PatientRecordPage() {
       <nav className="record-tabs" aria-label="Dijelovi kartona">
         {[
           "PREGLED",
+          ...(can_write ? ["TIJEK SKRBI"] : []),
           "POVIJEST",
           "DIJAGNOZE",
           "TERAPIJA",
