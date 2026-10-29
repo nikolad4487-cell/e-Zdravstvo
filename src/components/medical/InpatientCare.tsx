@@ -1,3 +1,4 @@
+import { InpatientMedication } from "./InpatientMedication";
 import { useCallback, useState } from "react";
 import { useAuth } from "../../hooks/useAuth";
 import { useResource } from "../../hooks/useResource";
@@ -314,6 +315,7 @@ function InpatientDetail({
   onClose: () => void;
   onChanged: () => void;
 }) {
+  const [medicating, setMedicating] = useState(false);
   const [savedRevision, setSavedRevision] = useState(0);
   const [page, setPage] = useState(0),
     [action, setAction] = useState<"NOTE" | "TRANSFER" | "DISCHARGE" | null>(
@@ -331,11 +333,11 @@ function InpatientDetail({
   );
   const context = useResource(inpatientContext, "inpatient-detail-context");
   const refreshDetail = useCallback(() => {
-    if (!action && !reporting) {
+    if (!action && !reporting && !medicating) {
       resource.refresh();
       context.refresh();
     }
-  }, [action, reporting, resource.refresh, context.refresh]);
+  }, [action, reporting, medicating, resource.refresh, context.refresh]);
   useScheduleRefresh(refreshDetail);
   const data = resource.data;
   const current = data?.admission;
@@ -402,6 +404,18 @@ function InpatientDetail({
       setBusy(false);
     }
   }
+  if (medicating)
+    return (
+      <InpatientMedication
+        admissionId={admission.id}
+        patientName={admission.patient_name}
+        patientNumber={admission.patient_number}
+        onClose={() => {
+          setMedicating(false);
+          resource.refresh();
+        }}
+      />
+    );
   if (reporting)
     return (
       <ReportEditor
@@ -462,6 +476,14 @@ function InpatientDetail({
               </p>
               <p>{current.reason}</p>
               <div className="document-actions">
+                <button
+                  type="button"
+                  className="secondary"
+                  disabled={!!action || busy}
+                  onClick={() => setMedicating(true)}
+                >
+                  Terapijski nalozi i primjena lijekova
+                </button>
                 {current.status === "ADMITTED" && (
                   <>
                     {(data.can_doctor_note || data.can_nurse) && (
@@ -675,7 +697,7 @@ function InpatientDetail({
                 <button
                   type="button"
                   className="secondary"
-                  disabled={page === 0}
+                  disabled={page === 0 || !!action || busy}
                   onClick={() => setPage(page - 1)}
                 >
                   Prethodne bilješke

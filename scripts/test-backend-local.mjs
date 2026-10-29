@@ -110,7 +110,7 @@ await ok(
 const anon = createClient(url, key, options);
 assert.equal(
   await ok(await anon.rpc("application_schema_version")),
-  2026102804,
+  2026102901,
 );
 assert.ok((await anon.rpc("get_patient_chart", { patient_id: patient })).error);
 assert.ok(

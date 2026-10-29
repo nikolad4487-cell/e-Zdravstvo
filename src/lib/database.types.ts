@@ -32,6 +32,44 @@ export type Database = {
     };
     Views: Record<string, never>;
     Functions: {
+      create_inpatient_medication_order: {
+        Args: {
+          admission_id: string;
+          medication_id: string;
+          dose: string;
+          route: string;
+          instructions: string;
+          scheduled_times: string[];
+          request_id: string;
+        };
+        Returns: string;
+      };
+      stop_inpatient_medication_order: {
+        Args: { order_id: string; expected_version: number; reason: string };
+        Returns: undefined;
+      };
+      record_inpatient_medication: {
+        Args: {
+          dose_id: string;
+          outcome: string;
+          actual_time: string;
+          actual_dose: string | null;
+          patient_confirmed: boolean;
+          note: string;
+          request_id: string;
+          corrects_record_id: string | null;
+          correction_reason: string;
+        };
+        Returns: string;
+      };
+      inpatient_medications: {
+        Args: { admission_id: string; page_number: number };
+        Returns: Json;
+      };
+      inpatient_medication_history: {
+        Args: { order_id: string; page_number: number };
+        Returns: Json;
+      };
       inpatient_context: { Args: Record<string, never>; Returns: Json };
       save_inpatient_ward: {
         Args: {

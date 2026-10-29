@@ -14,7 +14,7 @@ spremnosti cijelog sustava za stvarnu medicinsku dokumentaciju.
 | 5 | Strukturirano propisivanje i provjerene kliničke provjere | Interakcije i doze zahtijevaju odabranu validiranu bazu |
 | 6 | Specijalistički obrasci | Potrebni odobreni obrasci i klinički zahtjevi odjela |
 | 7 | Životni ciklus šifrarnika i operativno upravljanje ustanovom | Slijedi |
-| 8 | Prijam, hospitalizacije, sobe/kreveti, premještaji, sestrinska skrb, nalozi i evidencija primjene terapije, otpust | Prijam, smještaj, premještaji, bilješke i otpust implementirani; terapijski nalozi i evidencija primjene terapije preostaju |
+| 8 | Prijam, hospitalizacije, sobe/kreveti, premještaji, sestrinska skrb, nalozi i evidencija primjene terapije, otpust | Prijam, smještaj, premještaji, bilješke, otpust te ručno propisani terapijski nalozi i evidencija primjene implementirani; klinička validacija i napredni odjelni tokovi preostaju |
 | 9 | Obračun i službene integracije | Potrebne važeće specifikacije, testni pristupi i postupak verifikacije |
 
 Vanjski uvjeti koje nije moguće pretpostaviti: CEZIH/HZZO testni pristup i dopuštena
@@ -123,11 +123,55 @@ izvornika. Otpust zahtijeva aktualno otpusno pismo tog prijama te atomarno zavr�
 hospitalizaciju i oslobađa krevet. Ispravno se koristi hrvatski datum pri izdavanju
 bolničkog nalaza. Raniji izdani dokumenti i poslovi dostave ne prepisuju se.
 
-To još nije cijeli bolnički HIS: strukturirani terapijski nalozi, evidencija svake
-primjene lijeka, operacijski tokovi, obračun i vanjske integracije ostaju otvoreni.
+To još nije cijeli bolnički HIS: operacijski tokovi, napredni odjelni obrasci,
+obračun i vanjske integracije ostaju otvoreni.
 Postojeći interni potpis i autorizacija nisu potvrda kvalificiranog potpisa niti
 stručne validacije za uporabu sa stvarnom medicinskom dokumentacijom.
 
 Provjere: `test:inpatient`, kliničke/sigurnosne SQL provjere, preglednik na računalu
 /mobitelu. Isporuka zahtijeva sve migracije do `202610280004` i minimalnu javnu
 verziju sheme `2026102804`; korisničko sučelje odbija stariju shemu.
+
+
+## Bolnički terapijski nalozi i evidencija primjene
+
+U **Hospitalizacije → Bolnička skrb → Terapijski nalozi i primjena lijekova**
+ovlašteni liječnik odabire aktivan lijek iz postojećeg šifrarnika, unosi pojedinačnu
+dozu s jedinicom, put primjene, uputu i do 48 izričito odabranih vremena doza po
+nalogu. Nema automatske pretpostavke doze, ponavljanja, interakcija ni zamjene lijeka.
+Za nastavak rasporeda izdaje se novi nalog. Ovo ne izdaje ambulantni recept i ne
+mijenja postojeću ambulantnu terapiju. Podaci lijeka ostaju snimljeni uz nalog.
+
+Dozu evidentira ovlašteni bolnički liječnik ili izričito dodijeljena sestra iste
+ustanove. Primjena zahtijeva stvarno vrijeme, dozu i potvrdu provjere identiteta i
+naloga. Neprimjena i odstupanje od doze zahtijevaju obrazloženje. Potvrda u sučelju
+jest zapis izjave djelatnika, ne automatska potvrda identiteta skenerom. Vrijeme
+ishoda ne smije biti u budućnosti, prije prijama ili nakon zatvaranja naloga.
+Kasni unos razlikuje stvarno vrijeme ishoda od vremena evidentiranja.
+
+Svaka planirana doza ima najviše jedan aktualni ishod. Ponovljeni mrežni zahtjev
+ne stvara novi zapis; izmijenjeni zahtjev s istim identifikatorom se odbija.
+Izvornik se ne prepisuje. Autor može stvoriti povezani ispravak s razlogom, uz
+ponovnu provjeru trenutačnih prava. Ispravak je moguć i nakon zatvaranja, za ishod
+unutar izvornog razdoblja; nove primjene tada nisu dopuštene. Povijest je dostupna
+po stranicama, uključujući prethodne verzije.
+
+Liječnik zaustavlja nalog uz razlog. Promjena propisane terapije zahtijeva
+zaustavljanje starog i izdavanje novog naloga. Otpust atomarno zatvara sve aktivne
+bolničke naloge i ostavlja neprovedene doze vidljivima kao neevidentirane uz zatvoren
+nalog. Sustav ne pretvara izostali zapis u dokaz primjene ili neprimjene.
+Pristup administratora krevetima ne daje pristup terapiji; opoziv dodjele ukida
+sestrinski pristup zapisima. Izravni klijentski upisi u tablice nisu dopušteni.
+
+Sva se vremena unose u Europe/Zagreb; nepostojeće ili dvosmisleno vrijeme pri
+pomicanju sata odbija se uz poruku. Osvježavanje ne briše otvoreni nacrt.
+Provjere: `test:inpatient-medication`, postojeći bolnički/klinički testovi te
+preglednički tok na računalu i mobitelu. Potrebna je migracija `202610290001` i
+javna verzija sheme `2026102901`.
+
+Preostaju validirani izvor interakcija/doza, stručno odobreni protokoli,
+usuglašavanje terapije na prijamu/otpustu, skladište i izdavanje lijekova te
+odjelne procedure poput infuzija, titracije i dodatne provjere visokorizičnih
+lijekova. Ova isporuka ne predstavlja stručnu validaciju za stvarnu primjenu.
+Korisnik je potvrdio da nema odvojenog projekta za provjeru oporavka; test povrata
+ostaje neizveden, bez zahvata na produkciji.

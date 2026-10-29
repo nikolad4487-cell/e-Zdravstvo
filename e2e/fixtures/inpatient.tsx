@@ -1,6 +1,7 @@
 import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import { AuthContext } from "../../src/contexts/AuthContext";
+import { InpatientMedication } from "../../src/components/medical/InpatientMedication";
 import { InpatientCare } from "../../src/components/medical/InpatientCare";
 import "../../src/styles.css";
 createRoot(document.getElementById("root")!).render(
@@ -21,7 +22,16 @@ createRoot(document.getElementById("root")!).render(
       }}
     >
       <main className="page-content">
-        <InpatientCare patientId="patient-test" patientName="Testna Osoba" />
+        {new URLSearchParams(location.search).has("medication") ? (
+          <InpatientMedication
+            admissionId="admission-test"
+            patientName="Testna Osoba"
+            patientNumber="EZ-PAC-TEST"
+            onClose={() => {}}
+          />
+        ) : (
+          <InpatientCare patientId="patient-test" patientName="Testna Osoba" />
+        )}
       </main>
     </AuthContext.Provider>
   </BrowserRouter>,

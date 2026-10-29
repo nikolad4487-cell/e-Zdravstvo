@@ -39,7 +39,8 @@
     "test:care-pathways": "node scripts/test-care-pathways.mjs",
     "test:lab-worklist": "node scripts/test-laboratory-worklist.mjs",
     "test:lab-windows": "node scripts/test-laboratory-windows.mjs",
-    "test:cezih-lab": "node scripts/test-cezih-laboratory.mjs"
+    "test:cezih-lab": "node scripts/test-cezih-laboratory.mjs",
+    "test:inpatient-medication": "node scripts/test-inpatient-medication.mjs"
   },
   "dependencies": {
     "@pdf-lib/fontkit": "^1.1.1",
