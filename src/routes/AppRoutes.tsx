@@ -1,3 +1,5 @@
+import { InpatientCare } from "../components/medical/InpatientCare";
+import { InpatientSettingsPage } from "../pages/institution/InpatientSettingsPage";
 import {
   MfaChallengePage,
   AccountSecurityPage,
@@ -147,10 +149,16 @@ export function AppRoutes() {
               />
             )}
             {["/ordinacija", "/central", "/ustanove"].includes(path) && (
-              <Route
-                path={path + "/raspored-osoblja"}
-                element={<StaffSchedulePage />}
-              />
+              <>
+                <Route
+                  path={path + "/bolnicki-smjestaj"}
+                  element={<InpatientSettingsPage />}
+                />
+                <Route
+                  path={path + "/raspored-osoblja"}
+                  element={<StaffSchedulePage />}
+                />
+              </>
             )}
             {path === "/moje" && (
               <Route path="/moje/:section" element={<PatientHome />} />
@@ -245,6 +253,10 @@ export function AppRoutes() {
             )}
             {path === "/ordinacija" && (
               <>
+                <Route
+                  path="/ordinacija/hospitalizacije"
+                  element={<InpatientCare />}
+                />
                 <Route
                   path="/ordinacija/tijek-skrbi"
                   element={<CarePathways />}

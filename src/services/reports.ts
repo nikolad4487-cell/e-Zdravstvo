@@ -9,6 +9,7 @@ export const reportSchema = z.object({
   patient_id: z.string(),
   doctor_id: z.string(),
   booking_id: z.string().nullable(),
+  inpatient_admission_id: z.string().nullable().optional(),
   report_type: z.enum(["SPECIALIST", "DISCHARGE"]),
   reported_on: z.string(),
   created_at: z.string(),

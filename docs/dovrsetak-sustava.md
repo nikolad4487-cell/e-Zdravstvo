@@ -14,7 +14,7 @@ spremnosti cijelog sustava za stvarnu medicinsku dokumentaciju.
 | 5 | Strukturirano propisivanje i provjerene kliničke provjere | Interakcije i doze zahtijevaju odabranu validiranu bazu |
 | 6 | Specijalistički obrasci | Potrebni odobreni obrasci i klinički zahtjevi odjela |
 | 7 | Životni ciklus šifrarnika i operativno upravljanje ustanovom | Slijedi |
-| 8 | Prijam, hospitalizacije, sobe/kreveti, premještaji, sestrinska skrb, nalozi i evidencija primjene terapije, otpust | Potvrđen puni opseg; nakon zajedničkog tijeka |
+| 8 | Prijam, hospitalizacije, sobe/kreveti, premještaji, sestrinska skrb, nalozi i evidencija primjene terapije, otpust | Prijam, smještaj, premještaji, bilješke i otpust implementirani; terapijski nalozi i evidencija primjene terapije preostaju |
 | 9 | Obračun i službene integracije | Potrebne važeće specifikacije, testni pristupi i postupak verifikacije |
 
 Vanjski uvjeti koje nije moguće pretpostaviti: CEZIH/HZZO testni pristup i dopuštena
@@ -93,3 +93,41 @@ određuju odredište, dopušteni podaci, siguran prijenos i kriteriji prihvata.
 Provjera mora usporediti migracije, prava pristupa, osnovne tokove te dostupnost i
 integritet privatnih privitaka. Uspješan export ili postojanje backupa nisu dokaz
 uspješnog oporavka.
+
+## Bolnički prijam i dokumentacija skrbi
+
+Administrator u **Bolnički smještaj** postavlja odjele i stvarne oznake soba/kreveta.
+Nisu unaprijed otvoreni izmišljeni produkcijski kreveti ili hospitalizacije.
+Liječnik u **Hospitalizacije** ili otvorenom kartonu evidentira prijam uz razlog i
+slobodan krevet. Aktivni prijam ima jedinstveni krevet i jedinstvenog pacijenta;
+konkurentni i neuspjeli upisi ne gube prethodni smještaj. Deaktivacija zauzetog
+kreveta/odjela nije dopuštena. Premještaji čuvaju izvorne oznake u povijesti.
+
+Aktivni liječnici skrbnog tima u istoj ustanovi upravljaju hospitalizacijom;
+sestrinski pristup zahtijeva izričitu dodjelu pacijentu u toj ustanovi. Administrator
+ne dobiva klinički pristup kroz upravljanje krevetima. U središnjem tijeku skrbi
+liječnik prati hospitalizaciju svog pacijenta, dok su detaljne interne bilješke
+ograničene na odgovarajući bolnički tim. Prava se ponovno provjeravaju pri svakoj
+radnji. Nije uvedeno automatsko proširenje pristupa svim djelatnicima odjela.
+
+Bilješke su odvojene na liječnički tijek i sestrinske zapise. Izvornik i snimka
+imena autora čuvaju se; ispravak stvara povezanu novu verziju s razlogom. Povijest
+bilježaka dostupna je po stranicama, uključujući stare verzije. Osvježavanje preko
+obavijesti/fokusa ne uništava otvoreni nespremljeni nacrt. Događaji smještaja i
+skrbi bilježe stvarni korisnički identitet i vrijeme.
+
+Otpusno pismo izrađuje se postojećim izdavanjem nalaza uz izričitu vezu na prijam.
+Odabire se autentificirani liječnički profil odgovarajuće bolnice, čak i kada isti
+korisnik ima profil u drugoj ustanovi. Ispravak ne može promijeniti bolničku epizodu
+izvornika. Otpust zahtijeva aktualno otpusno pismo tog prijama te atomarno završava
+hospitalizaciju i oslobađa krevet. Ispravno se koristi hrvatski datum pri izdavanju
+bolničkog nalaza. Raniji izdani dokumenti i poslovi dostave ne prepisuju se.
+
+To još nije cijeli bolnički HIS: strukturirani terapijski nalozi, evidencija svake
+primjene lijeka, operacijski tokovi, obračun i vanjske integracije ostaju otvoreni.
+Postojeći interni potpis i autorizacija nisu potvrda kvalificiranog potpisa niti
+stručne validacije za uporabu sa stvarnom medicinskom dokumentacijom.
+
+Provjere: `test:inpatient`, kliničke/sigurnosne SQL provjere, preglednik na računalu
+/mobitelu. Isporuka zahtijeva sve migracije do `202610280004` i minimalnu javnu
+verziju sheme `2026102804`; korisničko sučelje odbija stariju shemu.

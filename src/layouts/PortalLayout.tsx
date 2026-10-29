@@ -115,6 +115,12 @@ export function PortalLayout() {
                   </NavLink>
                 )}
                 <NavLink
+                  to="/ordinacija/hospitalizacije"
+                  onClick={() => setOpen(false)}
+                >
+                  Hospitalizacije
+                </NavLink>
+                <NavLink
                   to="/ordinacija/narudzbe"
                   onClick={() => setOpen(false)}
                 >
@@ -172,6 +178,12 @@ export function PortalLayout() {
               auth.roles.includes("INSTITUTION_ADMIN") ||
               auth.roles.includes("SYSTEM_ADMIN")) && (
               <nav>
+                <NavLink
+                  to={active?.path + "/bolnicki-smjestaj"}
+                  onClick={() => setOpen(false)}
+                >
+                  Bolnički smještaj
+                </NavLink>
                 <NavLink
                   to={active?.path + "/bolnicke-ambulante"}
                   onClick={() => setOpen(false)}

@@ -1,3 +1,4 @@
+import { sessionRequiresMfa } from "../services/sessionSecurity";
 import { createContext, useCallback, useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import type { Session } from "@supabase/supabase-js";
@@ -39,16 +40,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(Boolean(next));
     if (!next) return;
     try {
-      const assurance = await db().auth.mfa.getAuthenticatorAssuranceLevel();
-      if (assurance.error)
-        throw new Error(
-          "Sigurnost prijave nije moguće provjeriti. Pokušajte ponovno.",
-        );
+      const needsMfa = await sessionRequiresMfa();
       if (version !== generation.current) return;
-      if (
-        assurance.data.nextLevel === "aal2" &&
-        assurance.data.currentLevel !== "aal2"
-      ) {
+      if (needsMfa) {
         setMfaRequired(true);
         return;
       }
@@ -92,14 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         "Prijava nije uspjela. Provjerite e-mail i lozinku ili pokušajte ponovno.",
       );
     try {
-      const assurance = await db().auth.mfa.getAuthenticatorAssuranceLevel();
-      if (assurance.error)
-        throw new Error("Sigurnost prijave nije moguće provjeriti.");
-      if (
-        assurance.data.nextLevel !== "aal2" ||
-        assurance.data.currentLevel === "aal2"
-      )
-        await sessionEvent("LOGIN_SUCCESS");
+      if (!(await sessionRequiresMfa())) await sessionEvent("LOGIN_SUCCESS");
     } catch (e) {
       await db().auth.signOut({ scope: "local" });
       throw e;

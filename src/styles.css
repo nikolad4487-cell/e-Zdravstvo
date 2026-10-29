@@ -2777,3 +2777,8 @@ dd {
   overflow-wrap: anywhere;
   margin-top: 12px;
 }
+
+.inpatient-note {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

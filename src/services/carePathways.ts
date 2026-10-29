@@ -2,6 +2,7 @@ import { z } from "zod";
 import { db } from "../lib/supabase";
 import { unwrap } from "./clinical";
 export const careStageLabels = {
+  HOSPITALIZED: "Aktivna hospitalizacija",
   WAITING_BOOKING: "Uputnica bez termina",
   WAITING_VISIT: "Čeka dolazak",
   WAITING_RESULT: "Čeka nalaz",
@@ -14,6 +15,7 @@ export const careStageLabels = {
 };
 const item = z.object({
   critical: z.boolean().optional(),
+  can_inpatient_details: z.boolean().nullable().optional(),
   acknowledged: z.boolean().optional(),
   origin: z.object({ kind: z.string(), id: z.string() }).nullable().optional(),
   source_kind: z.string(),
@@ -26,6 +28,7 @@ const item = z.object({
   event_at: z.string(),
   due_on: z.string().nullable(),
   stage: z.enum([
+    "HOSPITALIZED",
     "WAITING_BOOKING",
     "WAITING_VISIT",
     "WAITING_RESULT",

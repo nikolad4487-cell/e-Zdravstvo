@@ -25,6 +25,16 @@ export function unwrap<T>(result: {
       throw new Error(
         "Nemate ovlast za ovu radnju ili je pristup pacijentu opozvan.",
       );
+    const workflowMessages = new Set([
+      "Svi uzorci ovog uzorkovanja moraju biti zaprimljeni prije obrade i izdavanja nalaza.",
+      "Najprije potvrdite preuzimanje kritičnog nalaza u laboratorijskim rezultatima.",
+      "Najprije zaprimite pacijenta u dnevnom rasporedu.",
+      "Zahtjev je zaključen ili u obradi. Prvo zatražite novo uzorkovanje.",
+      "Odaberite vrstu uzorka iz šifrarnika.",
+      "Oznaka odbijenog ili zamijenjenog uzorka nije za ponovnu uporabu.",
+    ]);
+    if (workflowMessages.has(result.error.message))
+      throw new Error(result.error.message);
     throw new Error(
       "Spremanje ili dohvat nije uspio. Provjerite obvezna polja i pokušajte ponovno.",
     );

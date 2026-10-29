@@ -1,3 +1,4 @@
+import { InpatientCare } from "../../components/medical/InpatientCare";
 import { CarePathways } from "../../components/medical/CarePathways";
 import { useEffect, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
@@ -39,9 +40,13 @@ export function PatientRecordPage() {
   const [params] = useSearchParams();
   const [tab, setTab] = useState(
       params.get("tab") &&
-        ["UPUTNICE", "LABORATORIJ", "NARUDŽBE", "NALAZI"].includes(
-          params.get("tab")!,
-        )
+        [
+          "HOSPITALIZACIJE",
+          "UPUTNICE",
+          "LABORATORIJ",
+          "NARUDŽBE",
+          "NALAZI",
+        ].includes(params.get("tab")!)
         ? params.get("tab")!
         : "PREGLED",
     ),
@@ -52,7 +57,13 @@ export function PatientRecordPage() {
     const section = params.get("tab");
     if (
       section &&
-      ["UPUTNICE", "LABORATORIJ", "NARUDŽBE", "NALAZI"].includes(section)
+      [
+        "HOSPITALIZACIJE",
+        "UPUTNICE",
+        "LABORATORIJ",
+        "NARUDŽBE",
+        "NALAZI",
+      ].includes(section)
     )
       setTab(section);
   }, [params, id]);
@@ -113,6 +124,12 @@ export function PatientRecordPage() {
         )}
       </section>
       <FhirExport patientId={id} />
+      {tab === "HOSPITALIZACIJE" && (
+        <InpatientCare
+          patientId={id}
+          patientName={p.first_name + " " + p.last_name}
+        />
+      )}
       {tab === "TIJEK SKRBI" && can_write && <CarePathways patientId={id} />}
       {editingPatient && (
         <EditPatient
@@ -146,6 +163,7 @@ export function PatientRecordPage() {
         {[
           "PREGLED",
           ...(can_write ? ["TIJEK SKRBI"] : []),
+          "HOSPITALIZACIJE",
           "POVIJEST",
           "DIJAGNOZE",
           "TERAPIJA",

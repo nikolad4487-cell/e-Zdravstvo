@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-async function fixture(page: Page, enroll = false) {
+async function fixture(page: Page, enroll = false, stale = false) {
   const calls: { kind: string; args?: Record<string, unknown> }[] = [];
   let verified = !enroll,
     level = "aal1",
@@ -22,7 +22,10 @@ async function fixture(page: Page, enroll = false) {
     let data: unknown,
       error: unknown = null;
     if (kind === "assurance")
-      data = { currentLevel: level, nextLevel: verified ? "aal2" : "aal1" };
+      data = {
+        currentLevel: level,
+        nextLevel: verified && !stale ? "aal2" : "aal1",
+      };
     else if (kind === "factors")
       data = {
         all: exists
@@ -81,7 +84,7 @@ async function fixture(page: Page, enroll = false) {
 test("verified MFA requires a code before account metadata loads", async ({
   page,
 }) => {
-  const calls = await fixture(page);
+  const calls = await fixture(page, false, true);
   await expect(
     page.getByRole("heading", { name: "Potvrda prijave" }),
   ).toBeVisible();

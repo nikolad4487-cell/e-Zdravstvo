@@ -33,6 +33,7 @@
     "test:hzzo": "node scripts/test-hzzo-catalogs.mjs",
     "test:prescription-catalog": "node scripts/test-prescription-catalog.mjs",
     "test:lab-booking": "node scripts/test-laboratory-booking.mjs",
+    "test:inpatient": "node scripts/test-inpatient-care.mjs",
     "test:mfa": "node scripts/test-session-mfa.mjs",
     "test:lab-samples": "node scripts/test-laboratory-samples.mjs",
     "test:care-pathways": "node scripts/test-care-pathways.mjs",

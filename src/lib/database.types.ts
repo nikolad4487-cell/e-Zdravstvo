@@ -32,6 +32,75 @@ export type Database = {
     };
     Views: Record<string, never>;
     Functions: {
+      inpatient_context: { Args: Record<string, never>; Returns: Json };
+      save_inpatient_ward: {
+        Args: {
+          ward_id: string | null;
+          institution_id: string;
+          name: string;
+          active: boolean;
+        };
+        Returns: string;
+      };
+      save_inpatient_bed: {
+        Args: {
+          bed_id: string | null;
+          ward_id: string;
+          label: string;
+          active: boolean;
+        };
+        Returns: string;
+      };
+      admit_inpatient: {
+        Args: {
+          patient_id: string;
+          bed_id: string;
+          reason: string;
+          request_id: string;
+        };
+        Returns: string;
+      };
+      list_inpatients: {
+        Args: {
+          patient_filter: string | null;
+          search_term: string;
+          include_discharged: boolean;
+          page_number: number;
+        };
+        Returns: Json;
+      };
+      inpatient_details: {
+        Args: { admission_id: string; notes_page: number };
+        Returns: Json;
+      };
+      move_inpatient: {
+        Args: {
+          admission_id: string;
+          bed_id: string;
+          expected_version: number;
+          reason: string;
+        };
+        Returns: undefined;
+      };
+      add_inpatient_note: {
+        Args: {
+          admission_id: string;
+          kind: string;
+          content: string;
+          request_id: string;
+          corrects_note_id: string | null;
+          correction_reason: string;
+        };
+        Returns: string;
+      };
+      discharge_inpatient: {
+        Args: {
+          admission_id: string;
+          expected_version: number;
+          report_id: string;
+        };
+        Returns: undefined;
+      };
       laboratory_sample_label: { Args: { sample_id: string }; Returns: Json };
       list_laboratory_samples: {
         Args: { order_id: string; sample_code: string };

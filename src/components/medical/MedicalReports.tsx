@@ -194,12 +194,16 @@ export function ReportEditor({
   patientId,
   bookingId,
   previous,
+  defaultType = "SPECIALIST",
+  admissionId,
   onClose,
   onSaved,
 }: {
   patientId: string;
   bookingId?: string;
   previous?: MedicalReport;
+  defaultType?: "SPECIALIST" | "DISCHARGE";
+  admissionId?: string;
   onClose: () => void;
   onSaved: () => void;
 }) {
@@ -218,7 +222,11 @@ export function ReportEditor({
           patient_id: patientId,
           booking_id: bookingId ?? null,
           previous_id: previous?.id ?? null,
-          data: draft,
+          data: {
+            ...draft,
+            admission_id:
+              previous?.inpatient_admission_id ?? admissionId ?? null,
+          },
           request_id: request,
         }),
       );
@@ -273,7 +281,7 @@ export function ReportEditor({
             <Field
               name="report_type"
               label="Vrsta"
-              defaultValue={previous?.report_type ?? "SPECIALIST"}
+              defaultValue={previous?.report_type ?? defaultType}
             >
               <option value="SPECIALIST">Specijalistički nalaz</option>
               <option value="DISCHARGE">Otpusno pismo</option>

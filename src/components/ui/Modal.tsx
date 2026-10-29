@@ -7,15 +7,18 @@ export function Modal({
   onClose,
   busy = false,
   wide = false,
+  resetDirtyKey,
 }: {
   title: string;
   children: ReactNode;
   onClose: () => void;
   busy?: boolean;
   wide?: boolean;
+  resetDirtyKey?: string | number;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   const [dirty, setDirty] = useState(false);
+  useEffect(() => setDirty(false), [resetDirtyKey]);
   const close = () => {
     if (
       !busy &&

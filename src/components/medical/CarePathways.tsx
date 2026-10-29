@@ -200,7 +200,7 @@ export function CarePathways({ patientId }: { patientId?: string }) {
               <div className="document-actions">
                 <Link
                   className="secondary"
-                  to={`/ordinacija/pacijenti/${row.patient_id}?tab=${row.source_kind === "REFERRAL" ? "UPUTNICE" : row.result_kind === "LAB_RESULT" || row.source_kind === "LAB_ORDER" ? "LABORATORIJ" : row.source_kind === "BOOKING" ? "NARUDŽBE" : "NALAZI"}`}
+                  to={`/ordinacija/pacijenti/${row.patient_id}?tab=${row.source_kind === "INPATIENT" ? (row.can_inpatient_details ? "HOSPITALIZACIJE" : "NALAZI") : row.source_kind === "REFERRAL" ? "UPUTNICE" : row.result_kind === "LAB_RESULT" || row.source_kind === "LAB_ORDER" ? "LABORATORIJ" : row.source_kind === "BOOKING" ? "NARUDŽBE" : "NALAZI"}`}
                 >
                   Otvori u kartonu
                 </Link>
